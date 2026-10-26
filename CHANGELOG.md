@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.0
+
+- Add Ctrl+Alt+G to switch views from the native page or the official Gemini website, with AltGr/repeat/composition guards.
+- Add Remember last view as a third startup choice; persist only the latest view in a separate local session file.
+- Add Application → Local customizations with installed version, timestamped compatibility checks, and session-preserving UI reapplication.
+- Distinguish repairable helper damage from incompatible native hooks; protect open project editors and orphaned guest sessions.
+- Preserve Gemini styles and translated controls across helper reinstalls; refresh translation catalogs without duplicating controllers.
+- Translate all new controls in the seven supported languages and add session, shortcut, compatibility, and startup regression tests.
+
 ## 1.6.0
 
 - Move startup view and desktop autostart to Application → Startup; keep icon choices in Appearance.

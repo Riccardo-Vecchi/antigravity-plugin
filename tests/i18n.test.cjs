@@ -46,3 +46,8 @@ test('icon tooltips and search names follow the language and retain stable ident
  await f.language('fr');assert.equal(icon.getAttribute('aria-label'),'Icône Dossier');assert.equal(f.api.iconName('folder'),'Dossier');
  await f.language('ja');assert.equal(f.api.iconName('folder'),'フォルダー');
 });
+test('refreshing catalogs after a helper update keeps the live translator and input state',async()=>{
+ const f=await fixture('it'),button=element();f.api.set(button,'Save');
+ const next=JSON.parse(JSON.stringify(catalogs));next.it.strings.Save='Salva aggiornato';f.api.setCatalogs(next);
+ assert.equal(button.textContent,'Salva aggiornato');assert.equal(button.value,'unsaved input');await f.language('de');assert.equal(button.textContent,'Speichern');
+});

@@ -1,11 +1,11 @@
 'use strict';
 const test=require('node:test');const assert=require('node:assert/strict');const vm=require('node:vm');const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');
 const script=fs.readFileSync(path.join(__dirname,'../app-settings.js'),'utf8');
-async function fixture({startupView='antigravity',guestCreated=false,visible=false,preserved=false}={}){
+async function fixture({startupView='antigravity',lastView,guestCreated=false,visible=false,preserved=false}={}){
  let opens=0;const observers=[],events=[];
  const element=()=>({setAttribute(){},append(){},remove(){},textContent:''});
  const document={createElement:element,head:element(),body:element(),querySelectorAll:()=>[],querySelector:selector=>selector==='[data-agpa-open-gemini]'?{click(){opens++;visible=true;guestCreated=true}}:null};
- const context={__AGPAI18n:{attrs(){},subscribe(){return()=>{}},language:'en'},document,crypto,queueMicrotask,setTimeout,clearTimeout,MutationObserver:class{constructor(cb){this.cb=cb;observers.push(this)}observe(){}disconnect(){}},__AGPA_STARTUP_APPLIED__:preserved,__AGPA_APP_SETTINGS__:{version:2,taskbarIcon:'dynamic',startupView,autostart:false},__AGPA_APP_ICON_ASSETS__:{antigravity:'local-a',gemini:'local-g'},__AGGeminiSwitch:{status:()=>({visible,guestCreated})},__agpaAppSettings:raw=>events.push(JSON.parse(raw))};
+ const context={__AGPAI18n:{attrs(){},subscribe(){return()=>{}},language:'en'},document,crypto,queueMicrotask,setTimeout,clearTimeout,MutationObserver:class{constructor(cb){this.cb=cb;observers.push(this)}observe(){}disconnect(){}},__AGPA_STARTUP_APPLIED__:preserved,__AGPA_APP_SETTINGS__:{version:2,taskbarIcon:'dynamic',startupView,lastView,autostart:false},__AGPA_APP_ICON_ASSETS__:{antigravity:'local-a',gemini:'local-g'},__AGGeminiSwitch:{status:()=>({visible,guestCreated})},__agpaAppSettings:raw=>events.push(JSON.parse(raw))};
  context.window={addEventListener(){},removeEventListener(){}};vm.createContext(context);vm.runInContext(script,context);await new Promise(setImmediate);
  return {context,events,opens:()=>opens,mutate:async()=>{for(const o of observers)o.cb();await new Promise(setImmediate)},setVisible:value=>{visible=value}};
 }
@@ -26,4 +26,13 @@ test('changing startup preference affects only future windows',async()=>{
 });
 test('view navigation reports changes once without rewriting preferences',async()=>{
  const f=await fixture();f.setVisible(true);await f.mutate();const count=f.events.length;await f.mutate();assert.equal(f.events.length,count);assert.equal(f.events.at(-1).action,'viewChanged');assert.equal(f.events.at(-1).value,'gemini');f.context.__AGAppSettings.destroy();
+});
+
+test('remember last view starts Gemini from the persisted view, once',async()=>{
+ const f=await fixture({startupView:'last',lastView:'gemini'});assert.equal(f.opens(),1);await f.mutate();assert.equal(f.opens(),1);f.context.__AGAppSettings.destroy();
+});
+test('remember last view defaults to Antigravity and preserves already-open guests',async()=>{
+ for(const options of [{startupView:'last'},{startupView:'last',lastView:'antigravity'},{startupView:'last',lastView:'gemini',guestCreated:true}]){
+  const f=await fixture(options);assert.equal(f.opens(),0);f.context.__AGAppSettings.destroy();
+ }
 });

@@ -13,3 +13,7 @@ test('unknown values and non-boolean autostart are rejected',()=>{
  for(const patch of [{version:9},{taskbarIcon:'other'},{startupView:'other'},{autostart:'true'}])
   assert.throws(()=>validate({version:2,taskbarIcon:'dynamic',startupView:'gemini',autostart:false,...patch}));
 });
+
+test('remember-last startup remains independent from icon and autostart preferences',()=>{
+ assert.deepEqual(validate({version:2,taskbarIcon:'gemini',startupView:'last',autostart:false}),{version:2,taskbarIcon:'gemini',startupView:'last',autostart:false});
+});

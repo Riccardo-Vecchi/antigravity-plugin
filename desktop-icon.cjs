@@ -7,6 +7,8 @@ const {promisify}=require('node:util');
 const run=promisify(execFile);
 const DIRECTORY=path.join(os.homedir(),'.config','antigravity-project-appearance');
 const PREFERENCES=path.join(DIRECTORY,'app.json');
+const session=require('./session-state.cjs').createSessionStore(path.join(DIRECTORY,'session.json'));
+let lastView='antigravity';
 const DESKTOP=process.env.AGPA_DESKTOP_FILE||path.join(os.homedir(),'.local','share','applications','alacarte-made.desktop');
 const EXECUTABLE=process.env.AGPA_APPIMAGE||path.join(os.homedir(),'.local','opt','Antigravity.AppImage');
 const GEMINI_ICON=path.join(__dirname,'icons','gemini-512.png');
@@ -21,12 +23,12 @@ let currentView='antigravity',effectiveIcon=null,trayAvailable=false;
 function validate(data){
  if(!data||![1,2].includes(data.version)||!['antigravity','gemini','dynamic'].includes(data.taskbarIcon))throw Error('Unsupported application icon preference.');
  const startupView=data.version===1?'antigravity':data.startupView;
- if(!['antigravity','gemini'].includes(startupView))throw Error('Unsupported startup view.');
+ if(!['antigravity','gemini','last'].includes(startupView))throw Error('Unsupported startup view.');
  if(data.autostart!==undefined&&typeof data.autostart!=='boolean')throw Error('Invalid autostart preference.');
  return {version:2,taskbarIcon:data.taskbarIcon,startupView,autostart:data.autostart??false};
 }
 function desiredIcon(){return state.taskbarIcon==='dynamic'?currentView:state.taskbarIcon;}
-function getState(){return {...state,currentView,effectiveIcon:effectiveIcon||desiredIcon(),trayAvailable};}
+function getState(){return {...state,lastView,startupTarget:state.startupView==='last'?lastView:state.startupView,currentView,effectiveIcon:effectiveIcon||desiredIcon(),trayAvailable};}
 async function syncTray(choice){
  try{const result=await run('/usr/bin/python3',[path.join(__dirname,'sync-tray-icon.py'),choice],{timeout:8000});const data=JSON.parse(result.stdout);trayAvailable=!!data.available;return data;}
  catch{trayAvailable=false;return {available:false,changed:false};}
@@ -116,13 +118,13 @@ async function apply(choice){
  return savePreferences({taskbarIcon:choice});
 }
 async function setStartupView(view){
- if(!['antigravity','gemini'].includes(view))throw Error('Choose Antigravity or Gemini.');
+ if(!['antigravity','gemini','last'].includes(view))throw Error('Choose Antigravity, Gemini, or the last view.');
  return savePreferences({startupView:view});
 }
 async function setAutostart(enabled){if(typeof enabled!=='boolean')throw Error('Invalid autostart value.');return savePreferences({autostart:enabled});}
 async function setView(view){
  if(!['antigravity','gemini'].includes(view))throw Error('Unknown view.');
- currentView=view;return renderIcon();
+ currentView=view;lastView=await session.record(view);return renderIcon();
 }
 async function ensureTray(){await syncTray(effectiveIcon||desiredIcon());return getState();}
 async function initialize(){
@@ -130,7 +132,8 @@ async function initialize(){
  try{const stat=await fs.stat(PREFERENCES);if(stat.size>4096)throw Error('Application preferences are too large.');state=validate(JSON.parse(await fs.readFile(PREFERENCES,'utf8')));saved=true;}
  catch(error){if(error.code!=='ENOENT')throw error;}
  state.autostart=await readAutostart();
- currentView=state.startupView;
+ lastView=await session.read();
+ currentView=state.startupView==='last'?lastView:state.startupView;
  if(saved)await renderIcon({live:false,force:true});
  return getState();
 }

@@ -1,10 +1,10 @@
 /* Translation applies only to this integration's controls, never user content. */
 (() => {
  'use strict';
- const VERSION='1.6.0';
- const catalogs=globalThis.__AGPA_TRANSLATIONS__;
+ const VERSION='1.7.0';
+ let catalogs=globalThis.__AGPA_TRANSLATIONS__;
  delete globalThis.__AGPA_TRANSLATIONS__;
- if(globalThis.__AGPAI18n?.version===VERSION)return;
+ if(globalThis.__AGPAI18n?.version===VERSION){globalThis.__AGPAI18n.setCatalogs(catalogs);return;}
  globalThis.__AGPAI18n?.destroy();
  const bindings=new Set(),nodes=new WeakMap(),listeners=new Set();
  let stopped=false,queued=false;
@@ -56,6 +56,7 @@
  const controlsObserver=new MutationObserver(schedule);controlsObserver.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-label','title']});
  window.addEventListener('languagechange',schedule);
  globalThis.__AGPAI18n={version:VERSION,t,set,attrs,adoptGemini,normalize,
+  setCatalogs(next){catalogs=next;language=detect();for(const entry of bindings)write(entry);for(const fn of listeners)fn(language);},
   get language(){return language;},
   iconName(id){return catalogs[language]?.icons[id]??catalogs.en.icons[id]??id;},
   subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},

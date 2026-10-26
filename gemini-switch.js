@@ -4,6 +4,7 @@
   const VERSION='1.2.0';
   const i18n=globalThis.__AGPAI18n;
   const icons=globalThis.__AGPA_SWITCH_ASSETS__;
+  const css=globalThis.__AGPA_GEMINI_CSS__;delete globalThis.__AGPA_GEMINI_CSS__;
   delete globalThis.__AGPA_SWITCH_ASSETS__;
   if(globalThis.__AGGeminiSwitch?.version===VERSION)return;
   globalThis.__AGGeminiSwitch?.destroy();
@@ -21,24 +22,7 @@
   }
   function icon(name){return el('img',{src:icons[name],alt:'',width:'20',height:'20',draggable:'false'});}
   function listen(node,event,fn){node.addEventListener(event,fn);listeners.push(()=>node.removeEventListener(event,fn));}
-  const styles=el('style',{id:'agpa-gemini-styles',text:`
-    .agpa-app-switch {display:inline-flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;height:30px;padding:0 11px;border:1px solid transparent;border-radius:999px;background:var(--secondary,#202020);color:var(--foreground,#eee);font:500 13px system-ui,sans-serif;cursor:pointer;-webkit-app-region:no-drag;white-space:nowrap}
-    .agpa-app-switch:hover {filter:brightness(1.2);border-color:var(--border,#444)}
-    .agpa-app-switch img {width:20px;height:20px;object-fit:contain;flex-shrink:0}
-    .agpa-app-switch:focus-visible,.agpa-gemini-tool:focus-visible {outline:2px solid #398bdb;outline-offset:2px}
-    .agpa-gemini {position:fixed;box-sizing:border-box;inset:35px 0 0;width:100vw;height:calc(100vh - 35px);max-width:none;max-height:none;margin:0;padding:0;border:0;background:var(--background,#111);color:var(--foreground,#eee);overflow:hidden;outline:none;font:13px system-ui,sans-serif}
-    .agpa-gemini[open] {display:flex;flex-direction:column}
-    .agpa-gemini:not([open]) {display:none!important}
-    .agpa-gemini::backdrop {background:transparent}
-    .agpa-gemini-bar {height:44px;min-height:44px;display:flex;align-items:center;gap:7px;padding:0 12px;border-bottom:1px solid var(--border,#303030);background:var(--background,#111)}
-    .agpa-gemini-origin {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted-foreground,#aaa);margin-left:5px;font-size:12px}
-    .agpa-gemini-state {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted-foreground,#aaa);font-size:12px;text-align:right;margin-right:8px}
-    .agpa-gemini-tool {width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:0;border-radius:7px;background:transparent;color:inherit;cursor:pointer;font:18px system-ui,sans-serif}
-    .agpa-gemini-tool:hover {background:var(--secondary,#333)}
-    .agpa-gemini-tool:disabled {opacity:.35;cursor:default}
-    .agpa-gemini webview {display:flex;flex:1;min-height:0;width:100%;background:#111}
-    @media(max-width:650px){.agpa-gemini-state{display:none}.agpa-gemini-origin{flex:1}.agpa-gemini-bar{padding:0 8px;gap:4px}}
-  `});
+  const styles=el('style',{id:'agpa-gemini-styles',text:css});
   document.head.append(styles);
   function applyButton(){
     if(destroyed)return;

@@ -21,13 +21,17 @@ Unofficial Linux additions for Google Antigravity: project icons and colors, a c
 | Cleaner Gemini view | The extra URL/navigation toolbar is hidden. Antigravity menu labels disappear in Gemini and return in the native view. Window controls remain available. |
 | Fixed or dynamic app icon | Choose **Antigravity**, **Gemini**, or **Dynamic**. Dynamic follows the view most recently used in an app window. |
 | Native tray icon | On supported Zorin/GNOME AppIndicator setups, the tray follows the same icon choice while retaining the native tray menu. |
-| Startup view | Choose whether new windows open in Antigravity or Gemini. Changing this setting does not navigate an existing window. |
+| Startup view | Open new windows in Antigravity, Gemini, or the last view used. Changing this setting does not navigate an existing window. |
+| View shortcut | **Ctrl+Alt+G** switches between Antigravity and Gemini while the app is focused. |
+| Patch status and recovery | See the installed patch version, check the current interface, and reapply the additions without reloading open pages. |
 | Desktop autostart | Enable or disable **Launch at desktop sign-in**, backed by a real XDG autostart entry. |
 | Localized additions | English, Italian, German, Spanish, French, Simplified Chinese, and Japanese; unsupported languages fall back to English. |
 
 ![Appearance preferences](docs/images/preferences.png)
 
 ![Application startup preferences](docs/images/startup.png)
+
+![Patch status and recovery](docs/images/integration.png)
 
 ## Tested setup
 
@@ -72,7 +76,7 @@ Open **Settings → Appearance** for visual options:
 
 Open **Settings → Application → Startup** for launch behavior:
 
-- **Start in:** the view opened in a new window.
+- **Start in:** Antigravity, Gemini, or **Remember last view**. The last view is shared across app windows and survives helper/app restarts. With no saved view, Antigravity is used.
 - **Launch at desktop sign-in:** whether Linux should launch the app after you sign in.
 
 These choices are independent. For example, you can start in Gemini, use a fixed Antigravity icon, and keep autostart disabled.
@@ -80,6 +84,20 @@ These choices are independent. For example, you can start in Gemini, use a fixed
 The helper service starting with your session does **not** itself launch Antigravity. The separate autostart checkbox creates/removes its own launcher in `~/.config/autostart/`. Desktop policy or separate startup entries created outside this project can affect autostart behavior. See the [XDG autostart specification](https://specifications.freedesktop.org/autostart/latest/).
 
 In Dynamic mode, the taskbar and supported tray follow the last view reported by an app window. The icon is global to the app; multiple windows do not have separate taskbar identities.
+
+Open **Settings → Shortcuts** for **Ctrl+Alt+G**, the window-local switch between Antigravity and Gemini. It does not register an operating-system-wide shortcut, and repeated keys, input-method composition, and AltGr typing are ignored. The in-page shortcut is added only on the official Gemini origin; account sign-in pages retain the visible return button.
+
+## Patch status and recovery
+
+Open **Settings → Application → Local customizations**:
+
+- **Version** identifies the installed helper code.
+- **Check compatibility** reads the current native interface hooks and checks the project, settings, Gemini, and keyboard integrations. The result and time of the last check are shown for that window.
+- **Reapply patch** restores the integration's controls and styles without navigating the native app or the Gemini guest. Project customizations and app preferences are retained.
+
+Checks distinguish missing helper elements (repairable) from missing native hooks (incompatible). Reapplication is skipped if required native hooks changed, a project editor is open, or an existing Gemini guest lost its original controller. This preserves the current session; a changed upstream interface can require a source update followed by `./install.sh`.
+
+These are local interface checks. A Ready result does not certify every vendor feature, website request, login flow, or future app release. Reapplication repairs the running UI; it does not download updates, overwrite the AppImage, or change your desktop settings.
 
 ## Languages
 
@@ -111,6 +129,7 @@ Tray support uses the existing Zorin/GNOME AppIndicator `custom-icons` setting f
 ~/.local/share/antigravity-project-appearance/       installed code and icon assets
 ~/.config/antigravity-project-appearance/projects.json
 ~/.config/antigravity-project-appearance/app.json
+~/.config/antigravity-project-appearance/session.json  last view only
 ~/.config/antigravity-project-appearance/icon-originals/
 ~/.config/antigravity-project-appearance/asset-originals/
 ~/.config/antigravity-project-appearance/tray-settings-original.json
@@ -150,7 +169,7 @@ bash -n install.sh disable.sh
 python3 -m py_compile refresh-icon-theme.py sync-tray-icon.py
 ```
 
-Automated tests cover preference migration, independent startup/icon choices, one-time startup behavior, preserving existing guests on upgrade, view-change reporting, translation coverage/placeholders, regional languages, English fallback, and updating open controls without losing input. Live checks on the tested Linux setup cover project UI, fixed/dynamic icon changes, menu hiding, tray icons, persistence, settings placement, and all seven languages in settings/project editing/the Gemini return button. The system's XDG autostart generator recognizes the enabled entry and omits it when disabled. A full logout/login is deliberately not part of the automated checks.
+Automated tests cover preference migration, independent startup/icon choices, one-time/remember-last startup, session-state persistence and recovery, shortcut handling and AltGr, compatibility/recovery gates, translation coverage/placeholders, regional languages, English fallback, and updating open controls without losing input. Live checks cover switching with the shortcut from both the native page and Gemini, recovery after removing a helper stylesheet, refusing recovery when a native hook is missing, helper restarts with the last view preserved, and localized controls in all seven languages. Earlier live checks cover project appearance, compact sidebar, fixed/dynamic icons, tray, menu hiding, and XDG autostart. A full logout/login is deliberately not part of the automated checks.
 
 This repository contains the integration source and generic tests, not personal diagnostics, account information, cookies, conversations, or feedback submission receipts.
 

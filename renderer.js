@@ -1,7 +1,7 @@
 /* Local project appearance. No conversation, project metadata, or tool mutations. */
 (() => {
   'use strict';
-  const VERSION = '1.6.0';
+  const VERSION = '1.7.0';
   const i18n=globalThis.__AGPAI18n;
   const initial = globalThis.__AGPA_CONFIG__ || { projects: {} };
   delete globalThis.__AGPA_CONFIG__;
@@ -389,6 +389,7 @@
   const untranslate=i18n.subscribe(()=>{schedule();editorTranslate?.();});
   globalThis.__AGProjectAppearance={
     version:VERSION,
+    reapply(){if(!style.isConnected)document.head.append(style);schedule();},
     setConfig(next){config=next||{projects:{}};schedule();},
     onPersisted(requestId,ok,message,next){
       const request=pending.get(requestId);if(!request)return;

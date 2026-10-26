@@ -10,6 +10,9 @@ const CONFIG_PATH=path.join(CONFIG_DIR,'projects.json');
 const PORT_PATH=path.join(os.homedir(),'.config','Antigravity','DevToolsActivePort');
 const RENDERER=fs.readFileSync(path.join(BASE,'renderer.js'),'utf8');
 const SWITCH=fs.readFileSync(path.join(BASE,'gemini-switch.js'),'utf8');
+const SHORTCUTS=fs.readFileSync(path.join(BASE,'shortcuts.js'),'utf8');
+const SWITCH_CSS=fs.readFileSync(path.join(BASE,'gemini-switch.css'),'utf8');
+const compatibility=require('./compatibility.cjs');
 const INLINE=fs.readFileSync(path.join(BASE,'gemini-inline.js'),'utf8');
 const APP_SETTINGS=fs.readFileSync(path.join(BASE,'app-settings.js'),'utf8');
 const I18N=fs.readFileSync(path.join(BASE,'i18n.js'),'utf8');
@@ -18,11 +21,12 @@ const WINDOW_CHROME=fs.readFileSync(path.join(BASE,'window-chrome.css'),'utf8');
 const desktopIcon=require('./desktop-icon.cjs');
 const SWITCH_ASSETS=JSON.parse(fs.readFileSync(path.join(BASE,'switch-assets.json'),'utf8'));
 const APP_ICON_ASSETS={antigravity:'data:image/png;base64,'+fs.readFileSync(path.join(BASE,'icons','antigravity.png')).toString('base64'),gemini:SWITCH_ASSETS.gemini};
-const VERSION='1.6.0';
-const APP_SETTINGS_VERSION='1.6.0';
-const APPEARANCE_VERSION='1.6.0';
+const VERSION='1.7.0';
+const I18N_VERSION='1.7.0';
+const APP_SETTINGS_VERSION='1.7.0';
+const APPEARANCE_VERSION='1.7.0';
 const SWITCH_VERSION='1.2.0';
-const INLINE_VERSION='1.6.1';
+const INLINE_VERSION='1.7.0';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ICONS=new Set('folder terminal code monitor server chip cloud robot settings wrench briefcase book notebook graduation pencil pen music film atom palette stethoscope puzzle leaf shopping chart money dumbbell scales globe plane heart paw flask brain flower home camera phone shield rocket gamepad coffee bicycle lightbulb flag tree mail star'.split(' '));
 let config={version:1,projects:{}};
@@ -73,7 +77,7 @@ async function commit(projectId,style){
  return next;
 }
 class Client{
- constructor(target,key){this.target=target;this.key=key;this.pending=new Map();this.contexts=new Map();this.next=0;this.busy=false;this.initialized=false;this.ws=null;}
+ constructor(target,key){this.target=target;this.key=key;this.pending=new Map();this.contexts=new Map();this.next=0;this.busy=false;this.initialized=false;this.ws=null;this.catalogUpdated=false;this.patchStatus={version:VERSION,state:'unchecked',checks:[]};}
  async open(){
   const ws=new WebSocket(this.target.webSocketDebuggerUrl);this.ws=ws;
   await new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(Error('CDP connection timed out.')),2500);ws.onopen=()=>{clearTimeout(t);resolve();};ws.onerror=()=>{clearTimeout(t);reject(Error('CDP connection failed.'));};});
@@ -95,6 +99,7 @@ class Client{
   await this.ensure();
   await desktopIcon.ensureTray();
   await this.updateAppState();
+  await this.checkCompatibility();
  }
  call(method,params={}){
   return new Promise((resolve,reject)=>{
@@ -115,31 +120,58 @@ class Client{
    const data=JSON.parse(state||'{}');
    if(!data.top||!/^https:\/\/127\.0\.0\.1:\d+$/.test(data.origin))return;
    this.origin=data.origin;
-   if(await this.evaluate('globalThis.__AGPAI18n?.version')!==VERSION){
+   if(await this.evaluate('globalThis.__AGPAI18n?.version')!==I18N_VERSION){
     await this.evaluate(`globalThis.__AGPA_TRANSLATIONS__=${JSON.stringify(TRANSLATIONS)};\n${I18N}`);
-   }
+    this.catalogUpdated=true;
+   }else if(!this.catalogUpdated){await this.evaluate(`globalThis.__AGPAI18n.setCatalogs(${JSON.stringify(TRANSLATIONS)})`);this.catalogUpdated=true;}
    if(data.version!==APPEARANCE_VERSION){
     await this.evaluate(`globalThis.__AGPA_CONFIG__=${JSON.stringify(config)};\n${RENDERER}`);
     this.initialized=true;log('Applied project appearance to Antigravity window.');
    }else if(!this.initialized){this.initialized=true;await this.updateConfig();}
    if(await this.evaluate('globalThis.__AGGeminiSwitch?.version')!==SWITCH_VERSION){
-    await this.evaluate(`globalThis.__AGPA_SWITCH_ASSETS__=${JSON.stringify(SWITCH_ASSETS)};\n${SWITCH}`);
+    await this.evaluate(`globalThis.__AGPA_SWITCH_ASSETS__=${JSON.stringify(SWITCH_ASSETS)};globalThis.__AGPA_GEMINI_CSS__=${JSON.stringify(SWITCH_CSS)};\n${SWITCH}`);
     log('Applied Gemini switch to Antigravity window.');
    }
+   await this.evaluate(`(()=>{if(document.getElementById('agpa-gemini-styles'))return;const style=document.createElement('style');style.id='agpa-gemini-styles';style.textContent=${JSON.stringify(SWITCH_CSS)};document.head.append(style);})()`);
    if(await this.evaluate('globalThis.__AGGeminiInline?.version')!==INLINE_VERSION){
     await this.evaluate('globalThis.__AGGeminiInline?.destroy()');
     await this.evaluate(`globalThis.__AGPA_INLINE_ICON__=${JSON.stringify(SWITCH_ASSETS.antigravity)};\n${INLINE}`);
     log('Applied inline Gemini return button.');
    }
    if(await this.evaluate('globalThis.__AGAppSettings?.version')!==APP_SETTINGS_VERSION){
-    await this.evaluate(`globalThis.__AGPA_APP_SETTINGS__=${JSON.stringify(desktopIcon.getState())};globalThis.__AGPA_APP_ICON_ASSETS__=${JSON.stringify(APP_ICON_ASSETS)};\n${APP_SETTINGS}`);
+    await this.evaluate(`globalThis.__AGPA_APP_SETTINGS__=${JSON.stringify(desktopIcon.getState())};globalThis.__AGPA_PATCH_STATUS__=${JSON.stringify(this.patchStatus)};globalThis.__AGPA_APP_ICON_ASSETS__=${JSON.stringify(APP_ICON_ASSETS)};\n${APP_SETTINGS}`);
     log('Applied application icon setting.');
    }
+   if(await this.evaluate('globalThis.__AGShortcuts?.version')!==VERSION)await this.evaluate(SHORTCUTS);
    await this.evaluate(`(()=>{let style=document.getElementById('agpa-window-chrome-styles');if(style?.getAttribute('data-version')===${JSON.stringify(VERSION)})return;if(!style){style=document.createElement('style');style.id='agpa-window-chrome-styles';document.head.append(style);}style.textContent=${JSON.stringify(WINDOW_CHROME)};style.setAttribute('data-version',${JSON.stringify(VERSION)});})()`);
   }finally{this.busy=false;}
  }
  async updateConfig(){if(this.initialized)await this.evaluate(`globalThis.__AGProjectAppearance?.setConfig(${JSON.stringify(config)})`);}
  async updateAppState(){await this.evaluate(`globalThis.__AGAppSettings?.setState(${JSON.stringify(desktopIcon.getState())})`);}
+ async checkCompatibility(extra={}){
+  const data=await this.evaluate(`(${compatibility.probe.toString()})(${JSON.stringify(VERSION)})`);
+  this.patchStatus={...compatibility.assess(data,VERSION),...extra};
+  await this.evaluate(`globalThis.__AGAppSettings?.setPatchStatus(${JSON.stringify(this.patchStatus)})`);
+  return data;
+ }
+ async repairIntegration(){
+  const data=await this.checkCompatibility();
+  const sessionUnsafe=await this.evaluate('!!document.querySelector("[data-agpa-gemini] webview")&&!globalThis.__AGGeminiSwitch');
+  const decision=compatibility.recoveryDecision(data,sessionUnsafe);
+  if(!decision.allowed){
+   await this.checkCompatibility({repaired:false,reason:decision.reason});return desktopIcon.getState();
+  }
+  await this.ensure();
+  await this.evaluate(`(async()=>{
+   globalThis.__AGProjectAppearance?.reapply();globalThis.__AGAppSettings?.reapply();globalThis.__AGShortcuts?.reapply();
+   if(!document.getElementById('agpa-gemini-styles')){const style=document.createElement('style');style.id='agpa-gemini-styles';style.textContent=${JSON.stringify(SWITCH_CSS)};document.head.append(style);}
+   await globalThis.__AGGeminiInline?.reapply();await new Promise(resolve=>setTimeout(resolve,40));
+  })()`);
+  await this.checkCompatibility();
+  this.patchStatus.repaired=this.patchStatus.state==='compatible';
+  await this.evaluate(`globalThis.__AGAppSettings?.setPatchStatus(${JSON.stringify(this.patchStatus)})`);
+  return desktopIcon.getState();
+ }
  async onAppSettings(params){
   const context=this.contexts.get(params.executionContextId);
   if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin)return;
@@ -148,11 +180,13 @@ class Client{
    if(params.payload.length>1024)throw Error('Request too large.');
    payload=JSON.parse(params.payload);
    if(!UUID.test(payload.requestId))throw Error('Invalid preference request.');
-   const actions={setTaskbarIcon:['antigravity','gemini','dynamic'],setStartupView:['antigravity','gemini'],setAutostart:[true,false],viewChanged:['antigravity','gemini']};
+   const actions={setTaskbarIcon:['antigravity','gemini','dynamic'],setStartupView:['antigravity','gemini','last'],checkCompatibility:[true],repairIntegration:[true],setAutostart:[true,false],viewChanged:['antigravity','gemini']};
    if(!actions[payload.action]?.includes(payload.value))throw Error('Invalid application preference.');
    const revision=payload.action==='viewChanged'?++viewRevision:null;
-   const job=writeChain.then(()=>{
+   const job=writeChain.then(async()=>{
     if(revision!==null&&revision!==viewRevision)return desktopIcon.getState();
+    if(payload.action==='checkCompatibility'){await this.checkCompatibility();return desktopIcon.getState();}
+    if(payload.action==='repairIntegration')return this.repairIntegration();
     if(payload.action==='setTaskbarIcon')return desktopIcon.apply(payload.value);
     if(payload.action==='setStartupView')return desktopIcon.setStartupView(payload.value);
     if(payload.action==='setAutostart')return desktopIcon.setAutostart(payload.value);
@@ -160,7 +194,7 @@ class Client{
    });
    writeChain=job.catch(()=>{});const next=await job;
    for(const c of clients.values())await c.updateAppState().catch(()=>{});
-   await this.evaluate(`globalThis.__AGAppSettings?.onSaved(${JSON.stringify(payload.requestId)},true,null,${JSON.stringify(next)})`,params.executionContextId);
+   await this.evaluate(`globalThis.__AGAppSettings?.onSaved(${JSON.stringify(payload.requestId)},true,null,${JSON.stringify(next)},${JSON.stringify(this.patchStatus)})`,params.executionContextId);
    if(payload.action!=='viewChanged')log(`Application preference ${payload.action}: ${payload.value}`);
   }catch(error){if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGAppSettings?.onSaved(${JSON.stringify(payload.requestId)},false,${JSON.stringify(error.message)})`,params.executionContextId).catch(()=>{});else throw error;}
  }
@@ -181,7 +215,7 @@ class Client{
    else throw error;
   }
  }
- async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGAppSettings?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGGeminiSwitch?.destroy();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
+ async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
 }
 async function discover(){
  const contents=await fsp.readFile(PORT_PATH,'utf8');const port=contents.split('\n')[0];
