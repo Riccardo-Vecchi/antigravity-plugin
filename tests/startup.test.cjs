@@ -5,7 +5,7 @@ async function fixture({startupView='antigravity',guestCreated=false,visible=fal
  let opens=0;const observers=[],events=[];
  const element=()=>({setAttribute(){},append(){},remove(){},textContent:''});
  const document={createElement:element,head:element(),body:element(),querySelectorAll:()=>[],querySelector:selector=>selector==='[data-agpa-open-gemini]'?{click(){opens++;visible=true;guestCreated=true}}:null};
- const context={document,crypto,queueMicrotask,setTimeout,clearTimeout,MutationObserver:class{constructor(cb){this.cb=cb;observers.push(this)}observe(){}disconnect(){}},__AGPA_STARTUP_APPLIED__:preserved,__AGPA_APP_SETTINGS__:{version:2,taskbarIcon:'dynamic',startupView,autostart:false},__AGPA_APP_ICON_ASSETS__:{antigravity:'local-a',gemini:'local-g'},__AGGeminiSwitch:{status:()=>({visible,guestCreated})},__agpaAppSettings:raw=>events.push(JSON.parse(raw))};
+ const context={__AGPAI18n:{attrs(){},subscribe(){return()=>{}},language:'en'},document,crypto,queueMicrotask,setTimeout,clearTimeout,MutationObserver:class{constructor(cb){this.cb=cb;observers.push(this)}observe(){}disconnect(){}},__AGPA_STARTUP_APPLIED__:preserved,__AGPA_APP_SETTINGS__:{version:2,taskbarIcon:'dynamic',startupView,autostart:false},__AGPA_APP_ICON_ASSETS__:{antigravity:'local-a',gemini:'local-g'},__AGGeminiSwitch:{status:()=>({visible,guestCreated})},__agpaAppSettings:raw=>events.push(JSON.parse(raw))};
  context.window={addEventListener(){},removeEventListener(){}};vm.createContext(context);vm.runInContext(script,context);await new Promise(setImmediate);
  return {context,events,opens:()=>opens,mutate:async()=>{for(const o of observers)o.cb();await new Promise(setImmediate)},setVisible:value=>{visible=value}};
 }

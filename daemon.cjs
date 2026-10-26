@@ -12,15 +12,17 @@ const RENDERER=fs.readFileSync(path.join(BASE,'renderer.js'),'utf8');
 const SWITCH=fs.readFileSync(path.join(BASE,'gemini-switch.js'),'utf8');
 const INLINE=fs.readFileSync(path.join(BASE,'gemini-inline.js'),'utf8');
 const APP_SETTINGS=fs.readFileSync(path.join(BASE,'app-settings.js'),'utf8');
+const I18N=fs.readFileSync(path.join(BASE,'i18n.js'),'utf8');
+const TRANSLATIONS=JSON.parse(fs.readFileSync(path.join(BASE,'locales.json'),'utf8'));
 const WINDOW_CHROME=fs.readFileSync(path.join(BASE,'window-chrome.css'),'utf8');
 const desktopIcon=require('./desktop-icon.cjs');
 const SWITCH_ASSETS=JSON.parse(fs.readFileSync(path.join(BASE,'switch-assets.json'),'utf8'));
 const APP_ICON_ASSETS={antigravity:'data:image/png;base64,'+fs.readFileSync(path.join(BASE,'icons','antigravity.png')).toString('base64'),gemini:SWITCH_ASSETS.gemini};
-const VERSION='1.5.0';
-const APP_SETTINGS_VERSION='1.5.0';
-const APPEARANCE_VERSION='1.2.0';
+const VERSION='1.6.0';
+const APP_SETTINGS_VERSION='1.6.0';
+const APPEARANCE_VERSION='1.6.0';
 const SWITCH_VERSION='1.2.0';
-const INLINE_VERSION='1.3.0';
+const INLINE_VERSION='1.6.1';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ICONS=new Set('folder terminal code monitor server chip cloud robot settings wrench briefcase book notebook graduation pencil pen music film atom palette stethoscope puzzle leaf shopping chart money dumbbell scales globe plane heart paw flask brain flower home camera phone shield rocket gamepad coffee bicycle lightbulb flag tree mail star'.split(' '));
 let config={version:1,projects:{}};
@@ -113,6 +115,9 @@ class Client{
    const data=JSON.parse(state||'{}');
    if(!data.top||!/^https:\/\/127\.0\.0\.1:\d+$/.test(data.origin))return;
    this.origin=data.origin;
+   if(await this.evaluate('globalThis.__AGPAI18n?.version')!==VERSION){
+    await this.evaluate(`globalThis.__AGPA_TRANSLATIONS__=${JSON.stringify(TRANSLATIONS)};\n${I18N}`);
+   }
    if(data.version!==APPEARANCE_VERSION){
     await this.evaluate(`globalThis.__AGPA_CONFIG__=${JSON.stringify(config)};\n${RENDERER}`);
     this.initialized=true;log('Applied project appearance to Antigravity window.');
@@ -122,6 +127,7 @@ class Client{
     log('Applied Gemini switch to Antigravity window.');
    }
    if(await this.evaluate('globalThis.__AGGeminiInline?.version')!==INLINE_VERSION){
+    await this.evaluate('globalThis.__AGGeminiInline?.destroy()');
     await this.evaluate(`globalThis.__AGPA_INLINE_ICON__=${JSON.stringify(SWITCH_ASSETS.antigravity)};\n${INLINE}`);
     log('Applied inline Gemini return button.');
    }
@@ -175,7 +181,7 @@ class Client{
    else throw error;
   }
  }
- async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGAppSettings?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGGeminiSwitch?.destroy();globalThis.__AGProjectAppearance?.destroy();})()');}catch{}this.ws?.close();}
+ async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGAppSettings?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGGeminiSwitch?.destroy();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
 }
 async function discover(){
  const contents=await fsp.readFile(PORT_PATH,'utf8');const port=contents.split('\n')[0];

@@ -2,6 +2,7 @@
 (() => {
   'use strict';
   const VERSION='1.2.0';
+  const i18n=globalThis.__AGPAI18n;
   const icons=globalThis.__AGPA_SWITCH_ASSETS__;
   delete globalThis.__AGPA_SWITCH_ASSETS__;
   if(globalThis.__AGGeminiSwitch?.version===VERSION)return;
@@ -16,7 +17,7 @@
     const n=document.createElement(tag);
     for(const [k,v]of Object.entries(attrs)){if(k==='text')n.textContent=v;else n.setAttribute(k,v);}
     for(const c of children)if(c)n.append(c);
-    return n;
+    i18n.attrs(n,attrs);return n;
   }
   function icon(name){return el('img',{src:icons[name],alt:'',width:'20',height:'20',draggable:'false'});}
   function listen(node,event,fn){node.addEventListener(event,fn);listeners.push(()=>node.removeEventListener(event,fn));}
@@ -79,15 +80,15 @@
     guest=el('webview',{partition:PARTITION,webpreferences:'nodeIntegration=no,contextIsolation=yes,sandbox=yes,webSecurity=yes,allowRunningInsecureContent=no','aria-label':'Google Gemini website'});
     // No preload, Node integration, popups, browser profile import, or page injection.
     listen(guest,'dom-ready',()=>{ready=true;lastError=null;update();});
-    listen(guest,'did-start-loading',()=>{statusText.textContent='Loading…';});
-    listen(guest,'did-stop-loading',()=>{statusText.textContent=lastError||'';update();});
+    listen(guest,'did-start-loading',()=>{i18n.set(statusText,'Loading…');});
+    listen(guest,'did-stop-loading',()=>{if(!lastError)i18n.set(statusText,'');update();});
     listen(guest,'did-navigate',update);listen(guest,'did-navigate-in-page',update);
     listen(guest,'did-fail-load',event=>{
       if(!event.isMainFrame||event.errorCode===-3)return;
       lastError=`Could not load Gemini (${event.errorCode}). Try Reload or open in browser.`;
-      statusText.textContent=lastError;
+      i18n.set(statusText,'Could not load Gemini ({code}). Try Reload or open in browser.',{code:event.errorCode});
     });
-    listen(guest,'render-process-gone',()=>{ready=false;statusText.textContent='Gemini stopped. Return to Antigravity and reopen Gemini.';guest.remove();guest=null;});
+    listen(guest,'render-process-gone',()=>{ready=false;i18n.set(statusText,'Gemini stopped. Return to Antigravity and reopen Gemini.');guest.remove();guest=null;});
     for(const event of ['will-navigate','will-redirect'])listen(guest,event,e=>{
       try{if(new URL(e.url).protocol!=='https:')e.preventDefault();}catch{e.preventDefault();}
     });

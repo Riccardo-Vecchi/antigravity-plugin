@@ -1,7 +1,8 @@
 /* Layout extension for the existing Gemini guest; no session or native API bridge. */
 (() => {
   'use strict';
-  const VERSION='1.3.0';
+  const VERSION='1.6.1';
+  const i18n=globalThis.__AGPAI18n;
   const icon=globalThis.__AGPA_INLINE_ICON__;
   delete globalThis.__AGPA_INLINE_ICON__;
   if(globalThis.__AGGeminiInline?.version===VERSION)return;
@@ -20,13 +21,13 @@
   document.head.append(css);
   const fallback=document.createElement('button');
   fallback.type='button';fallback.className='agpa-app-switch agpa-gemini-fallback';
-  fallback.setAttribute('aria-label','Return to Antigravity');fallback.title='Antigravity';
+  i18n.set(fallback,'Return to Antigravity',{},'aria-label');i18n.set(fallback,'Return to Antigravity',{},'title');
   const image=document.createElement('img');image.src=icon;image.alt='';image.width=20;image.height=20;
   const label=document.createElement('span');label.textContent='Antigravity';fallback.append(image,label);
   function returnToApp(){document.querySelector('[data-agpa-return-antigravity]')?.click();}
   fallback.addEventListener('click',returnToApp);
   function installInGuest(settings){
-    const VERSION='1.3.0';
+    const VERSION='1.6.1';
     const old=globalThis.__agpaInlineReturn;
     if(old?.version===VERSION){old.configure(settings);return old.status();}
     old?.destroy();
@@ -42,7 +43,7 @@
     `;
     document.head.append(style);
     const button=document.createElement('button');button.id='agpa-inline-return';button.type='button';
-    button.setAttribute('aria-label','Return to Antigravity');button.title='Antigravity';
+    button.setAttribute('aria-label',current.returnLabel);button.title=current.returnLabel;
     const image=document.createElement('img');image.src=current.icon;image.alt='';image.width=20;image.height=20;
     const label=document.createElement('span');label.textContent='Antigravity';button.append(image,label);
     const activate=e=>{e.preventDefault();e.stopPropagation();console.info(current.signal);};
@@ -68,7 +69,7 @@
     observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-label']});
     globalThis.__agpaInlineReturn={
       version:VERSION,
-      configure(next){current=next;if(image.src!==next.icon)image.src=next.icon;place();},
+      configure(next){current=next;if(image.src!==next.icon)image.src=next.icon;if(button.getAttribute('aria-label')!==next.returnLabel)button.setAttribute('aria-label',next.returnLabel);if(button.title!==next.returnLabel)button.title=next.returnLabel;place();},
       status(){return{installed:button.isConnected,anchored:!button.hasAttribute('data-floating'),label:button.textContent};},
       destroy(){stopped=true;observer.disconnect();button.removeEventListener('click',activate);button.remove();style.remove();delete globalThis.__agpaInlineReturn;}
     };
@@ -84,7 +85,7 @@
     try{
       const url=new URL(tracked.getURL());
       if(url.origin!=='https://gemini.google.com'){installed=false;fallback.hidden=false;return;}
-      const result=await isolated(`(${installInGuest.toString()})(${JSON.stringify({icon,signal})})`);
+      const result=await isolated(`(${installInGuest.toString()})(${JSON.stringify({icon,signal,returnLabel:i18n.t('Return to Antigravity')})})`);
       installed=!!result?.installed;fallback.hidden=installed;
     }catch{installed=false;fallback.hidden=false;}
     finally{busy=false;if(rerun&&!destroyed){rerun=false;queueMicrotask(inject);}}
@@ -104,10 +105,11 @@
     inject();
   }
   const observer=new MutationObserver(track);observer.observe(document.body,{subtree:true,childList:true});
-  globalThis.__AGGeminiInline={
+  const untranslate=i18n.subscribe(inject);
+  const api=globalThis.__AGGeminiInline={
     version:VERSION,
     status(){return{version:VERSION,toolbarRemoved:!!css.isConnected,guestButtonInstalled:installed,guestTracked:!!tracked};},
-    async destroy(){destroyed=true;observer.disconnect();for(const remove of unbind)remove();try{await isolated('globalThis.__agpaInlineReturn?.destroy()');}catch{}fallback.removeEventListener('click',returnToApp);fallback.remove();css.remove();delete globalThis.__AGGeminiInline;}
+    async destroy(){destroyed=true;untranslate();observer.disconnect();for(const remove of unbind)remove();try{await isolated('globalThis.__agpaInlineReturn?.destroy()');}catch{}fallback.removeEventListener('click',returnToApp);fallback.remove();css.remove();if(globalThis.__AGGeminiInline===api)delete globalThis.__AGGeminiInline;}
   };
   track();
 })();

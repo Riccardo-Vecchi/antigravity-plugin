@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.0
+
+- Move startup view and desktop autostart to Application → Startup; keep icon choices in Appearance.
+- Localize the additions in English, Italian, German, Spanish, French, Simplified Chinese, and Japanese, with English fallback.
+- Update already-open controls, accessible labels, icon search names, and the Gemini return button when the native document language changes.
+- Preserve unsaved appearance choices while switching language, and preserve the translation controller during helper reinstalls.
+- Await inline-button teardown before upgrading its controller to prevent duplicate buttons/listeners.
+- Add translation coverage, placeholder, fallback, and live-input regression tests.
+
 ## 1.5.0
 
 - Add Dynamic application icons alongside fixed Antigravity/Gemini choices.

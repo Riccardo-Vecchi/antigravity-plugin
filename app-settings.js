@@ -1,15 +1,16 @@
 /* Local application appearance and startup preferences in native Settings. */
 (() => {
  'use strict';
- const VERSION='1.5.0';
+ const VERSION='1.6.0';
+ const i18n=globalThis.__AGPAI18n;
  const initial=globalThis.__AGPA_APP_SETTINGS__||{version:2,taskbarIcon:'antigravity',startupView:'antigravity'};
  const icons=globalThis.__AGPA_APP_ICON_ASSETS__;
  delete globalThis.__AGPA_APP_SETTINGS__;delete globalThis.__AGPA_APP_ICON_ASSETS__;
  if(globalThis.__AGAppSettings?.version===VERSION){globalThis.__AGAppSettings.setState(initial);return;}
  globalThis.__AGAppSettings?.destroy();
- let state=initial,section=null,scheduled=false,destroyed=false,busy=false,lastView=null;
+ let state=initial,section=null,startupSection=null,scheduled=false,destroyed=false,busy=false,lastView=null;
  const pending=new Map();
- function node(tag,attrs={},...children){const n=document.createElement(tag);for(const[k,v]of Object.entries(attrs))if(k==='text')n.textContent=v;else n.setAttribute(k,v);for(const c of children)if(c)n.append(c);return n;}
+ function node(tag,attrs={},...children){const n=document.createElement(tag);for(const[k,v]of Object.entries(attrs))if(k==='text')n.textContent=v;else n.setAttribute(k,v);for(const c of children)if(c)n.append(c);i18n.attrs(n,attrs);return n;}
  const styles=node('style',{id:'agpa-app-settings-styles',text:`
   .agpa-app-icon-section {display:flex;flex-direction:column;gap:12px;padding:15px;border:1px solid var(--border,#353535);border-radius:12px;color:var(--foreground,#eee)}
   .agpa-app-icon-section h3 {font-size:14px;font-weight:500;margin:0}
@@ -29,21 +30,20 @@
   .agpa-startup-heading {padding-top:12px;margin-top:2px!important;border-top:1px solid var(--border,#353535)}
  `});document.head.append(styles);
  function paint(){
-  if(!section)return;
-  for(const b of section.querySelectorAll('[data-agpa-app-icon]')){b.setAttribute('aria-checked',String(b.getAttribute('data-agpa-app-icon')===state.taskbarIcon));b.disabled=busy;}
-  for(const b of section.querySelectorAll('[data-agpa-startup-view]')){b.setAttribute('aria-checked',String(b.getAttribute('data-agpa-startup-view')===state.startupView));b.disabled=busy;}
-  const autostart=section.querySelector('[data-agpa-autostart]');if(autostart){autostart.checked=!!state.autostart;autostart.disabled=busy;}
-  const tray=section.querySelector('[data-agpa-tray-status]');
-  if(tray)tray.textContent=state.trayAvailable?'The tray icon follows the same choice.':'Tray updates are available with supported GNOME/Zorin AppIndicator setups.';
+  for(const b of section?.querySelectorAll('[data-agpa-app-icon]')||[]){b.setAttribute('aria-checked',String(b.getAttribute('data-agpa-app-icon')===state.taskbarIcon));b.disabled=busy;}
+  for(const b of startupSection?.querySelectorAll('[data-agpa-startup-view]')||[]){b.setAttribute('aria-checked',String(b.getAttribute('data-agpa-startup-view')===state.startupView));b.disabled=busy;}
+  const autostart=startupSection?.querySelector('[data-agpa-autostart]');if(autostart){autostart.checked=!!state.autostart;autostart.disabled=busy;}
+  const tray=section?.querySelector('[data-agpa-tray-status]');
+  if(tray)i18n.set(tray,state.trayAvailable?'The tray icon follows the same choice.':'Tray updates are available with supported GNOME/Zorin AppIndicator setups.');
  }
  async function choose(action,value){
   if(busy)return;busy=true;paint();
-  const status=section.querySelector('[role=status]');status.textContent='Applying…';
+  const status=(action==='setTaskbarIcon'?section:startupSection).querySelector('[role=status]');i18n.set(status,'Applying…');
   const requestId=crypto.randomUUID();
   try{
-   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(requestId);reject(Error('Could not apply the preference. Check the local appearance service.'));},12000);pending.set(requestId,{resolve,reject,timer});try{globalThis.__agpaAppSettings(JSON.stringify({requestId,action,value}));}catch(e){clearTimeout(timer);pending.delete(requestId);reject(e);}});
-   status.textContent=action==='setStartupView'?'Saved for the next window.':action==='setAutostart'?'Saved for your next desktop sign-in.':'Applied.';
-  }catch(e){status.textContent=e.message;}finally{busy=false;paint();}
+   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(requestId);reject(Error('Could not apply the preference. Check the local integration service.'));},12000);pending.set(requestId,{resolve,reject,timer});try{globalThis.__agpaAppSettings(JSON.stringify({requestId,action,value}));}catch(e){clearTimeout(timer);pending.delete(requestId);reject(e);}});
+   i18n.set(status,action==='setStartupView'?'Saved for the next window.':action==='setAutostart'?'Saved for your next desktop sign-in.':'Applied.');
+  }catch(e){i18n.set(status,'Could not apply the preference. Check the local integration service.');}finally{busy=false;paint();}
  }
  function radioGroup(attribute,choices,label,action){
   const group=node('div',{class:'agpa-app-icon-options',role:'radiogroup','aria-label':label});
@@ -57,25 +57,37 @@
   }
   return group;
  }
+ function nativeSection(key){
+  const nav=document.querySelector(`[data-testid="settings-nav-item-${key}"]`);
+  const label=nav?.textContent.trim();if(!label)return null;
+  const heading=[...document.querySelectorAll('[role=dialog] h2')].find(n=>n.textContent.trim()===label);
+  return heading?.closest('div.p-6');
+ }
  function apply(){
   if(destroyed)return;
-  const heading=[...document.querySelectorAll('[role=dialog][aria-label=Settings] h2')].find(n=>n.textContent==='Appearance');
-  const container=heading?.closest('div.p-6');if(!container)return;
-  if(!section){
+  const appearance=nativeSection('Appearance'),application=nativeSection('App');
+  if(appearance&&!section){
    section=node('section',{class:'agpa-app-icon-section','data-agpa-app-icon-setting':'','aria-labelledby':'agpa-app-icon-title'},
     node('h3',{id:'agpa-app-icon-title',text:'Application icon'}),
     node('p',{class:'agpa-app-icon-description',text:'Choose a fixed icon, or let Dynamic follow the view you are using.'}),
     radioGroup('data-agpa-app-icon',['antigravity','gemini','dynamic'],'Application icon','setTaskbarIcon'),
     node('p',{class:'agpa-app-icon-description','data-agpa-tray-status':''}),
-    node('h3',{class:'agpa-startup-heading',text:'Start in'}),
+    node('p',{class:'agpa-app-icon-status',role:'status','aria-live':'polite'}));
+  }
+  if(application&&!startupSection){
+   startupSection=node('section',{class:'agpa-app-icon-section','data-agpa-startup-setting':'','aria-labelledby':'agpa-startup-title'},
+    node('h3',{id:'agpa-startup-title',text:'Startup'}),
+    node('h3',{text:'Start in'}),
     node('p',{class:'agpa-app-icon-description',text:'Choose the view opened when a new Antigravity window starts.'}),
     radioGroup('data-agpa-startup-view',['antigravity','gemini'],'Startup view','setStartupView'),
     node('label',{class:'agpa-autostart-row'},node('input',{type:'checkbox','data-agpa-autostart':'','aria-label':'Launch at desktop sign-in'}),node('span',{text:'Launch at desktop sign-in'})),
     node('p',{class:'agpa-app-icon-description',text:'Start the app automatically when you sign in to Linux.'}),
     node('p',{class:'agpa-app-icon-status',role:'status','aria-live':'polite'}));
-   section.querySelector('[data-agpa-autostart]').addEventListener('change',e=>choose('setAutostart',e.target.checked));paint();
+   startupSection.querySelector('[data-agpa-autostart]').addEventListener('change',e=>choose('setAutostart',e.target.checked));
   }
-  if(section.parentElement!==container)container.children[0]?.after(section);
+  if(section&&appearance&&section.parentElement!==appearance)appearance.children[0]?.after(section);
+  if(startupSection&&application&&startupSection.parentElement!==application)application.children[0]?.after(startupSection);
+  paint();
  }
  function startup(){
   if(globalThis.__AGPA_STARTUP_APPLIED__)return true;
@@ -98,12 +110,13 @@
  const focus=()=>reportView(true);
  const observer=new MutationObserver(schedule);observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['open']});
  window.addEventListener('focus',focus);
+ const untranslate=i18n.subscribe(paint);
  globalThis.__AGAppSettings={
   version:VERSION,
   setState(next){state=next;paint();schedule();},
   onSaved(id,ok,message,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);if(ok){this.setState(next);p.resolve();}else p.reject(Error(message||'Could not apply the preference.'));},
-  status(){return {version:VERSION,taskbarIcon:state.taskbarIcon,startupView:state.startupView,effectiveIcon:state.effectiveIcon,currentView:state.currentView,trayAvailable:state.trayAvailable,autostart:!!state.autostart,controlInstalled:!!section?.isConnected,busy};},
-  destroy(){destroyed=true;observer.disconnect();window.removeEventListener('focus',focus);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Application appearance service stopped.'));}pending.clear();section?.remove();styles.remove();delete globalThis.__AGAppSettings;}
+  status(){return {version:VERSION,taskbarIcon:state.taskbarIcon,startupView:state.startupView,effectiveIcon:state.effectiveIcon,currentView:state.currentView,trayAvailable:state.trayAvailable,autostart:!!state.autostart,controlInstalled:!!section?.isConnected,startupControlInstalled:!!startupSection?.isConnected,language:i18n.language,busy};},
+  destroy(){destroyed=true;untranslate();observer.disconnect();window.removeEventListener('focus',focus);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Application appearance service stopped.'));}pending.clear();section?.remove();startupSection?.remove();styles.remove();delete globalThis.__AGAppSettings;}
  };
  schedule();
 })();

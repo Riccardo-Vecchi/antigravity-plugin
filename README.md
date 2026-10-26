@@ -23,8 +23,11 @@ Unofficial Linux additions for Google Antigravity: project icons and colors, a c
 | Native tray icon | On supported Zorin/GNOME AppIndicator setups, the tray follows the same icon choice while retaining the native tray menu. |
 | Startup view | Choose whether new windows open in Antigravity or Gemini. Changing this setting does not navigate an existing window. |
 | Desktop autostart | Enable or disable **Launch at desktop sign-in**, backed by a real XDG autostart entry. |
+| Localized additions | English, Italian, German, Spanish, French, Simplified Chinese, and Japanese; unsupported languages fall back to English. |
 
 ![Appearance preferences](docs/images/preferences.png)
+
+![Application startup preferences](docs/images/startup.png)
 
 ## Tested setup
 
@@ -63,9 +66,12 @@ Open Antigravity normally. The helper waits when the app is closed and reapplies
 
 ## Settings
 
-Open **Settings → Appearance**:
+Open **Settings → Appearance** for visual options:
 
 - **Application icon:** fixed Antigravity, fixed Gemini, or Dynamic.
+
+Open **Settings → Application → Startup** for launch behavior:
+
 - **Start in:** the view opened in a new window.
 - **Launch at desktop sign-in:** whether Linux should launch the app after you sign in.
 
@@ -74,6 +80,14 @@ These choices are independent. For example, you can start in Gemini, use a fixed
 The helper service starting with your session does **not** itself launch Antigravity. The separate autostart checkbox creates/removes its own launcher in `~/.config/autostart/`. Desktop policy or separate startup entries created outside this project can affect autostart behavior. See the [XDG autostart specification](https://specifications.freedesktop.org/autostart/latest/).
 
 In Dynamic mode, the taskbar and supported tray follow the last view reported by an app window. The icon is global to the app; multiple windows do not have separate taskbar identities.
+
+## Languages
+
+The additions follow the native page's declared interface language (`<html lang>`), including changes while the app is open. If the page declares no language, Chromium's preferred language is used. Regional variants map to their base language, and unsupported languages fall back to English.
+
+Translations cover settings, project editing, the compact sidebar, accessibility labels, tooltips, status/error messages, and the Antigravity return button in Gemini. Icon names can be searched in the selected language; stable icon IDs remain unchanged. Changing language preserves open inputs and unsaved project appearance choices. Project names, user text, and Google's website content are not translated by this helper.
+
+The tested Antigravity 2.26.0 interface declares English and does not expose a native display-language selector in its settings. This integration does not add a separate language preference or translate the native app. Live language checks change the native document's language temporarily, then restore it; following an upstream language preference depends on the app declaring that language.
 
 ## Gemini sessions and switching
 
@@ -136,7 +150,7 @@ bash -n install.sh disable.sh
 python3 -m py_compile refresh-icon-theme.py sync-tray-icon.py
 ```
 
-Automated tests cover preference migration, independent startup/icon choices, one-time startup behavior, preserving existing guests on upgrade, and view-change reporting. Live checks on the tested Linux setup cover project UI, fixed/dynamic icon changes, menu hiding, tray icons, and persistence. The system's XDG autostart generator recognizes the enabled entry and omits it when disabled. A full logout/login is deliberately not part of the automated checks.
+Automated tests cover preference migration, independent startup/icon choices, one-time startup behavior, preserving existing guests on upgrade, view-change reporting, translation coverage/placeholders, regional languages, English fallback, and updating open controls without losing input. Live checks on the tested Linux setup cover project UI, fixed/dynamic icon changes, menu hiding, tray icons, persistence, settings placement, and all seven languages in settings/project editing/the Gemini return button. The system's XDG autostart generator recognizes the enabled entry and omits it when disabled. A full logout/login is deliberately not part of the automated checks.
 
 This repository contains the integration source and generic tests, not personal diagnostics, account information, cookies, conversations, or feedback submission receipts.
 
