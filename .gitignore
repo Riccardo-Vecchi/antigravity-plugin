@@ -1,0 +1,26 @@
+# Local state and private diagnostics must never be published.
+evidence/
+output/
+diagnostics/
+README.local.it.md
+VERIFICATION.md
+qa.cjs
+capture-demo.cjs
+trace-click.cjs
+test-*.cjs
+__pycache__/
+*.pyc
+*.log
+*.db
+*.sqlite*
+app.json
+projects.json
+installation.json
+icon-originals/
+asset-originals/
+tray-originals/
+tray-settings-original.json
+icon-refresh.json
+.DS_Store
+node_modules/
+/icons/current.png

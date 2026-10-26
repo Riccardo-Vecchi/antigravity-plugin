@@ -1,0 +1,16 @@
+# Changelog
+
+## 1.5.0
+
+- Add Dynamic application icons alongside fixed Antigravity/Gemini choices.
+- Update taskbar icons live and synchronize supported Zorin/GNOME tray icons.
+- Add an independent startup-view preference and XDG desktop-autostart checkbox.
+- Hide Antigravity's menu labels in Gemini and restore them in the native view.
+- Preserve open documents while the helper is upgraded.
+- Include generic preference/startup tests and restoration instructions.
+
+## Earlier local revisions
+
+- Project icon/emoji/color editor, project-selector inheritance, and compact sidebar.
+- Same-window Gemini with persistent session and an in-page return button.
+- Fixed application-icon choices and live GNOME icon-cache refresh.

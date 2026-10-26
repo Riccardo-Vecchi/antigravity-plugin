@@ -1,0 +1,5 @@
+/* Keep the draggable title bar and native window controls, hide app menus in Gemini. */
+body:has([data-agpa-gemini][open]) [data-testid="title-menu-bar"] > * {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
