@@ -227,7 +227,7 @@ class Client{
   try{
    if(params.payload.length>90000)throw Error('Request too large.');
    payload=JSON.parse(params.payload);
-   if(!UUID.test(payload.requestId)||!['status','refresh','setup','install','connect','disconnect','check','capture','uninstall','setupHelper'].includes(payload.action))throw Error('Invalid request.');
+   if(!UUID.test(payload.requestId)||!['status','refresh','setup','install','connect','disconnect','check','capture','verify','updates','uninstall','setupHelper'].includes(payload.action))throw Error('Invalid request.');
    if(['connect','setup'].includes(payload.action)){
     const apps=Array.isArray(payload.value)?payload.value:payload.value?.apps;
     if(!Array.isArray(payload.value)&&!['desktop','apps'].includes(payload.value?.scope))throw Error('Invalid scope.');

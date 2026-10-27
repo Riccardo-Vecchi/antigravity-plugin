@@ -6,19 +6,27 @@ Give the **native Antigravity agent** desktop tools through the maintained [Cua 
 
 1. Open **Settings → Computer use**, its own item in the Settings menu. Settings navigation has icons; its Projects group can be collapsed and uses your configured project appearance.
 2. Choose **Entire desktop** to work across your environment, or **Selected apps** for an application allowlist.
-3. Select **Enable computer use**. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
+3. Select **Enable computer use**. A centered progress dialog shows the active step with a spinner, individual checks, and actual downloaded MB. **Continue in background** or Escape hides the dialog while setup continues; **Stop and disconnect** revokes it. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
 4. Follow any OS access prompt. On GNOME/Wayland, the helper needs a **Linux session logout/login once** to load. Save your work, open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select **Refresh status**. **Locking/unlocking the screen keeps the same Linux session and does not load the extension.** Closing the app or signing out of Google also does not load it. The wizard never logs you out or restarts your apps.
 5. Start a **new Antigravity conversation** and describe the result you want. Existing conversations can keep their earlier tool list.
 
 Try: “Open Calculator, calculate 6 × 7 and verify the displayed result.” The agent should observe **42 in the app**, rather than report only a successful tool call.
 
-**Connection details** displays each check on its own line: green checkmark for passed, orange dot for pending. It checks driver installation, MCP registration, the generated agent skill, the protocol handshake, native server detection and the desktop helper. In Entire desktop mode, **Test screen capture** separately checks whether the driver can read the screen. It captures once, discards the image and returns only the result; it does not test mouse or keyboard input. An MCP handshake alone never marks screen capture as passed.
+**Connection details** displays each check on its own line: green checkmark for passed, orange dot for pending. It checks driver installation, MCP registration, the generated agent skill, the protocol handshake, native server detection and the desktop helper. In Entire desktop mode, screen capture is checked **automatically** during setup when access is ready, or once when the page next detects that access has become ready (including after Linux login). A failed attempt stays pending without a polling/retry loop; **Test screen capture** remains available for an explicit retry. The plugin discards the returned image and reports only the result; this does not test mouse or keyboard input. Selected apps never triggers a full-desktop capture, and an MCP handshake alone never marks capture as passed.
 
 If an upstream app change prevents automatic MCP refresh, use native **Customizations → Installed → MCP Servers**, or its Settings equivalent, and refresh/reopen Antigravity when convenient.
 
-![Computer use: desktop access and Linux activation instructions](images/computer-use.png)
+![Computer-use setup progress with per-step spinners and background controls](images/computer-use.png)
 
 ![Connection checks with individual passed and pending states](images/computer-use-checks.png)
+
+## 🔄 Check Cua Driver updates
+
+Use the refresh icon beside the driver version in **Connection details**. It spins during the lookup and opens a dialog with the reviewed and latest upstream versions, release notes, or a connection error. Discovery reads official GitHub releases for `trycua/cua`, matches regular numeric `cua-driver-rs-vX.Y.Z` tags, and excludes other products, drafts, nightly and suffixed preview tags. A numeric release can still carry GitHub’s prerelease flag; the dialog states that explicitly. Successful results are cached for one minute.
+
+This check does not install or execute a newer release. Setup continues to install the SHA-256-pinned reviewed version. New driver support arrives in a plugin update.
+
+![Official Cua Driver update result with reviewed and upstream versions](images/computer-use-updates.png)
 
 ## 🖥️ Choose the access that fits
 
@@ -68,7 +76,7 @@ Windows is covered by adapter/configuration tests, release archive-layout verifi
 
 ## ✅ Validation boundaries
 
-Verified live on Linux: the dedicated Settings page, navigation icons, Projects collapse, scoped/full-desktop configuration, native Antigravity discovery of the reviewed tool set, protocol checks, disconnection, confirmed removal and fresh reinstallation. On GNOME/Wayland, the installed helper still requires the next desktop sign-in; a complete desktop calculation has not been verified in that session. An Xvfb test without a window manager did not establish GUI readiness. Windows remains experimental as described above.
+Verified live on Linux: the dedicated Settings page, navigation icons, Projects collapse, scoped/full-desktop configuration, native Antigravity discovery of the reviewed tool set, protocol checks, disconnection, confirmed removal and fresh reinstallation. Desktop capture and setup progress are checked separately from mouse/keyboard actions. The repository owner has reported a working desktop task on GNOME/Wayland after a new Linux session. A fresh GUI input task has not been rerun for this release. Windows remains experimental as described above.
 
 ## 📚 References
 

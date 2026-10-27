@@ -55,7 +55,8 @@
     "common/settings-navigation.js",
     "common/project-presentation.js",
     "docs/images/computer-use.png",
-    "docs/images/computer-use-checks.png"
+    "docs/images/computer-use-checks.png",
+    "docs/images/computer-use-updates.png"
   ],
   "linux": [
     "linux/desktop.cjs",

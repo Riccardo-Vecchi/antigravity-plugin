@@ -12,3 +12,8 @@ function connectionChecks(state, native = {}) {
   ];
 }
 module.exports = {connectionChecks};
+function shouldAutoCapture(state) {
+  return !!state.enabled && state.scope === 'desktop' && !state.needsHelper &&
+    ['wayland','x11','windows'].includes(state.session) && !state.captureAttempted && !state.operation && !state.error;
+}
+module.exports.shouldAutoCapture = shouldAutoCapture;

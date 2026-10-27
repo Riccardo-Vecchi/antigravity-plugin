@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- Show a setup progress dialog with real phase labels, downloaded bytes, per-step spinners and background/Stop controls.
+- Automatically test screen capture once Entire desktop access is ready, without retry loops or capture in Selected apps mode.
+- Add an upstream Cua Driver version check beside the reviewed version, with a result dialog and prerelease disclosure; retain reviewed hash-pinned installation.
+- Use a pointer icon for Computer use navigation and translate all new controls into the seven supported languages.
+
 ## 1.1.2
 
 - Show Linux logout/login instructions directly beside the pending GNOME check and explain that lock/unlock keeps the same session.

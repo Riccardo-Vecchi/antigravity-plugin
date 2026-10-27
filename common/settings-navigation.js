@@ -1,7 +1,7 @@
 /* Small, reversible additions to the native Settings navigation. */
 (() => {
  'use strict';
- const VERSION = '1.0.0';
+ const VERSION = '1.1.0';
  if (globalThis.__AGSettingsNavigation?.version === VERSION) return;
  globalThis.__AGSettingsNavigation?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -18,7 +18,7 @@
   Shortcuts: 'M3 5h18v14H3zM6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M10 13h.01M14 13h.01M18 13h.01M8 16h8',
   'Provide Feedback': 'M21 11a8 8 0 0 1-8 8H7l-5 3 2-6a8 8 0 1 1 17-5ZM12 7v6M9 10h6',
   folder: 'M3 6h7l2 3h9v11H3z',
-  computer: 'M3 4h18v13H3zM8 21h8M12 17v4m-4-10 4 3-3 4',
+  computer: 'm4 3 6.5 18 3.2-7.3L21 10.5Z',
   chevron: 'm9 5 7 7-7 7',
  };
  function icon(name) {

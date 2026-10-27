@@ -1,7 +1,7 @@
 'use strict';
 const {spawn} = require('node:child_process');
-// Protocol checks are read-only; capture is a separate explicit diagnostic.
-function probe(runtime, bridge, {desktop = false} = {}) {
+// Protocol/capture diagnostics discard image output instead of returning pixels.
+function probe(runtime, bridge, {desktop = false, onHandshake = () => {}} = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(runtime, [bridge], {env: {...process.env, ELECTRON_RUN_AS_NODE: '1'}, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true});
     let buffer = '', finished = false;
@@ -25,6 +25,7 @@ function probe(runtime, bridge, {desktop = false} = {}) {
           const tools = message.result?.tools;
           if (!Array.isArray(tools) || !tools.some(t => t.name === 'get_window_state') || !tools.some(t => t.name === 'click')) return finish(Error('protocolFailed'));
           toolCount = tools.length;
+          onHandshake({ok:true,toolCount,checkedAt:new Date().toISOString()});
           if (desktop) send({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'get_desktop_state',arguments:{max_image_dimension:640}}});
           else finish(null, {ok: true, toolCount, checkedAt: new Date().toISOString()});
         }

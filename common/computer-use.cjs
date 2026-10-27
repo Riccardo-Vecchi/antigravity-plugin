@@ -6,6 +6,7 @@ const crypto = require('node:crypto');
 const {execFile} = require('node:child_process');
 const {promisify} = require('node:util');
 const release = require('./computer-use-release.cjs');
+const {shouldAutoCapture} = require('./computer-use-checks.cjs');
 const {getPaths} = require('./platform-paths.cjs');
 const run = promisify(execFile);
 const SERVER = 'antigravity-plugin-computer-use';
@@ -66,7 +67,7 @@ async function validateApps(value, platform = process.platform) {
   return apps;
 }
 function createManager({platform = process.platform, home = os.homedir(), configDir = getPaths().configDir,
-  adapter, runtime = process.execPath, fetcher} = {}) {
+  adapter, runtime = process.execPath, fetcher, probe = require('./computer-use-protocol.cjs').probe} = {}) {
   adapter ||= require(platform === 'win32' ? '../windows/computer-use.cjs' : '../linux/computer-use.cjs');
   const directory = path.join(configDir, 'computer-use');
   const driverDirectory = path.join(directory, 'driver-' + release.VERSION);
@@ -79,6 +80,8 @@ function createManager({platform = process.platform, home = os.homedir(), config
   let operation = null, error = null, protocol = null, environmentCache = null, checkedAt = 0;
   let generation = 0, abortOperation;
   let removal = null;
+  let progress = null, updates = null, captureAttemptedRevision = null;
+  function stage(step,label,download) {progress = {step,label,...(download ? {download} : {})};}
   let mutations = Promise.resolve();
   function mutate(job) {const next = mutations.then(job); mutations = next.catch(() => {}); return next;}
   function entry(disabled = false, scope = 'apps') {
@@ -128,12 +131,14 @@ function createManager({platform = process.platform, home = os.homedir(), config
     const env = await environment();
     let skillReady = false;
     try {skillReady = !!state.skillHash && crypto.createHash('sha256').update(await read(skillFile)).digest('hex') === state.skillHash;} catch {}
-    return {platform, driverVersion: release.VERSION, installed: await installed(), enabled: !!state.enabled && configured, registered,
+    const result = {platform, driverVersion: release.VERSION, installed: await installed(), enabled: !!state.enabled && configured, registered,
       scope: state.scope || (state.apps?.length ? 'apps' : 'desktop'),
       apps: Array.isArray(state.apps) ? state.apps : [], suggestedApps: await adapter.defaultApps(),
       availableApps: adapter.applications ? await adapter.applications() : [],
-      operation, error: error || configError || (conflict ? 'serverConflict' : null), protocol, skillReady, removal,
+      operation, progress, updates, captureAttempted: !!state.revision && captureAttemptedRevision === state.revision,
+      error: error || configError || (conflict ? 'serverConflict' : null), protocol, skillReady, removal,
       needsHelper: env.needsHelper, helperInstalled: !!env.helperInstalled, helperState: env.helperState || (env.needsHelper ? 'unknown' : 'notRequired'), session: env.session, experimental: env.experimental};
+    result.autoCapturePending = shouldAutoCapture(result);return result;
   }
   async function configure(value) {
     if (!(await installed())) throw Error('installFirst');
@@ -146,16 +151,19 @@ function createManager({platform = process.platform, home = os.homedir(), config
     const policy = JSON.stringify(scope === 'apps' ? manifest(apps) : {scope: 'desktop', tools: DESKTOP_TOOLS}, null, 2) + '\n';
     // Revoke old connections before changing their scope. Reconnection is explicit.
     await disable();
+    stage('skill','Installing agent skill…');
     await atomic(policyFile, policy);
     await atomic(skillFile, skill, previousSkill);
     const state = {version: 1, enabled: true, scope, apps, revision: crypto.randomUUID(),
       skillHash: crypto.createHash('sha256').update(skill).digest('hex'),
       manifestHash: crypto.createHash('sha256').update(policy).digest('hex')};
     await atomic(stateFile, JSON.stringify(state) + '\n');
+    stage('registration','Registering tools in Antigravity…');
     try { await updateMcp(false); } catch (e) { await atomic(stateFile, JSON.stringify({...state, enabled: false}) + '\n'); throw e; }
     protocol = null;
   }
   async function disable() {
+    captureAttemptedRevision = null;
     const previous = await record();
     await atomic(stateFile, JSON.stringify({...previous, version: 1, enabled: false}) + '\n');
     protocol = null;
@@ -188,6 +196,12 @@ function createManager({platform = process.platform, home = os.homedir(), config
     protocol = null;removal = {skillRetained, sharedHelperKept: !!(await environment()).helperInstalled};
   }
   async function perform(action, value) {
+    if (action === 'updates') {
+      if (updates?.checking || (updates?.checkedAt && !updates.error && Date.now()-Date.parse(updates.checkedAt)<60000)) return status();
+      updates = {checking:true};
+      release.checkForUpdates(fetcher).then(result => {updates={...result,checking:false};}, () => {updates={checking:false,error:true};});
+      return status();
+    }
     if (action === 'refresh') {environmentCache = null;return status();}
     if (action === 'status') return status();
     if (action === 'disconnect') {
@@ -196,45 +210,65 @@ function createManager({platform = process.platform, home = os.homedir(), config
       try { await mutate(disable); } catch (e) { error = /^[a-zA-Z]+$/.test(e.message) ? e.message : 'operationFailed'; }
       return status();
     }
+    if (action === 'verify' && !(await status()).autoCapturePending) return status();
     if (operation) throw Error('busy');
-    if (!['setup', 'install', 'connect', 'disconnect', 'check', 'capture', 'uninstall', 'setupHelper'].includes(action)) throw Error('invalidAction');
-    operation = action; error = null;
+    if (!['setup', 'install', 'connect', 'disconnect', 'check', 'capture', 'verify', 'uninstall', 'setupHelper'].includes(action)) throw Error('invalidAction');
+    operation = action; error = null;progress = null;
     const jobGeneration = ++generation;
     abortOperation = new AbortController();
+    async function checkConnection() {
+      const current = await status();
+      const desktop = current.scope === 'desktop' && !current.needsHelper && ['wayland','x11','windows'].includes(current.session);
+      if (desktop) captureAttemptedRevision = (await record()).revision;
+      stage('protocol','Checking the MCP connection…');
+      const result = await probe(runtime, bridge, {desktop,onHandshake:handshake => {
+        if(generation !== jobGeneration)return;
+        protocol=handshake;if(desktop)stage('capture','Testing screen capture…');
+      }});
+      if(generation !== jobGeneration)throw Error('setupCancelled');
+      protocol=result;
+    }
     // Long downloads run outside the renderer request timeout; status polls progress.
     const job = (async () => {
       if (action === 'uninstall') {await mutate(uninstall);return;}
       removal = null;
       if (action === 'install' || action === 'setup') {
         if (!(await installed())) {
-          await release.install(driverDirectory, adapter, {platform, fetcher, signal: abortOperation.signal});
+          stage('driver','Downloading Cua Driver…');
+          await release.install(driverDirectory, adapter, {platform, fetcher, signal: abortOperation.signal,onProgress:download => {
+            if(generation === jobGeneration)stage('driver',download.phase==='download'?'Downloading Cua Driver…':download.phase==='verify'?'Verifying the download…':'Installing Cua Driver…',download);
+          }});
+          stage('driver','Checking Cua Driver…');
           await run(driver, ['--version'], {timeout: 8000, windowsHide: true, env: {...process.env, CUA_DRIVER_RS_TELEMETRY_ENABLED: '0', CUA_TELEMETRY_ENABLED: '0'}});
         }
         if (action === 'setup') {
+          stage('desktop','Preparing desktop access…');
           const env = await environment();
           if (platform === 'linux' && env.needsHelper && !env.helperInstalled) {await adapter.setupHelper(driverDirectory); environmentCache = null;}
           if (generation !== jobGeneration) throw Error('setupCancelled');
           await mutate(() => generation === jobGeneration ? configure(value) : undefined);
           if (generation !== jobGeneration) throw Error('setupCancelled');
-          protocol = await require('./computer-use-protocol.cjs').probe(runtime, bridge);
+          await checkConnection();
         }
       } else if (action === 'connect') await mutate(() => configure(value));
       else if (action === 'disconnect') await disable();
       else if (action === 'setupHelper') {
+        stage('desktop','Preparing desktop access…');
         if (platform !== 'linux' || !(await installed()) || !(await environment()).needsHelper) throw Error('helperUnavailable');
         await adapter.setupHelper(driverDirectory); environmentCache = null;
       } else {
         environmentCache = null;
         protocol = null;
+        stage('driver','Checking Cua Driver…');
         if (!(await installed())) throw Error('installFirst');
         const version = await run(driver, ['--version'], {timeout: 8000, windowsHide: true, maxBuffer: 16000, env: {...process.env, CUA_DRIVER_RS_TELEMETRY_ENABLED: '0', CUA_TELEMETRY_ENABLED: '0'}});
         if (!version.stdout.includes(release.VERSION)) throw Error('driverVersion');
         if (!(await status()).enabled) throw Error('connectFirst');
-        protocol = await require('./computer-use-protocol.cjs').probe(runtime, bridge, {desktop:action === 'capture'});
+        await checkConnection();
       }
     })().catch(e => { error = generation !== jobGeneration ? null : /^[a-zA-Z]+$/.test(e.message) ? e.message : 'operationFailed'; })
-      .finally(() => { operation = null;abortOperation = null; });
-    if (!['install', 'setup', 'capture', 'uninstall'].includes(action)) await job;
+      .finally(() => { operation = null;progress = null;abortOperation = null; });
+    if (!['install', 'setup', 'check', 'capture', 'verify', 'uninstall'].includes(action)) await job;
     return status();
   }
   return {status, perform, paths: {directory, driverDirectory, driver, stateFile, policyFile, mcpFile, skillFile}, entry, owned};

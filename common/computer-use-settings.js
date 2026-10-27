@@ -1,7 +1,7 @@
 /* Guided desktop access in a dedicated native Settings page. */
 (() => {
  'use strict';
- const VERSION = '1.3.1';
+ const VERSION = '1.4.0';
  if (globalThis.__AGComputerUse?.version === VERSION) return;
  globalThis.__AGComputerUse?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -10,7 +10,7 @@
  const pending = new Map();
  let section, state = {}, busy = false, draft = typeof savedDraft === 'string' ? savedDraft : savedDraft?.apps;
  let scopeDraft = savedDraft?.scope, nativeRefresh = null, scheduled = false, destroyed = false, refreshing = false;
- let checksSignature = '';
+ let checksSignature = '', autoQueued = false;
  const errors = {
   selectApps: 'Choose at least one application executable.', invalidApp: 'Use an existing absolute executable path for each application.',
   serverConflict: 'This MCP server name is already used. Resolve the conflict in native MCP settings.',
@@ -29,8 +29,28 @@
   i18n.attrs(element, attributes); return element;
  }
  function scope() {return scopeDraft || state.scope || 'desktop';}
+ function rows(checks, step, withUpdates = false) {
+  return checks.map(check => {
+   const active = step === check.id;
+   const icon = node('span', {class: active ? 'agpa-cu-spinner' : `agpa-cu-check-icon ${check.passed ? 'passed' : 'pending'}`, 'aria-hidden':'true', text:active ? '' : check.passed ? '✓' : '●'});
+   const label = node('span', {class:'agpa-cu-check-label'}, node('span', {text:check.label}));
+   if (check.id === 'driver' && state.installed) {
+    label.append(node('span', {class:'agpa-cu-check-version',text:state.driverVersion}));
+    if(withUpdates) {
+     const button = node('button',{type:'button',class:'agpa-cu-update-button','data-cu-updates':'','aria-label':'Check for Cua Driver updates',title:'Check for Cua Driver updates'});
+     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+     for(const [key,value] of Object.entries({width:14,height:14,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':1.7,'aria-hidden':'true'}))svg.setAttribute(key,value);
+     const path=document.createElementNS(svg.namespaceURI,'path');path.setAttribute('d','M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1');svg.append(path);
+     if(state.updates?.checking)svg.classList.add('agpa-cu-rotating');button.append(svg);
+     button.addEventListener('click',()=>{section.querySelector('[data-cu-update-dialog]').showModal();act('updates');});label.append(button);
+    }
+   }
+   if(check.id==='desktop' && state.needsHelper && state.helperInstalled && ['signInRequired','unknown'].includes(state.helperState))label.append(node('span',{class:'agpa-cu-check-help',text:'Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.'}));
+   return node('li',{'data-cu-check-id':check.id,'data-passed':String(check.passed),'data-working':String(active)},icon,label,node('span',{class:'agpa-cu-check-state',text:active?'Working…':check.passed?'Passed':'Pending'}));
+  });
+ }
  function paint() {
-  if (!section) return;
+  if (!section || destroyed) return;
   const t = (selector, text, params) => i18n.set(section.querySelector(selector), text, params);
   const working = busy || !!state.operation;
   t('[data-cu-connection]', state.operation === 'uninstall' ? 'Removing computer use…' : state.operation ? 'Preparing computer use…' : state.enabled ? state.needsHelper ? 'Desktop access needs activation' : 'Computer use is enabled' : 'Your agent, across your desktop');
@@ -43,17 +63,30 @@
   t('[data-cu-removal]', state.removal?.skillRetained ? 'Computer use removed. Your locally edited skill was kept; rename or remove it before setting up again.' : 'Computer use removed. Select Enable computer use for a fresh setup.');
   section.querySelector('[data-cu-removal]').hidden = !state.removal;
   const checks = globalThis.__AGPAComputerUseChecks(state, globalThis.__AGNativeMcp?.status());
-  const checksKey = JSON.stringify([checks, i18n.language, state.driverVersion, loginRequired]);
+  const step = state.progress?.step || (refreshing ? 'native' : null);
+  const checksKey = JSON.stringify([checks, i18n.language, state.driverVersion, loginRequired, step, state.updates?.checking]);
   if (checksKey !== checksSignature) {
    checksSignature = checksKey;
-   section.querySelector('[data-cu-checks]').replaceChildren(...checks.map(check => {
-    const icon = node('span', {class: `agpa-cu-check-icon ${check.passed ? 'passed' : 'pending'}`, 'aria-hidden': 'true', text: check.passed ? '✓' : '●'});
-    const label = node('span', {class:'agpa-cu-check-label'}, node('span', {text:check.label}));
-    if (check.id === 'driver' && state.installed) label.append(node('span', {class:'agpa-cu-check-version',text:state.driverVersion}));
-    if (check.id === 'desktop' && loginRequired) label.append(node('span', {class:'agpa-cu-check-help',text:'Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.'}));
-    return node('li', {'data-cu-check-id': check.id, 'data-passed': String(check.passed)}, icon, label, node('span', {class:'agpa-cu-check-state', text: check.passed ? 'Passed' : 'Pending'}));
-   }));
+   section.querySelector('[data-cu-checks]').replaceChildren(...rows(checks,step,true));
+   section.querySelector('[data-cu-progress-checks]').replaceChildren(...rows(checks,step));
   }
+  const inProgress = working || refreshing;
+  t('[data-cu-progress-title]',inProgress?'Setting up computer use':state.error?'Setup needs attention':!state.enabled?'Computer use is stopped':state.needsHelper?'Desktop access needs activation':'Computer use is enabled');
+  t('[data-cu-progress-label]',state.error?(errors[state.error]||errors.operationFailed):state.progress?.label||(refreshing?'Connecting tools to Antigravity…':inProgress?'Preparing computer use…':state.needsHelper?'Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.':'Start a new conversation to use your desktop tools.'));
+  const indicator=section.querySelector('[data-cu-progress-indicator]');indicator.classList.toggle('agpa-cu-spinner',inProgress);
+  const symbol=inProgress?'':state.error||state.needsHelper||!state.enabled?'●':'✓';if(indicator.textContent!==symbol)indicator.textContent=symbol;
+  const download=state.progress?.download;
+  section.querySelector('[data-cu-download]').hidden=!download?.received;
+  t('[data-cu-download]',download?.total?'Downloaded {received} of {total} MB':'Downloaded {received} MB',{received:((download?.received||0)/1048576).toFixed(1),total:((download?.total||0)/1048576).toFixed(1)});
+  t('[data-cu-progress-close]',inProgress?'Continue in background':'Done');
+  section.querySelector('[data-cu-progress-stop]').hidden=!inProgress;
+  const update=state.updates;
+  t('[data-cu-update-title]',!update||update.checking?'Checking Cua Driver updates…':update.error?'Could not check for updates':update.available?'Cua Driver {version} is available':'Cua Driver is up to date',{version:update?.version||'—'});
+  t('[data-cu-update-description]',update?.error?'Check your connection and try again.':!update||update.checking?'Checking official Cua Driver releases…':'Reviewed version: {reviewed}. Latest upstream version: {latest}.',{reviewed:state.driverVersion||'—',latest:update?.version||'—'});
+  section.querySelector('[data-cu-update-spinner]').hidden=!update?.checking;
+  section.querySelector('[data-cu-update-preview]').hidden=!update?.prerelease;
+  section.querySelector('[data-cu-release-link]').hidden=!update?.url;
+  if(update?.url)section.querySelector('[data-cu-release-link]').href=update.url;
   for (const input of section.querySelectorAll('[name=agpa-cu-scope]')) {input.checked = input.value === scope();input.disabled = working;}
   section.querySelector('[data-cu-app-scope]').hidden = scope() !== 'apps';
   const textarea = section.querySelector('textarea');
@@ -70,6 +103,9 @@
   section.querySelector('[data-cu-capture]').disabled ||= !state.enabled || !!state.needsHelper || state.scope !== 'desktop';
   section.querySelector('[data-cu-helper]').hidden = !state.needsHelper || !state.installed || loginRequired;
   section.querySelector('[data-cu-remove]').disabled ||= !state.installed && !state.registered && !state.skillReady;
+  const updateButton=section.querySelector('[data-cu-updates]');if(updateButton)updateButton.disabled=working||!!update?.checking;
+  section.querySelector('[data-cu-progress-close]').disabled=false;section.querySelector('[data-cu-update-close]').disabled=false;
+  section.querySelector('[data-cu-progress-stop]').disabled=false;
   section.dataset.state = state.error ? 'error' : state.enabled ? state.needsHelper ? 'attention' : 'enabled' : 'off';
  }
  async function request(action, value) {
@@ -84,26 +120,34 @@
  async function refreshNative() {
   if (refreshing) return;
   refreshing = true;
-  try {nativeRefresh = await globalThis.__AGNativeMcp?.refresh() || false;} catch {nativeRefresh = false;}
-  finally {refreshing = false;paint();}
+  let timer;
+  try {nativeRefresh = await Promise.race([globalThis.__AGNativeMcp?.refresh(),new Promise(resolve=>{timer=setTimeout(()=>resolve(false),12000);})]) || false;} catch {nativeRefresh = false;}
+  finally {clearTimeout(timer);refreshing = false;paint();maybeVerify();}
  }
  function receive(next) {
+  const previousAction=state.operation;
   const completed = !!state.operation && !next.operation;
-  if (completed && !next.error) {draft = undefined;scopeDraft = undefined;}
+  if (completed && ['setup','connect'].includes(previousAction) && !next.error) {draft = undefined;scopeDraft = undefined;}
   state = next; paint();
-  if (completed && !state.error) refreshNative();
+  if (completed && ['setup','uninstall','connect','check'].includes(previousAction) && !state.error) refreshNative();
+  maybeVerify();
+ }
+ function maybeVerify() {
+  if(destroyed||autoQueued||busy||refreshing||!state.autoCapturePending||!globalThis.__AGSettingsNavigation?.isOpen())return;
+  autoQueued=true;queueMicrotask(async()=>{try{if(!destroyed&&!busy)await act('verify');}finally{autoQueued=false;}});
  }
  async function act(action) {
   if (busy && action !== 'disconnect') return;
   busy = true;paint();
+  if(action==='setup'){section.querySelector('[data-cu-progress-dialog]').showModal();section.querySelector('[data-cu-progress-close]').focus();}
   try {
    const apps = section.querySelector('textarea').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
    const next = await request(action, ['setup', 'connect'].includes(action) ? {scope: scope(), apps} : true);
    receive(next);
-   if (['connect', 'disconnect', 'check', 'refresh'].includes(action) && !state.error) await refreshNative();
+   if (['connect', 'disconnect', 'refresh'].includes(action) && !state.error) await refreshNative();
    if (['setup', 'connect'].includes(action) && !state.error && !state.operation) {draft = undefined;scopeDraft = undefined;}
   } catch {state = {...state, error: 'operationFailed'};}
-  finally {busy = false;paint();}
+  finally {busy = false;paint();maybeVerify();}
  }
  function build() {
   const scopes = node('fieldset', {class: 'agpa-cu-scopes'}, node('legend', {text: 'Where can the agent work?'}));
@@ -144,6 +188,24 @@
    node('p',{text:'Remove the plugin-managed driver, MCP entry, generated skill and setup preferences? You can then enable computer use again to reinstall.'}),
    node('p',{class:'agpa-cu-muted',text:'Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.'})),
    node('div',{class:'agpa-patch-actions'}, cancel,confirm));
+  const progressClose=node('button',{type:'button',class:'agpa-app-icon-option','data-cu-progress-close':'',text:'Continue in background'});
+  const progressStop=node('button',{type:'button',class:'agpa-app-icon-option','data-cu-progress-stop':'',text:'Stop and disconnect'});
+  const progressDialog=node('dialog',{class:'agpa-cu-confirm agpa-cu-progress','data-cu-progress-dialog':'','aria-labelledby':'agpa-cu-progress-title'},
+   node('h3',{id:'agpa-cu-progress-title'},node('span',{'data-cu-progress-indicator':'','aria-hidden':'true'}),node('span',{'data-cu-progress-title':''})),
+   node('p',{'data-cu-progress-label':'',role:'status','aria-live':'polite'}),
+   node('p',{class:'agpa-cu-muted','data-cu-download':''}),
+   node('ul',{class:'agpa-cu-checks','data-cu-progress-checks':'','aria-label':'Connection checks'}),
+   node('div',{class:'agpa-patch-actions'},progressStop,progressClose));
+  progressClose.addEventListener('click',()=>progressDialog.close());progressStop.addEventListener('click',()=>act('disconnect'));
+  const updateClose=node('button',{type:'button',class:'agpa-app-icon-option','data-cu-update-close':'',text:'Done'});
+  const updateDialog=node('dialog',{class:'agpa-cu-confirm','data-cu-update-dialog':'','aria-labelledby':'agpa-cu-update-title'},
+   node('h3',{id:'agpa-cu-update-title'},node('span',{class:'agpa-cu-spinner','data-cu-update-spinner':'','aria-hidden':'true'}),node('span',{'data-cu-update-title':''})),
+   node('p',{'data-cu-update-description':'',role:'status','aria-live':'polite'}),
+   node('p',{class:'agpa-cu-muted','data-cu-update-preview':'',text:'This upstream release is marked as a prerelease.'}),
+   node('p',{class:'agpa-cu-muted',text:'The plugin installs its reviewed driver version. New driver support arrives through plugin updates.'}),
+   node('a',{'data-cu-release-link':'',target:'_blank',rel:'noopener noreferrer',text:'View official release notes'}),
+   node('div',{class:'agpa-patch-actions'},updateClose));
+  updateClose.addEventListener('click',()=>updateDialog.close());
   const examples = node('div', {class: 'agpa-cu-examples'}, node('strong', {text: 'Try asking Antigravity'}),
    node('p', {text: 'Open Calculator, calculate 6 × 7 and verify the result.'}),
    node('p', {text: 'Check the interface of my app and reproduce the issue visually.'}));
@@ -159,10 +221,10 @@
     node('ul', {class:'agpa-cu-checks','data-cu-checks':'','aria-label':'Connection checks'}),
     advancedActions,
     node('p', {class: 'agpa-app-icon-status', 'data-cu-operation': '', role: 'status', 'aria-live': 'polite'}),
-    node('p', {class:'agpa-cu-muted',text:'Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.'}),
+    node('p', {class:'agpa-cu-muted',text:'Screen capture is tested automatically once desktop access is ready. The image is discarded; mouse and keyboard input are not tested.'}),
     removal,node('p',{class:'agpa-cu-notice','data-cu-removal':'',role:'status'}),
     node('p', {class: 'agpa-cu-muted', text: 'Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.'}),
-    node('a', {href: 'https://github.com/Riccardo-Vecchi/antigravity-plugin/blob/main/docs/COMPUTER_USE.md', target: '_blank', rel: 'noopener noreferrer', text: 'Computer-use setup guide'})));
+    node('a', {href: 'https://github.com/Riccardo-Vecchi/antigravity-plugin/blob/main/docs/COMPUTER_USE.md', target: '_blank', rel: 'noopener noreferrer', text: 'Computer-use setup guide'})),progressDialog,updateDialog);
   request('status', true).then(receive).catch(() => {});
  }
  function apply() {
@@ -203,6 +265,13 @@
   .agpa-cu-confirm::backdrop{background:#0009}.agpa-cu-confirm h3{margin:0;font-size:15px;font-weight:600}
   .agpa-cu-confirm p+p{margin-top:12px}.agpa-cu-confirm .agpa-patch-actions{justify-content:flex-end}
   .agpa-cu-danger{color:#ef9898!important;border-color:#8e4d4d!important}
+  .agpa-cu-spinner{display:inline-block;box-sizing:border-box;width:15px;height:15px;flex-shrink:0;border:2px solid #7776;border-top-color:currentColor;border-radius:50%;animation:agpa-cu-spin .8s linear infinite}
+  .agpa-cu-rotating{animation:agpa-cu-spin .8s linear infinite}.agpa-cu-confirm h3{display:flex;align-items:center;gap:10px}
+  .agpa-cu-progress{width:min(560px,calc(100vw - 48px));max-height:calc(100vh - 48px);overflow:auto}
+  .agpa-cu-update-button{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;padding:3px;border:0;border-radius:4px;background:transparent;color:inherit;cursor:pointer}.agpa-cu-update-button:hover{background:#8883}.agpa-cu-update-button:focus-visible{outline:2px solid #398bdb}
+  .agpa-cu-confirm a{color:#7ab7f4}.agpa-cu-confirm ul{margin:0}
+  @keyframes agpa-cu-spin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){.agpa-cu-spinner,.agpa-cu-rotating{animation:none}}
   @media(max-width:700px){.agpa-cu-scopes{grid-template-columns:1fr}}
  `});
  document.head.append(style);
@@ -210,7 +279,7 @@
  const observer = new MutationObserver(schedule);observer.observe(document.body, {subtree: true, childList: true});
  const interval = setInterval(() => {if (!section?.isConnected || !globalThis.__AGSettingsNavigation?.isOpen() || busy) return;request('status', true).then(receive).catch(() => {});}, 1500);
  function dismissRemoval(event) {
-  const dialog = section?.querySelector('[data-cu-confirm-removal]');
+  const dialog = section?.querySelector('dialog[open]');
   if (event.key !== 'Escape' || !dialog?.open) return;
   // The native Settings focus trap handles Escape too; dismiss only this dialog.
   event.preventDefault();event.stopImmediatePropagation();dialog.close();
@@ -220,6 +289,6 @@
  const untranslate = i18n.subscribe(paint);
  globalThis.__AGComputerUse = {version: VERSION, status: () => ({...state, mounted: !!section?.isConnected}),
   onResult(id, ok, next) {const item = pending.get(id);if (!item) return;clearTimeout(item.timer);pending.delete(id);ok ? item.resolve(next) : item.reject(Error('operationFailed'));},
-  destroy() {section?.querySelector('dialog[open]')?.close();globalThis.__AGPA_CU_DRAFT__ = {apps: section?.querySelector('textarea')?.value ?? draft, scope: scopeDraft};destroyed = true;observer.disconnect();clearInterval(interval);window.removeEventListener('keydown', dismissRemoval, true);window.removeEventListener('agpa:settings-page', schedule);untranslate();for (const item of pending.values()) {clearTimeout(item.timer);item.reject(Error('stopped'));}pending.clear();section?.remove();style.remove();delete globalThis.__AGComputerUse;}};
+  destroy() {for(const dialog of section?.querySelectorAll('dialog[open]')||[])dialog.close();globalThis.__AGPA_CU_DRAFT__ = {apps: section?.querySelector('textarea')?.value ?? draft, scope: scopeDraft};destroyed = true;observer.disconnect();clearInterval(interval);window.removeEventListener('keydown', dismissRemoval, true);window.removeEventListener('agpa:settings-page', schedule);untranslate();for (const item of pending.values()) {clearTimeout(item.timer);item.reject(Error('stopped'));}pending.clear();section?.remove();style.remove();delete globalThis.__AGComputerUse;}};
  schedule();
 })();
