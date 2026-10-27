@@ -2,6 +2,8 @@
 
 ## 1.2.1
 
+- Make the Antigravity README logo transparent by removing only the SVG favicon background.
+
 - Add a top-level enable/disable switch sharing the existing connection state; keep setup when switched off.
 - Move removal beside Stop and disconnect, style it red, and remove the redundant capture-explanation paragraph.
 - Keep activity spinners rotating under reduced-motion preferences, without changing the OS setting.

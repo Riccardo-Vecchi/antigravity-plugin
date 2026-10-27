@@ -4,7 +4,7 @@ Gemini: https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3b
 
 Antigravity: https://antigravity.google/favicon.svg
 
-Downloaded on 26 October 2026. Original assets; no visual edits.
+Downloaded on 26 October 2026. The Antigravity SVG used in the README has only its theme-dependent background circle removed for transparency; its logo paths, masks, filters and colors are unchanged. Other source assets are unmodified.
 
 `assets/icons/antigravity.png` is the application icon from the official Antigravity App 2.26.0 Linux AppImage. `assets/icons/gemini-*.png` are resized versions of the Gemini website favicon listed above. Source assets remain separate from generated runtime display files.
 

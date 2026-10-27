@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logos/antigravity.svg" width="84" align="middle" alt="Antigravity logo">
+  <img src="assets/logos/antigravity.svg?v=1.2.1" width="84" align="middle" alt="Antigravity logo">
   &nbsp;&nbsp;
   <img src="assets/logos/gemini.png" width="58" align="middle" alt="Gemini logo">
 </p>
