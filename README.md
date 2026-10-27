@@ -28,7 +28,7 @@
 ## ✨ Features
 
 - Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
-- Optional **computer use** through maintained Cua Driver: one-click setup, entire-desktop or selected-app access, MCP diagnostics and Stop controls. [Setup guide](docs/COMPUTER_USE.md).
+- Optional **Computer Use** through maintained Cua Driver: one-click setup, entire-desktop or selected-app access, MCP diagnostics and Stop controls. [Setup guide](docs/COMPUTER_USE.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Compact sidebar that keeps navigation and project icons visible.
 - Settings navigation with icons, a dedicated Computer use page and a collapsible Projects group that uses your configured project icons and colors.
