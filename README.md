@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="assets/logos/antigravity.svg" width="58" alt="Antigravity logo">
+  <img src="assets/logos/antigravity.svg" width="84" align="middle" alt="Antigravity logo">
   &nbsp;&nbsp;
-  <img src="assets/logos/gemini.png" width="58" alt="Gemini logo">
+  <img src="assets/logos/gemini.png" width="58" align="middle" alt="Gemini logo">
 </p>
 
 # 🧩 Antigravity Plugin
@@ -39,6 +39,10 @@
 | Antigravity: project colors and compact sidebar | Gemini in the same window |
 | --- | --- |
 | ![Antigravity with colored project icons and the compact sidebar](docs/images/antigravity-demo.png) | ![Gemini with the in-page Antigravity return button](docs/images/gemini-demo.png) |
+
+| Settings → Appearance: application and tray icons | Settings → Application: startup view and autostart |
+| --- | --- |
+| ![Plugin settings for fixed Antigravity or Gemini icons and Dynamic mode](docs/images/preferences.png) | ![Plugin settings for the startup view, remembering the last view and desktop autostart](docs/images/startup.png) |
 
 ## 🐧 Install on Linux
 
