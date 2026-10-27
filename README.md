@@ -38,8 +38,6 @@
 
 ## 📸 Screenshots
 
-![Computer use: dedicated settings, entire-desktop access and guided activation](docs/images/computer-use.png)
-
 | Antigravity: project colors and compact sidebar | Gemini in the same window |
 | --- | --- |
 | ![Antigravity with colored project icons and the compact sidebar](docs/images/antigravity-demo.png) | ![Gemini with the in-page Antigravity return button](docs/images/gemini-demo.png) |
