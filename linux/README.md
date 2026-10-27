@@ -4,7 +4,7 @@ For quick setup, see the [README](../README.md). Shared settings and sessions ar
 
 ## Tested Linux setup
 
-- Antigravity App **2.26.0**, official Linux x86-64 AppImage.
+- Antigravity App **2.27.0**, official Linux x86-64 AppImage.
 - Zorin OS with **GNOME Shell 46**, Wayland, Zorin taskbar, and Zorin AppIndicator.
 - Node.js **22+**, with built-in `fetch` and `WebSocket`.
 - Python 3 with PyGObject/Gio, a user systemd session, `update-desktop-database`, and `gtk-update-icon-cache`.
@@ -13,7 +13,7 @@ The integration uses the app's existing local debugging endpoint. Other app vers
 
 ## Install on Linux
 
-Install the latest official Antigravity AppImage first. The tested compatibility baseline is 2.26.0.
+Install the latest official Antigravity AppImage first. The tested compatibility baseline is 2.27.0.
 
 Linux discovery first reads valid Antigravity `.desktop` entries in the XDG user and system applications directories. It accepts executable AppImages with the AppImage header, including quoted paths and launcher arguments. System launchers are represented by a user override; system files are not edited.
 

@@ -111,7 +111,6 @@
       "Set up GNOME helper": "Set up GNOME helper",
       "2. Connect selected apps": "2. Connect selected apps",
       "3. Check MCP connection": "3. Check MCP connection",
-      "Stop and disconnect": "Stop and disconnect",
       "Refresh status": "Refresh status",
       "Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.": "Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.",
       "Computer-use setup guide": "Computer-use setup guide",
@@ -186,7 +185,6 @@
       "Pending": "Pending",
       "Repair desktop helper": "Repair desktop helper",
       "Test screen capture": "Test screen capture",
-      "Remove computer use…": "Remove computer use…",
       "Remove computer use": "Remove computer use",
       "Remove the plugin-managed driver, MCP entry, generated skill and setup preferences? You can then enable computer use again to reinstall.": "Remove the plugin-managed driver, MCP entry, generated skill and setup preferences? You can then enable computer use again to reinstall.",
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.",
@@ -227,7 +225,12 @@
       "Testing screen capture…": "Testing screen capture…",
       "Enabled": "Enabled",
       "Disconnect the agent and keep setup.": "Disconnect the agent and keep setup.",
-      "Enable using the access selected below.": "Enable using the access selected below."
+      "Enable using the access selected below.": "Enable using the access selected below.",
+      "Installation details": "Installation details",
+      "Cancel setup": "Cancel setup",
+      "Enabling…": "Enabling…",
+      "Disabling…": "Disabling…",
+      "Computer use is disabled. Your installation and access settings are kept.": "Computer use is disabled. Your installation and access settings are kept."
     },
     "icons": {
       "folder": "Folder",
@@ -392,7 +395,6 @@
       "Set up GNOME helper": "Configura il componente GNOME",
       "2. Connect selected apps": "2. Collega le app selezionate",
       "3. Check MCP connection": "3. Verifica la connessione MCP",
-      "Stop and disconnect": "Interrompi e disconnetti",
       "Refresh status": "Aggiorna stato",
       "Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.": "Disponibile per l’agente nativo Antigravity. Il sito Gemini integrato non riceve questi strumenti.",
       "Computer-use setup guide": "Guida alla configurazione del controllo del computer",
@@ -467,7 +469,6 @@
       "Pending": "Da verificare",
       "Repair desktop helper": "Ripara estensione desktop",
       "Test screen capture": "Verifica cattura schermo",
-      "Remove computer use…": "Rimuovi Computer use…",
       "Remove computer use": "Rimuovi Computer use",
       "Remove the plugin-managed driver, MCP entry, generated skill and setup preferences? You can then enable computer use again to reinstall.": "Rimuovere il driver gestito dal plugin, la voce MCP, la skill generata e le preferenze di configurazione? Potrai poi riabilitare Computer use per reinstallarlo.",
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "Gli altri server MCP, le conversazioni e le skill modificate vengono conservati. L’estensione GNOME condivisa e le altre installazioni Cua vengono mantenute.",
@@ -508,7 +509,12 @@
       "Testing screen capture…": "Verifica della cattura schermo…",
       "Enabled": "Abilitato",
       "Disconnect the agent and keep setup.": "Scollega l’agente mantenendo l’installazione.",
-      "Enable using the access selected below.": "Abilita con l’accesso selezionato qui sotto."
+      "Enable using the access selected below.": "Abilita con l’accesso selezionato qui sotto.",
+      "Installation details": "Dettagli dell’installazione",
+      "Cancel setup": "Annulla configurazione",
+      "Enabling…": "Abilitazione…",
+      "Disabling…": "Disabilitazione…",
+      "Computer use is disabled. Your installation and access settings are kept.": "Computer use è disabilitato. L’installazione e le impostazioni di accesso sono conservate."
     },
     "icons": {
       "folder": "Cartella",
@@ -673,7 +679,6 @@
       "Set up GNOME helper": "GNOME-Hilfskomponente einrichten",
       "2. Connect selected apps": "2. Ausgewählte Apps verbinden",
       "3. Check MCP connection": "3. MCP-Verbindung prüfen",
-      "Stop and disconnect": "Stoppen und trennen",
       "Refresh status": "Status aktualisieren",
       "Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.": "Für den nativen Antigravity-Agenten verfügbar. Die eingebettete Gemini-Website erhält diese Werkzeuge nicht.",
       "Computer-use setup guide": "Einrichtungsanleitung zur Computersteuerung",
@@ -748,7 +753,6 @@
       "Pending": "Ausstehend",
       "Repair desktop helper": "Desktop-Erweiterung reparieren",
       "Test screen capture": "Bildschirmaufnahme testen",
-      "Remove computer use…": "Computer use entfernen…",
       "Remove computer use": "Computer use entfernen",
       "Remove the plugin-managed driver, MCP entry, generated skill and setup preferences? You can then enable computer use again to reinstall.": "Vom Plugin verwalteten Treiber, MCP-Eintrag, erzeugte Skill-Datei und Einrichtungseinstellungen entfernen? Danach kannst du Computer use erneut aktivieren und installieren.",
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "Andere MCP-Server, Unterhaltungen und bearbeitete Skill-Dateien bleiben erhalten. Die gemeinsam genutzte GNOME-Erweiterung und andere Cua-Installationen bleiben ebenfalls erhalten.",
@@ -789,7 +793,12 @@
       "Testing screen capture…": "Bildschirmaufnahme wird getestet…",
       "Enabled": "Aktiviert",
       "Disconnect the agent and keep setup.": "Agent trennen und Einrichtung beibehalten.",
-      "Enable using the access selected below.": "Mit dem unten gewählten Zugriff aktivieren."
+      "Enable using the access selected below.": "Mit dem unten gewählten Zugriff aktivieren.",
+      "Installation details": "Installationsdetails",
+      "Cancel setup": "Einrichtung abbrechen",
+      "Enabling…": "Wird aktiviert…",
+      "Disabling…": "Wird deaktiviert…",
+      "Computer use is disabled. Your installation and access settings are kept.": "Computer use ist deaktiviert. Installation und Zugriffseinstellungen bleiben erhalten."
     },
     "icons": {
       "folder": "Ordner",
@@ -954,7 +963,6 @@
       "Set up GNOME helper": "Configurar el componente de GNOME",
       "2. Connect selected apps": "2. Conectar aplicaciones seleccionadas",
       "3. Check MCP connection": "3. Comprobar la conexión MCP",
-      "Stop and disconnect": "Detener y desconectar",
       "Refresh status": "Actualizar estado",
       "Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.": "Disponible para el agente nativo de Antigravity. El sitio web de Gemini integrado no recibe estas herramientas.",
       "Computer-use setup guide": "Guía de configuración del control del ordenador",
@@ -1029,7 +1037,6 @@
       "Pending": "Pendiente",
       "Repair desktop helper": "Reparar extensión del escritorio",
       "Test screen capture": "Probar captura de pantalla",
-      "Remove computer use…": "Eliminar Computer use…",
       "Remove computer use": "Eliminar Computer use",
       "Remove the plugin-managed driver, MCP entry, generated skill and setup preferences? You can then enable computer use again to reinstall.": "¿Eliminar el controlador gestionado por el plugin, la entrada MCP, la habilidad generada y las preferencias de configuración? Después podrás activar Computer use para reinstalarlo.",
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "Se conservan los demás servidores MCP, conversaciones y habilidades editadas, así como la extensión compartida de GNOME y otras instalaciones de Cua.",
@@ -1070,7 +1077,12 @@
       "Testing screen capture…": "Probando la captura de pantalla…",
       "Enabled": "Activado",
       "Disconnect the agent and keep setup.": "Desconectar el agente y conservar la instalación.",
-      "Enable using the access selected below.": "Activar con el acceso seleccionado abajo."
+      "Enable using the access selected below.": "Activar con el acceso seleccionado abajo.",
+      "Installation details": "Detalles de instalación",
+      "Cancel setup": "Cancelar configuración",
+      "Enabling…": "Activando…",
+      "Disabling…": "Desactivando…",
+      "Computer use is disabled. Your installation and access settings are kept.": "Computer use está desactivado. Se conservan la instalación y los ajustes de acceso."
     },
     "icons": {
       "folder": "Carpeta",
@@ -1235,7 +1247,6 @@
       "Set up GNOME helper": "Configurer le composant GNOME",
       "2. Connect selected apps": "2. Connecter les applications sélectionnées",
       "3. Check MCP connection": "3. Vérifier la connexion MCP",
-      "Stop and disconnect": "Arrêter et déconnecter",
       "Refresh status": "Actualiser l’état",
       "Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.": "Disponible pour l’agent natif Antigravity. Le site Gemini intégré ne reçoit pas ces outils.",
       "Computer-use setup guide": "Guide de configuration du contrôle de l’ordinateur",
@@ -1310,7 +1321,6 @@
       "Pending": "En attente",
       "Repair desktop helper": "Réparer l’extension du bureau",
       "Test screen capture": "Tester la capture d’écran",
-      "Remove computer use…": "Supprimer Computer use…",
       "Remove computer use": "Supprimer Computer use",
       "Remove the plugin-managed driver, MCP entry, generated skill and setup preferences? You can then enable computer use again to reinstall.": "Supprimer le pilote géré par le plugin, son entrée MCP, la compétence générée et les préférences de configuration ? Vous pourrez ensuite réactiver Computer use pour le réinstaller.",
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "Les autres serveurs MCP, les conversations et les compétences modifiées sont conservés, ainsi que l’extension GNOME partagée et les autres installations de Cua.",
@@ -1351,7 +1361,12 @@
       "Testing screen capture…": "Test de la capture d’écran…",
       "Enabled": "Activé",
       "Disconnect the agent and keep setup.": "Déconnecter l’agent et conserver l’installation.",
-      "Enable using the access selected below.": "Activer avec l’accès sélectionné ci-dessous."
+      "Enable using the access selected below.": "Activer avec l’accès sélectionné ci-dessous.",
+      "Installation details": "Détails de l’installation",
+      "Cancel setup": "Annuler la configuration",
+      "Enabling…": "Activation…",
+      "Disabling…": "Désactivation…",
+      "Computer use is disabled. Your installation and access settings are kept.": "Computer use est désactivé. L’installation et les paramètres d’accès sont conservés."
     },
     "icons": {
       "folder": "Dossier",
@@ -1516,7 +1531,6 @@
       "Set up GNOME helper": "设置 GNOME 辅助组件",
       "2. Connect selected apps": "2. 连接选定的应用",
       "3. Check MCP connection": "3. 检查 MCP 连接",
-      "Stop and disconnect": "停止并断开连接",
       "Refresh status": "刷新状态",
       "Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.": "供 Antigravity 原生智能体使用。嵌入的 Gemini 网站无法使用这些工具。",
       "Computer-use setup guide": "计算机操作设置指南",
@@ -1591,7 +1605,6 @@
       "Pending": "待验证",
       "Repair desktop helper": "修复桌面扩展",
       "Test screen capture": "测试屏幕截图",
-      "Remove computer use…": "移除电脑操作功能…",
       "Remove computer use": "移除电脑操作功能",
       "Remove the plugin-managed driver, MCP entry, generated skill and setup preferences? You can then enable computer use again to reinstall.": "要移除插件管理的驱动、MCP 条目、生成的技能和设置偏好吗？之后可重新启用电脑操作功能进行安装。",
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "其他 MCP 服务器、对话和已编辑的技能将保留。共享的 GNOME 扩展及其他 Cua 安装也将保留。",
@@ -1632,7 +1645,12 @@
       "Testing screen capture…": "正在测试屏幕截图…",
       "Enabled": "已启用",
       "Disconnect the agent and keep setup.": "断开智能体连接并保留安装。",
-      "Enable using the access selected below.": "使用下方选择的访问范围启用。"
+      "Enable using the access selected below.": "使用下方选择的访问范围启用。",
+      "Installation details": "安装详情",
+      "Cancel setup": "取消设置",
+      "Enabling…": "正在启用…",
+      "Disabling…": "正在禁用…",
+      "Computer use is disabled. Your installation and access settings are kept.": "电脑操作功能已禁用。安装和访问设置均已保留。"
     },
     "icons": {
       "folder": "文件夹",
@@ -1797,7 +1815,6 @@
       "Set up GNOME helper": "GNOME ヘルパーを設定",
       "2. Connect selected apps": "2. 選択したアプリを接続",
       "3. Check MCP connection": "3. MCP 接続を確認",
-      "Stop and disconnect": "停止して切断",
       "Refresh status": "状態を更新",
       "Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.": "Antigravity のネイティブエージェントで利用できます。埋め込まれた Gemini ウェブサイトにはこれらのツールは提供されません。",
       "Computer-use setup guide": "コンピューター操作の設定ガイド",
@@ -1872,7 +1889,6 @@
       "Pending": "未確認",
       "Repair desktop helper": "デスクトップ拡張機能を修復",
       "Test screen capture": "画面キャプチャをテスト",
-      "Remove computer use…": "コンピューター操作を削除…",
       "Remove computer use": "コンピューター操作を削除",
       "Remove the plugin-managed driver, MCP entry, generated skill and setup preferences? You can then enable computer use again to reinstall.": "プラグインが管理するドライバー、MCP の登録、生成したスキル、設定を削除しますか？削除後にコンピューター操作を再度有効にすると再インストールできます。",
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "他の MCP サーバー、会話、編集済みのスキルは保持されます。共有の GNOME 拡張機能と他の Cua 環境も保持されます。",
@@ -1913,7 +1929,12 @@
       "Testing screen capture…": "画面キャプチャをテスト中…",
       "Enabled": "有効",
       "Disconnect the agent and keep setup.": "設定を保持してエージェントを切断します。",
-      "Enable using the access selected below.": "下で選択したアクセス範囲で有効にします。"
+      "Enable using the access selected below.": "下で選択したアクセス範囲で有効にします。",
+      "Installation details": "インストールの詳細",
+      "Cancel setup": "設定をキャンセル",
+      "Enabling…": "有効にしています…",
+      "Disabling…": "無効にしています…",
+      "Computer use is disabled. Your installation and access settings are kept.": "コンピューター操作は無効です。インストールとアクセス設定は保持されています。"
     },
     "icons": {
       "folder": "フォルダー",

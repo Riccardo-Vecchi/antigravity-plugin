@@ -6,7 +6,7 @@ Give the **native Antigravity agent** desktop tools through the maintained [Cua 
 
 1. Open **Settings → Computer use**, its own item in the Settings menu. Settings navigation has icons; its Projects group can be collapsed and uses your configured project appearance.
 2. Choose **Entire desktop** to work across your environment, or **Selected apps** for an application allowlist.
-3. Turn on the **Computer use** switch at the top. A centered progress dialog shows the active step with a spinner, individual checks, and actual downloaded MB. **Continue in background** or Escape hides the dialog while setup continues; **Stop and disconnect** revokes it. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
+3. Turn on the **Computer use** switch at the top. A centered progress dialog shows the active step with a spinner, individual checks, and actual downloaded MB. **Continue in background** or Escape hides the dialog while setup continues; **Cancel setup** revokes it. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
 4. Follow any OS access prompt. On GNOME/Wayland, the helper needs a **Linux session logout/login once** to load. Save your work, open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select **Refresh status**. **Locking/unlocking the screen keeps the same Linux session and does not load the extension.** Closing the app or signing out of Google also does not load it. The wizard never logs you out or restarts your apps.
 5. Start a **new Antigravity conversation** and describe the result you want. Existing conversations can keep their earlier tool list.
 
@@ -43,19 +43,25 @@ In either mode, the bridge exposes only the reviewed GUI tool set (17 tools for 
 
 The top switch reflects the actual connection state. **OFF** revokes desktop access and disconnects the native agent while keeping the installed driver and access choices. **ON** runs setup/reconnection using the access currently selected below; an installed reviewed driver is reused. **Apply access changes** saves scope edits while enabled.
 
-The switch and **Stop and disconnect** share one connection state. Stop is the immediate action that also cancels in-progress setup; there is no separate hidden “enabled but disconnected” state. The red **Remove computer use…** button is immediately to its right and removes managed components after confirmation.
+The switch is the single connection control and remains usable to cancel setup after the progress dialog is sent to the background. The dialog has a contextual **Cancel setup** action. The red **Remove computer use** button removes managed components after confirmation.
+
+**Apply access changes** is gray and disabled when the visible scope/app list matches the saved configuration. Selecting another scope or editing the selected-app allowlist makes it white and clickable; selecting the original scope again disables it. Reordering/duplicating app paths alone is not an access change.
+
+When disabled, access choices stay editable for the next activation, and **Remove computer use** remains available. Examples, desktop-permission notices and connection checks are hidden. **Installation details** retains the driver version and update check. Enabling restores the full interface without discarding access drafts.
+
+![Disabled computer use keeps access choices and installation details available](images/computer-use-disabled.png)
 
 Activity spinners keep rotating even when the OS requests reduced motion, as an explicit exception limited to these work indicators. Other OS motion preferences are unchanged.
 
-## ⏹️ Stop and disconnect
+## ⏹️ Disable and cancel
 
-**Stop and disconnect** is always available during setup or while connected. It cancels setup, revokes the lease and removes only the plugin's MCP entry, preserving unrelated servers. The bridge checks revocation every 300 ms, requests graceful shutdown and forces exit if needed. An action already delivered cannot be undone. Driver files, scope choices and the owned skill remain available for reconnecting.
+Switching **OFF** cancels setup and revokes the lease and removes only the plugin's MCP entry, preserving unrelated servers. The bridge checks revocation every 300 ms, requests graceful shutdown and forces exit if needed. An action already delivered cannot be undone. Driver files, scope choices and the owned skill remain available for reconnecting.
 
 The platform disable scripts also disconnect computer use. In Selected apps mode, capability sessions expire after eight hours, with a thirty-minute idle timeout; reconnect to start a fresh runtime. Entire desktop uses the normal driver session lifecycle.
 
 ## ♻️ Remove and set up again
 
-Open **Settings → Computer use → Remove computer use…**, the red button beside **Stop and disconnect**, and confirm in the centered dialog. Cancel or press Escape to keep the setup. This revokes the connection, removes only the plugin's own MCP entry, deletes its verified managed driver, setup preferences and unchanged generated skill. Then turn on the top switch to download and configure it again.
+Open **Settings → Computer use → Remove computer use**, the red button, and confirm in the centered dialog. Cancel or press Escape to keep the setup. This revokes the connection, removes only the plugin's own MCP entry, deletes its verified managed driver, setup preferences and unchanged generated skill. Then turn on the top switch to download and configure it again.
 
 Other MCP servers, conversations, Antigravity/Gemini data, other Cua installations and the **shared WinRects GNOME extension** remain untouched. A locally edited skill is preserved and reported: rename or remove it yourself before a fresh setup. Unrecognized driver folders or missing/invalid receipts stop removal instead of deleting unknown files. Use **Repair desktop helper** for a disabled or failed helper; reinstallation is unnecessary when it only needs the next Linux sign-in.
 

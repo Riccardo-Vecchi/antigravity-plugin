@@ -69,3 +69,18 @@ test('unavailable release discovery is an error, never a false up-to-date result
  await assert.rejects(()=>checkForUpdates(async()=>new Response('rate limit',{status:403})),/updateCheckFailed/);
  await assert.rejects(()=>checkForUpdates(async()=>new Response('[]')),/updateCheckFailed/);
 });
+test('access changes compare configured scope rather than the last selected card',()=>{
+ const {accessChanged}=require('../common/computer-use-checks.cjs');
+ const current={scope:'desktop',apps:[]};
+ assert.equal(accessChanged(current,{scope:'desktop',apps:['/draft/app']}),false);
+ assert.equal(accessChanged(current,{scope:'apps',apps:[]}),true);
+ assert.equal(accessChanged(current,{scope:'desktop',apps:[]}),false);
+ assert.equal(accessChanged({scope:'apps',apps:['/app']},{scope:'desktop',apps:[]}),true);
+});
+test('app access changes ignore order, blank lines and duplicates but detect additions and removals',()=>{
+ const {accessChanged}=require('../common/computer-use-checks.cjs');
+ const current={scope:'apps',apps:['/bin/one','/bin/two']};
+ assert.equal(accessChanged(current,{scope:'apps',apps:[' /bin/two ','','/bin/one','/bin/one']}),false);
+ assert.equal(accessChanged(current,{scope:'apps',apps:['/bin/one']}),true);
+ assert.equal(accessChanged(current,{scope:'apps',apps:['/bin/one','/bin/two','/bin/three']}),true);
+});

@@ -17,3 +17,13 @@ function shouldAutoCapture(state) {
     ['wayland','x11','windows'].includes(state.session) && !state.captureAttempted && !state.operation && !state.error;
 }
 module.exports.shouldAutoCapture = shouldAutoCapture;
+// Compare access meaning, not textarea formatting or application ordering.
+function accessChanged(current, selected) {
+  if (current.scope !== selected.scope) return true;
+  if (selected.scope !== 'apps') return false;
+  const normalize = apps => [...new Set((apps || []).filter(app => typeof app === 'string').map(app => {
+    const value=app.trim();return current.platform === 'win32' ? value.toLowerCase() : value;
+  }).filter(Boolean))].sort();
+  return JSON.stringify(normalize(current.apps)) !== JSON.stringify(normalize(selected.apps));
+}
+module.exports.accessChanged = accessChanged;

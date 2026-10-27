@@ -56,7 +56,8 @@
     "common/project-presentation.js",
     "docs/images/computer-use.png",
     "docs/images/computer-use-checks.png",
-    "docs/images/computer-use-updates.png"
+    "docs/images/computer-use-updates.png",
+    "docs/images/computer-use-disabled.png"
   ],
   "linux": [
     "linux/desktop.cjs",

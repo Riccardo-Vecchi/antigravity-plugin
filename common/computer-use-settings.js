@@ -1,7 +1,7 @@
 /* Guided desktop access in a dedicated native Settings page. */
 (() => {
  'use strict';
- const VERSION = '1.4.1';
+ const VERSION = '1.4.2';
  if (globalThis.__AGComputerUse?.version === VERSION) return;
  globalThis.__AGComputerUse?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -10,7 +10,7 @@
  const pending = new Map();
  let section, state = {}, busy = false, draft = typeof savedDraft === 'string' ? savedDraft : savedDraft?.apps;
  let scopeDraft = savedDraft?.scope, nativeRefresh = null, scheduled = false, destroyed = false, refreshing = false;
- let checksSignature = '', autoQueued = false;
+ let checksSignature = '', autoQueued = false, pendingAction = null, actionEpoch = 0, stopRequested = false;
  const errors = {
   selectApps: 'Choose at least one application executable.', invalidApp: 'Use an existing absolute executable path for each application.',
   serverConflict: 'This MCP server name is already used. Resolve the conflict in native MCP settings.',
@@ -29,6 +29,7 @@
   i18n.attrs(element, attributes); return element;
  }
  function scope() {return scopeDraft || state.scope || 'desktop';}
+ function selectedApps() {return section.querySelector('textarea').value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean);}
  function rows(checks, step, withUpdates = false) {
   return checks.map(check => {
    const active = step === check.id;
@@ -53,8 +54,10 @@
   if (!section || destroyed) return;
   const t = (selector, text, params) => i18n.set(section.querySelector(selector), text, params);
   const working = busy || !!state.operation;
+  const enabling = !stopRequested && (pendingAction === 'setup' || ['setup','install','connect'].includes(state.operation));
+  const switchOn = pendingAction !== 'disconnect' && (!!state.enabled || enabling);
   t('[data-cu-connection]', state.operation === 'uninstall' ? 'Removing computer use…' : state.operation ? 'Preparing computer use…' : state.enabled ? state.needsHelper ? 'Desktop access needs activation' : 'Computer use is enabled' : 'Your agent, across your desktop');
-  t('[data-cu-summary]', state.enabled ? 'Describe the result you want in Antigravity. The agent can see and operate the desktop within your chosen access.' : 'Let Antigravity work across your apps: explore, click, type and verify the result.');
+  t('[data-cu-summary]', state.enabled ? 'Describe the result you want in Antigravity. The agent can see and operate the desktop within your chosen access.' : state.installed ? 'Computer use is disabled. Your installation and access settings are kept.' : 'Let Antigravity work across your apps: explore, click, type and verify the result.');
   const loginRequired = state.needsHelper && state.helperInstalled && ['signInRequired', 'unknown'].includes(state.helperState);
   t('[data-cu-platform]', loginRequired ? 'Sign out of Linux to activate desktop access' : state.needsHelper ? state.helperInstalled ? 'The GNOME helper is disabled or could not load. Select Repair desktop helper, then refresh status.' : 'The setup will install the GNOME desktop helper. A new sign-in is required to activate it.' : state.session === 'wayland' ? 'Wayland: some apps require foreground input or additional desktop permission.' : state.experimental ? 'Windows support is experimental. Keep the target app visible in your desktop session.' : 'Desktop permissions may be requested when you first use an application.');
   section.querySelector('[data-cu-login-steps]').hidden = !loginRequired;
@@ -62,17 +65,23 @@
   t('[data-cu-connect]', working ? 'Preparing computer use…' : 'Apply access changes');
   section.querySelector('[data-cu-connect]').hidden = !state.enabled;
   const toggle=section.querySelector('[data-cu-toggle]');
-  toggle.setAttribute('aria-checked',String(!!state.enabled));
-  i18n.set(toggle,state.enabled?'Disconnect the agent and keep setup.':'Enable using the access selected below.',{},'title');
-  t('[data-cu-toggle-label]',state.enabled?'Enabled':'Disabled');
+  toggle.setAttribute('aria-checked',String(switchOn));
+  i18n.set(toggle,switchOn?'Disconnect the agent and keep setup.':'Enable using the access selected below.',{},'title');
+  t('[data-cu-toggle-label]',pendingAction==='disconnect'?'Disabling…':enabling&&!state.enabled?'Enabling…':state.enabled?'Enabled':'Disabled');
+  section.querySelector('[data-cu-runtime-notice]').hidden = !switchOn;
+  section.querySelector('[data-cu-examples]').hidden = !state.enabled;
+  section.querySelector('[data-cu-advanced-actions]').hidden = !state.enabled;
+  section.querySelector('[data-cu-native-note]').hidden = !state.enabled;
+  section.querySelector('[data-cu-operation]').hidden = !state.enabled && !state.error && !working;
+  t('[data-cu-details-title]',switchOn?'Connection details':'Installation details');
   t('[data-cu-removal]', state.removal?.skillRetained ? 'Computer use removed. Your locally edited skill was kept; rename or remove it before setting up again.' : 'Computer use removed. Select Enable computer use for a fresh setup.');
   section.querySelector('[data-cu-removal]').hidden = !state.removal;
   const checks = globalThis.__AGPAComputerUseChecks(state, globalThis.__AGNativeMcp?.status());
   const step = state.progress?.step || (refreshing ? 'native' : null);
-  const checksKey = JSON.stringify([checks, i18n.language, state.driverVersion, loginRequired, step, state.updates?.checking]);
+  const checksKey = JSON.stringify([checks, i18n.language, state.driverVersion, loginRequired, step, state.updates?.checking, switchOn]);
   if (checksKey !== checksSignature) {
    checksSignature = checksKey;
-   section.querySelector('[data-cu-checks]').replaceChildren(...rows(checks,step,true));
+   section.querySelector('[data-cu-checks]').replaceChildren(...rows(switchOn?checks:checks.filter(check=>check.id==='driver'),step,true));
    section.querySelector('[data-cu-progress-checks]').replaceChildren(...rows(checks,step));
   }
   const inProgress = working || refreshing;
@@ -102,13 +111,16 @@
    for (const choice of state.availableApps || []) select.append(node('option', {value: choice.executable, text: choice.name}));
   }
   for (const button of section.querySelectorAll('button')) button.disabled = working;
-  section.querySelector('[data-cu-disconnect]').disabled = !state.enabled && !state.registered && !state.operation;
+  const changed=globalThis.__AGPAComputerUseAccessChanged(state,{scope:scope(),apps:selectedApps()});
+  const apply=section.querySelector('[data-cu-connect]');
+  apply.disabled = working || !state.enabled || !changed;
+  apply.classList.toggle('agpa-cu-primary',!apply.disabled);
   section.querySelector('[data-cu-check]').disabled ||= !state.enabled;
   section.querySelector('[data-cu-capture]').hidden = scope() !== 'desktop';
   section.querySelector('[data-cu-capture]').disabled ||= !state.enabled || !!state.needsHelper || state.scope !== 'desktop';
   section.querySelector('[data-cu-helper]').hidden = !state.needsHelper || !state.installed || loginRequired;
   section.querySelector('[data-cu-remove]').disabled ||= !state.installed && !state.registered && !state.skillReady;
-  toggle.disabled = working || !state.platform;
+  toggle.disabled = !state.platform || pendingAction==='disconnect' || pendingAction==='uninstall' || state.operation==='uninstall';
   const updateButton=section.querySelector('[data-cu-updates]');if(updateButton)updateButton.disabled=working||!!update?.checking;
   section.querySelector('[data-cu-progress-close]').disabled=false;section.querySelector('[data-cu-update-close]').disabled=false;
   section.querySelector('[data-cu-progress-stop]').disabled=false;
@@ -134,7 +146,7 @@
   const previousAction=state.operation;
   const completed = !!state.operation && !next.operation;
   if (completed && ['setup','connect'].includes(previousAction) && !next.error) {draft = undefined;scopeDraft = undefined;}
-  state = next; paint();
+  state = next;if(!state.enabled&&!state.operation)stopRequested=false;paint();
   if (completed && ['setup','uninstall','connect','check'].includes(previousAction) && !state.error) refreshNative();
   maybeVerify();
  }
@@ -144,16 +156,17 @@
  }
  async function act(action) {
   if (busy && action !== 'disconnect') return;
-  busy = true;paint();
+  const epoch=++actionEpoch;if(action==='disconnect')stopRequested=true;else if(action==='setup')stopRequested=false;pendingAction=action;busy = true;paint();
   if(action==='setup'){section.querySelector('[data-cu-progress-dialog]').showModal();section.querySelector('[data-cu-progress-close]').focus();}
   try {
-   const apps = section.querySelector('textarea').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+   const apps = selectedApps();
    const next = await request(action, ['setup', 'connect'].includes(action) ? {scope: scope(), apps} : true);
+   if(epoch!==actionEpoch)return;
    receive(next);
    if (['connect', 'disconnect', 'refresh'].includes(action) && !state.error) await refreshNative();
    if (['setup', 'connect'].includes(action) && !state.error && !state.operation) {draft = undefined;scopeDraft = undefined;}
-  } catch {state = {...state, error: 'operationFailed'};}
-  finally {busy = false;paint();maybeVerify();}
+  } catch {if(epoch===actionEpoch)state = {...state, error: 'operationFailed'};}
+  finally {if(epoch===actionEpoch){busy = false;pendingAction=null;paint();maybeVerify();}}
  }
  function build() {
   const scopes = node('fieldset', {class: 'agpa-cu-scopes'}, node('legend', {text: 'Where can the agent work?'}));
@@ -167,24 +180,22 @@
   }
   const textarea = node('textarea', {rows: '3', class: 'agpa-cu-apps', 'aria-label': 'Allowed application executables', placeholder: 'One absolute executable path per line'});
   if (draft !== undefined) textarea.value = draft;
-  textarea.addEventListener('input', () => {draft = textarea.value;});
+  textarea.addEventListener('input', () => {draft = textarea.value;paint();});
   const select = node('select', {'aria-label': 'Detected applications', class: 'agpa-cu-apps'});
   const add = node('button', {type: 'button', class: 'agpa-app-icon-option', text: 'Add application'});
-  add.addEventListener('click', () => {if (!select.value) return;const apps = new Set(textarea.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean));apps.add(select.value);draft = textarea.value = [...apps].join('\n');});
+  add.addEventListener('click', () => {if (!select.value) return;const apps = new Set(selectedApps());apps.add(select.value);draft = textarea.value = [...apps].join('\n');paint();});
   const apps = node('div', {'data-cu-app-scope': '', class: 'agpa-cu-selected'}, node('div', {class: 'agpa-patch-actions'}, select, add), textarea);
   const enable = node('button', {type: 'button', class: 'agpa-app-icon-option agpa-cu-primary', 'data-cu-connect': '', text: 'Enable computer use'});
   enable.addEventListener('click', () => act('setup'));
   const toggle=node('button',{type:'button',class:'agpa-cu-enable-switch',role:'switch','aria-label':'Computer use','aria-checked':'false','data-cu-toggle':''},
    node('span',{'data-cu-toggle-label':''}),node('span',{class:'agpa-cu-switch-track','aria-hidden':'true'},node('span',{class:'agpa-cu-switch-thumb'})));
-  toggle.addEventListener('click',()=>act(state.enabled?'disconnect':'setup'));
-  const stop = node('button', {type: 'button', class: 'agpa-app-icon-option', 'data-cu-disconnect': '', text: 'Stop and disconnect'});
-  stop.addEventListener('click', () => act('disconnect'));
-  const advancedActions = node('div', {class: 'agpa-patch-actions'});
+  toggle.addEventListener('click',()=>act(state.enabled||state.operation||busy?'disconnect':'setup'));
+  const advancedActions = node('div', {class: 'agpa-patch-actions','data-cu-advanced-actions':''});
   for (const [action, key, label] of [['setupHelper', 'helper', 'Repair desktop helper'], ['check', 'check', 'Check connection'], ['refresh', 'status', 'Refresh status'], ['capture', 'capture', 'Test screen capture']]) {
    const button = node('button', {type: 'button', class: 'agpa-app-icon-option', [`data-cu-${key}`]: '', text: label});
    button.addEventListener('click', () => act(action));advancedActions.append(button);
   }
-  const remove = node('button', {type:'button',class:'agpa-app-icon-option agpa-cu-danger','data-cu-remove':'',text:'Remove computer use…'});
+  const remove = node('button', {type:'button',class:'agpa-app-icon-option agpa-cu-danger','data-cu-remove':'',text:'Remove computer use'});
   remove.addEventListener('click', () => {removal.showModal();cancel.focus();});
   const cancel = node('button', {type:'button',class:'agpa-app-icon-option',text:'Cancel'});
   cancel.addEventListener('click', () => removal.close());
@@ -197,7 +208,7 @@
    node('p',{class:'agpa-cu-muted',text:'Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.'})),
    node('div',{class:'agpa-patch-actions'}, cancel,confirm));
   const progressClose=node('button',{type:'button',class:'agpa-app-icon-option','data-cu-progress-close':'',text:'Continue in background'});
-  const progressStop=node('button',{type:'button',class:'agpa-app-icon-option','data-cu-progress-stop':'',text:'Stop and disconnect'});
+  const progressStop=node('button',{type:'button',class:'agpa-app-icon-option','data-cu-progress-stop':'',text:'Cancel setup'});
   const progressDialog=node('dialog',{class:'agpa-cu-confirm agpa-cu-progress','data-cu-progress-dialog':'','aria-labelledby':'agpa-cu-progress-title'},
    node('h3',{id:'agpa-cu-progress-title'},node('span',{'data-cu-progress-indicator':'','aria-hidden':'true'}),node('span',{'data-cu-progress-title':''})),
    node('p',{'data-cu-progress-label':'',role:'status','aria-live':'polite'}),
@@ -214,23 +225,23 @@
    node('a',{'data-cu-release-link':'',target:'_blank',rel:'noopener noreferrer',text:'View official release notes'}),
    node('div',{class:'agpa-patch-actions'},updateClose));
   updateClose.addEventListener('click',()=>updateDialog.close());
-  const examples = node('div', {class: 'agpa-cu-examples'}, node('strong', {text: 'Try asking Antigravity'}),
+  const examples = node('div', {class: 'agpa-cu-examples','data-cu-examples':''}, node('strong', {text: 'Try asking Antigravity'}),
    node('p', {text: 'Open Calculator, calculate 6 × 7 and verify the result.'}),
    node('p', {text: 'Check the interface of my app and reproduce the issue visually.'}));
   section = node('section', {class: 'agpa-cu-panel', 'data-agpa-computer-use-setting': ''},
    node('div', {class: 'agpa-cu-hero'}, node('span', {class: 'agpa-cu-status-dot', 'aria-hidden': 'true'}), node('h3', {'data-cu-connection': '', role: 'status'}),toggle),
    node('p', {class: 'agpa-cu-summary', 'data-cu-summary': ''}), scopes, apps,
    node('p', {class: 'agpa-cu-muted', text: 'Entire desktop access includes visible screen content. The agent still follows your task and Antigravity approval settings.'}),
-   node('div', {class: 'agpa-cu-controls'}, enable, node('div',{class:'agpa-cu-stop-actions'},stop,remove)),
-   node('div', {class: 'agpa-cu-notice'}, node('p', {'data-cu-platform': ''}),
+   node('div', {class: 'agpa-cu-controls'}, enable,remove),
+   node('div', {class: 'agpa-cu-notice','data-cu-runtime-notice':''}, node('p', {'data-cu-platform': ''}),
     node('p', {'data-cu-login-steps': '', text: 'Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status.'})),
    examples,
-   node('details', {class: 'agpa-cu-advanced'}, node('summary', {text: 'Connection details'}),
+   node('details', {class: 'agpa-cu-advanced'}, node('summary', {'data-cu-details-title':'',text: 'Connection details'}),
     node('ul', {class:'agpa-cu-checks','data-cu-checks':'','aria-label':'Connection checks'}),
     advancedActions,
     node('p', {class: 'agpa-app-icon-status', 'data-cu-operation': '', role: 'status', 'aria-live': 'polite'}),
     removal,node('p',{class:'agpa-cu-notice','data-cu-removal':'',role:'status'}),
-    node('p', {class: 'agpa-cu-muted', text: 'Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.'}),
+    node('p', {class: 'agpa-cu-muted', 'data-cu-native-note':'',text: 'Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.'}),
     node('a', {href: 'https://github.com/Riccardo-Vecchi/antigravity-plugin/blob/main/docs/COMPUTER_USE.md', target: '_blank', rel: 'noopener noreferrer', text: 'Computer-use setup guide'})),progressDialog,updateDialog);
   request('status', true).then(receive).catch(() => {});
  }
@@ -251,7 +262,7 @@
   .agpa-cu-switch-track{display:block;position:relative;width:34px;height:20px;background:#666;border-radius:20px}
   .agpa-cu-switch-thumb{display:block;position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:white}
   .agpa-cu-enable-switch[aria-checked=true] .agpa-cu-switch-track{background:#398bdb}.agpa-cu-enable-switch[aria-checked=true] .agpa-cu-switch-thumb{left:17px}
-  .agpa-cu-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.agpa-cu-stop-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+  .agpa-cu-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.agpa-cu-controls>[data-cu-remove]{margin-left:auto}
   .agpa-cu-panel[data-state=enabled] .agpa-cu-status-dot{background:#55c98a}.agpa-cu-panel[data-state=attention] .agpa-cu-status-dot{background:#e5b35e}
   .agpa-cu-panel[data-state=error] .agpa-cu-status-dot{background:#e66d6d}.agpa-cu-summary{color:var(--muted-foreground,#aaa);font-size:14px}
   .agpa-cu-scopes{border:0;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:12px}

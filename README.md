@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.2.1](https://img.shields.io/badge/version-1.2.1-blue)](CHANGELOG.md)
+[![Version 1.2.2](https://img.shields.io/badge/version-1.2.2-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -22,13 +22,13 @@
 
 | Platform | Status |
 | --- | --- |
-| 🐧 Linux x86-64 | Verified with Antigravity App 2.26.0 on Zorin/GNOME 46 |
+| 🐧 Linux x86-64 | Verified with Antigravity App 2.27.0 on Zorin/GNOME 46 |
 | <img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows 11 x64 | **Experimental**; full desktop verification is pending |
 
 ## ✨ Features
 
 - Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
-- Optional **Computer Use** through maintained Cua Driver: guided setup, entire-desktop or selected-app access, a progress dialog, automatic capture checks, upstream update checks, Stop controls and clean reinstallation. [Setup guide](docs/COMPUTER_USE.md).
+- Optional **computer use** with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Compact sidebar that keeps navigation and project icons visible.
 - Settings navigation with icons, a dedicated Computer use page and a collapsible Projects group that uses your configured project icons and colors.
@@ -72,9 +72,7 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 ## ⚙️ Settings and updates
 
-**Computer use** has its own Settings page. Choose **Entire desktop** or **Selected apps**, then turn on the switch at the top: the wizard installs the reviewed driver and connects it to Antigravity over MCP. The progress dialog shows the current step and actual downloaded bytes; it can continue in the background. The wizard refreshes the native MCP server when the app supports it; start a new agent conversation after connecting. Linux is the primary implementation; Windows remains experimental. The embedded Gemini website does not receive desktop tools.
-
-On GNOME/Wayland, newly installed desktop access needs one **Linux logout/login** (locking and unlocking is insufficient). The page explains the steps; closing the app or signing out of Google is insufficient. **Connection details** shows a green check for each passed check, an orange dot for pending checks and a spinner for the active step. Screen capture is tested automatically once desktop access is ready. The refresh icon beside the Cua Driver version checks official upstream releases without replacing the reviewed driver. The top switch connects/disconnects while keeping setup; **Stop and disconnect** also cancels an in-progress setup. The red **Remove computer use…** button beside Stop resets the plugin-managed setup for reinstallation, preserving unrelated integrations and the shared GNOME helper.
+**Computer use:** open **Settings → Computer use**, choose **Entire desktop** or **Selected apps**, and enable it. Works with the native Antigravity agent. On GNOME/Wayland, first setup may require a Linux logout/login. [Setup and troubleshooting](docs/COMPUTER_USE.md).
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Local customizations** contains status and recovery.
 

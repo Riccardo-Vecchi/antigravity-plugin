@@ -45,7 +45,7 @@ The additions follow the native page's declared interface language (`<html lang>
 
 Translations cover settings, project editing, the compact sidebar, accessibility labels, tooltips, status/error messages, and the Antigravity return button in Gemini. Icon names can be searched in the selected language; stable icon IDs remain unchanged. Changing language preserves open inputs and unsaved project appearance choices. Project names, user text, and Google's website content are not translated by this helper.
 
-The tested Antigravity 2.26.0 interface declares English and does not expose a native display-language selector in its settings. This integration does not add a separate language preference or translate the native app. Live language checks change the native document's language temporarily, then restore it; following an upstream language preference depends on the app declaring that language.
+The initial localization inspection on Antigravity 2.26.0 found an English interface without a native display-language selector. The current tested Linux compatibility baseline is 2.27.0. This integration does not add a separate language preference or translate the native app. Live language checks change the native document's language temporarily, then restore it; following an upstream language preference depends on the app declaring that language.
 
 ## Gemini sessions and switching
 

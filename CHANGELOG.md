@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.2
+
+- Update the verified Linux compatibility baseline to Antigravity App 2.27.0, reported working by the repository owner.
+- Enable Apply access changes only for actual unsaved scope/allowlist changes; keep it gray otherwise.
+- Use the top switch as the single connection control, including setup cancellation; retain Cancel setup only in the progress dialog.
+- Simplify Disabled mode to access choices, removal and installation details. Remove the ellipsis from the removal button.
+
 ## 1.2.1
 
 - Make the Antigravity README logo transparent by removing only the SVG favicon background.
