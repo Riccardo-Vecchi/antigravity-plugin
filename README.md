@@ -27,9 +27,9 @@
 
 ## ✨ Features
 
+- Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Compact sidebar that keeps navigation and project icons visible.
-- Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
 - Fixed Antigravity/Gemini icons or a Dynamic mode, including supported tray integrations.
 - Startup view, Remember last view, desktop autostart, and patch status/recovery controls.
 - English, Italian, German, Spanish, French, Simplified Chinese and Japanese, with English fallback.
