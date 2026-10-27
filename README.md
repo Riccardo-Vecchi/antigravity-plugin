@@ -4,10 +4,10 @@
   <img src="assets/logos/gemini.png" width="58" alt="Gemini logo">
 </p>
 
-# 🧩 Antigravity Customizations
+# 🧩 Antigravity Plugin
 
 [![Version 1.0.1](https://img.shields.io/badge/version-1.0.1-blue)](CHANGELOG.md)
-[![Checks](https://github.com/Riccardo-Vecchi/antigravity-customizations/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-customizations/actions/workflows/checks.yml)
+[![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
 [![Unofficial](https://img.shields.io/badge/Google-unofficial-lightgrey)](NOTICE.md)
@@ -45,8 +45,8 @@
 Install the **latest official** [Antigravity AppImage](https://antigravity.google/download) first. Requires Node.js 22+, Python 3 with PyGObject/Gio, a user systemd session, and GTK/desktop icon tools.
 
 ```bash
-git clone https://github.com/Riccardo-Vecchi/antigravity-customizations.git
-cd antigravity-customizations
+git clone https://github.com/Riccardo-Vecchi/antigravity-plugin.git
+cd antigravity-plugin
 ./linux/install.sh
 ```
 

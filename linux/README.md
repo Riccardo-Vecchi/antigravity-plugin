@@ -30,8 +30,8 @@ Environment="AGPA_DESKTOP_FILE=/absolute/path/antigravity.desktop"
 The launcher must point directly to that AppImage; quoted paths and arguments are preserved. After saving, restart the helper with `systemctl --user restart antigravity-project-appearance.service`. Explicit invalid selections are reported rather than replaced with another app. Missing/ambiguous desktop detection leaves the other plugin controls available.
 
 ```bash
-gh repo clone Riccardo-Vecchi/antigravity-customizations
-cd antigravity-customizations
+gh repo clone Riccardo-Vecchi/antigravity-plugin
+cd antigravity-plugin
 ./linux/install.sh
 ```
 

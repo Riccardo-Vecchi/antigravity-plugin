@@ -1,6 +1,6 @@
 # <img src="../assets/logos/windows.svg" width="24" alt="Windows"> Windows installation (experimental)
 
-This is the Windows companion for Antigravity Customizations. The interface code is shared with Linux. Google's signed application, ASAR resources, security fuses, account data, and conversation databases are not patched.
+This is the Windows companion for Antigravity Plugin. The interface code is shared with Linux. Google's signed application, ASAR resources, security fuses, account data, and conversation databases are not patched.
 
 **Status:** implemented, with automated adapter tests and PowerShell syntax checks. Full Windows application and desktop verification is pending. Use this companion as an experimental port.
 
