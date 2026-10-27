@@ -1,7 +1,7 @@
 /* Small, reversible additions to the native Settings navigation. */
 (() => {
  'use strict';
- const VERSION = '1.1.0';
+ const VERSION = '1.1.1';
  if (globalThis.__AGSettingsNavigation?.version === VERSION) return;
  globalThis.__AGSettingsNavigation?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -43,7 +43,7 @@
   [data-agpa-cu-active] [data-testid^=settings-nav-item-].bg-sidebar-secondary{background:transparent;color:var(--secondary-foreground,#aaa)}
   [data-agpa-cu-active] [data-testid^=settings-nav-item-].bg-sidebar-secondary>span{color:var(--secondary-foreground,#aaa)}
   [data-agpa-projects-heading]{display:none}
-  [data-agpa-projects-toggle]{display:flex;align-items:center;gap:5px;width:100%;border:0;padding:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:left}
+  [data-agpa-projects-toggle]{display:flex;align-items:center;gap:5px;width:100%;border:0;padding:0;background:none;color:inherit;font:inherit;font-size:14px;line-height:20px;cursor:pointer;text-align:left}
   [data-agpa-projects-toggle] svg:last-child{margin-left:auto;transition:transform .15s}
   [data-agpa-projects-toggle][aria-expanded=true] svg:last-child{transform:rotate(90deg)}
   [data-agpa-projects-group][data-collapsed=true]{display:none!important}

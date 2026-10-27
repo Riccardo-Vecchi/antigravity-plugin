@@ -6,7 +6,7 @@ Give the **native Antigravity agent** desktop tools through the maintained [Cua 
 
 1. Open **Settings → Computer use**, its own item in the Settings menu. Settings navigation has icons; its Projects group can be collapsed and uses your configured project appearance.
 2. Choose **Entire desktop** to work across your environment, or **Selected apps** for an application allowlist.
-3. Select **Enable computer use**. A centered progress dialog shows the active step with a spinner, individual checks, and actual downloaded MB. **Continue in background** or Escape hides the dialog while setup continues; **Stop and disconnect** revokes it. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
+3. Turn on the **Computer use** switch at the top. A centered progress dialog shows the active step with a spinner, individual checks, and actual downloaded MB. **Continue in background** or Escape hides the dialog while setup continues; **Stop and disconnect** revokes it. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
 4. Follow any OS access prompt. On GNOME/Wayland, the helper needs a **Linux session logout/login once** to load. Save your work, open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select **Refresh status**. **Locking/unlocking the screen keeps the same Linux session and does not load the extension.** Closing the app or signing out of Google also does not load it. The wizard never logs you out or restarts your apps.
 5. Start a **new Antigravity conversation** and describe the result you want. Existing conversations can keep their earlier tool list.
 
@@ -16,7 +16,7 @@ Try: “Open Calculator, calculate 6 × 7 and verify the displayed result.” Th
 
 If an upstream app change prevents automatic MCP refresh, use native **Customizations → Installed → MCP Servers**, or its Settings equivalent, and refresh/reopen Antigravity when convenient.
 
-![Computer-use setup progress with per-step spinners and background controls](images/computer-use.png)
+![Computer-use enable switch and Stop/Remove controls](images/computer-use.png)
 
 ![Connection checks with individual passed and pending states](images/computer-use-checks.png)
 
@@ -39,6 +39,14 @@ Changing scope requires **Apply access changes**. It revokes earlier connections
 
 In either mode, the bridge exposes only the reviewed GUI tool set (17 tools for Entire desktop and 14 for Selected apps in driver 0.37.0). It excludes direct shell execution, arbitrary scripts, filesystem tools, process termination and browser-profile attachment. GUI interaction can still modify files, accounts and signed-in applications as part of a task; visible contents may be processed by Antigravity's model. These controls limit this driver, not Antigravity's independent shell access or another process running as your user.
 
+## 🎚️ Enable, disable and stop
+
+The top switch reflects the actual connection state. **OFF** revokes desktop access and disconnects the native agent while keeping the installed driver and access choices. **ON** runs setup/reconnection using the access currently selected below; an installed reviewed driver is reused. **Apply access changes** saves scope edits while enabled.
+
+The switch and **Stop and disconnect** share one connection state. Stop is the immediate action that also cancels in-progress setup; there is no separate hidden “enabled but disconnected” state. The red **Remove computer use…** button is immediately to its right and removes managed components after confirmation.
+
+Activity spinners keep rotating even when the OS requests reduced motion, as an explicit exception limited to these work indicators. Other OS motion preferences are unchanged.
+
 ## ⏹️ Stop and disconnect
 
 **Stop and disconnect** is always available during setup or while connected. It cancels setup, revokes the lease and removes only the plugin's MCP entry, preserving unrelated servers. The bridge checks revocation every 300 ms, requests graceful shutdown and forces exit if needed. An action already delivered cannot be undone. Driver files, scope choices and the owned skill remain available for reconnecting.
@@ -47,7 +55,7 @@ The platform disable scripts also disconnect computer use. In Selected apps mode
 
 ## ♻️ Remove and set up again
 
-Open **Settings → Computer use → Connection details → Remove computer use…** and confirm in the centered dialog. Cancel or press Escape to keep the setup. This revokes the connection, removes only the plugin's own MCP entry, deletes its verified managed driver, setup preferences and unchanged generated skill. Then choose **Enable computer use** to download and configure it again.
+Open **Settings → Computer use → Remove computer use…**, the red button beside **Stop and disconnect**, and confirm in the centered dialog. Cancel or press Escape to keep the setup. This revokes the connection, removes only the plugin's own MCP entry, deletes its verified managed driver, setup preferences and unchanged generated skill. Then turn on the top switch to download and configure it again.
 
 Other MCP servers, conversations, Antigravity/Gemini data, other Cua installations and the **shared WinRects GNOME extension** remain untouched. A locally edited skill is preserved and reported: rename or remove it yourself before a fresh setup. Unrecognized driver folders or missing/invalid receipts stop removal instead of deleting unknown files. Use **Repair desktop helper** for a disabled or failed helper; reinstallation is unnecessary when it only needs the next Linux sign-in.
 

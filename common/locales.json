@@ -216,7 +216,6 @@
       "This upstream release is marked as a prerelease.": "This upstream release is marked as a prerelease.",
       "The plugin installs its reviewed driver version. New driver support arrives through plugin updates.": "The plugin installs its reviewed driver version. New driver support arrives through plugin updates.",
       "View official release notes": "View official release notes",
-      "Screen capture is tested automatically once desktop access is ready. The image is discarded; mouse and keyboard input are not tested.": "Screen capture is tested automatically once desktop access is ready. The image is discarded; mouse and keyboard input are not tested.",
       "Downloading Cua Driver…": "Downloading Cua Driver…",
       "Verifying the download…": "Verifying the download…",
       "Installing Cua Driver…": "Installing Cua Driver…",
@@ -225,7 +224,10 @@
       "Installing agent skill…": "Installing agent skill…",
       "Registering tools in Antigravity…": "Registering tools in Antigravity…",
       "Checking the MCP connection…": "Checking the MCP connection…",
-      "Testing screen capture…": "Testing screen capture…"
+      "Testing screen capture…": "Testing screen capture…",
+      "Enabled": "Enabled",
+      "Disconnect the agent and keep setup.": "Disconnect the agent and keep setup.",
+      "Enable using the access selected below.": "Enable using the access selected below."
     },
     "icons": {
       "folder": "Folder",
@@ -495,7 +497,6 @@
       "This upstream release is marked as a prerelease.": "Questa release è indicata come preliminare dal produttore.",
       "The plugin installs its reviewed driver version. New driver support arrives through plugin updates.": "Il plugin installa la versione del driver verificata. Il supporto ai nuovi driver arriva con gli aggiornamenti del plugin.",
       "View official release notes": "Apri le note di rilascio ufficiali",
-      "Screen capture is tested automatically once desktop access is ready. The image is discarded; mouse and keyboard input are not tested.": "La cattura schermo viene verificata automaticamente appena l’accesso al desktop è pronto. L’immagine viene eliminata; mouse e tastiera non vengono verificati.",
       "Downloading Cua Driver…": "Download di Cua Driver…",
       "Verifying the download…": "Verifica del download…",
       "Installing Cua Driver…": "Installazione di Cua Driver…",
@@ -504,7 +505,10 @@
       "Installing agent skill…": "Installazione della skill per l’agente…",
       "Registering tools in Antigravity…": "Registrazione degli strumenti in Antigravity…",
       "Checking the MCP connection…": "Verifica del collegamento MCP…",
-      "Testing screen capture…": "Verifica della cattura schermo…"
+      "Testing screen capture…": "Verifica della cattura schermo…",
+      "Enabled": "Abilitato",
+      "Disconnect the agent and keep setup.": "Scollega l’agente mantenendo l’installazione.",
+      "Enable using the access selected below.": "Abilita con l’accesso selezionato qui sotto."
     },
     "icons": {
       "folder": "Cartella",
@@ -774,7 +778,6 @@
       "This upstream release is marked as a prerelease.": "Dieses Upstream-Release ist als Vorabversion gekennzeichnet.",
       "The plugin installs its reviewed driver version. New driver support arrives through plugin updates.": "Das Plugin installiert die geprüfte Treiberversion. Unterstützung für neue Treiber kommt mit Plugin-Updates.",
       "View official release notes": "Offizielle Versionshinweise ansehen",
-      "Screen capture is tested automatically once desktop access is ready. The image is discarded; mouse and keyboard input are not tested.": "Die Bildschirmaufnahme wird automatisch getestet, sobald der Desktop-Zugriff bereit ist. Das Bild wird verworfen; Maus und Tastatur werden nicht getestet.",
       "Downloading Cua Driver…": "Cua Driver wird heruntergeladen…",
       "Verifying the download…": "Download wird überprüft…",
       "Installing Cua Driver…": "Cua Driver wird installiert…",
@@ -783,7 +786,10 @@
       "Installing agent skill…": "Agent-Skill wird installiert…",
       "Registering tools in Antigravity…": "Tools werden in Antigravity registriert…",
       "Checking the MCP connection…": "MCP-Verbindung wird geprüft…",
-      "Testing screen capture…": "Bildschirmaufnahme wird getestet…"
+      "Testing screen capture…": "Bildschirmaufnahme wird getestet…",
+      "Enabled": "Aktiviert",
+      "Disconnect the agent and keep setup.": "Agent trennen und Einrichtung beibehalten.",
+      "Enable using the access selected below.": "Mit dem unten gewählten Zugriff aktivieren."
     },
     "icons": {
       "folder": "Ordner",
@@ -1053,7 +1059,6 @@
       "This upstream release is marked as a prerelease.": "El proyecto original marca esta versión como preliminar.",
       "The plugin installs its reviewed driver version. New driver support arrives through plugin updates.": "El plugin instala la versión verificada del controlador. Las nuevas versiones se admitirán mediante actualizaciones del plugin.",
       "View official release notes": "Ver notas oficiales de la versión",
-      "Screen capture is tested automatically once desktop access is ready. The image is discarded; mouse and keyboard input are not tested.": "La captura se comprueba automáticamente cuando el acceso al escritorio está listo. La imagen se descarta; no se verifican el ratón ni el teclado.",
       "Downloading Cua Driver…": "Descargando Cua Driver…",
       "Verifying the download…": "Verificando la descarga…",
       "Installing Cua Driver…": "Instalando Cua Driver…",
@@ -1062,7 +1067,10 @@
       "Installing agent skill…": "Instalando la habilidad del agente…",
       "Registering tools in Antigravity…": "Registrando herramientas en Antigravity…",
       "Checking the MCP connection…": "Comprobando la conexión MCP…",
-      "Testing screen capture…": "Probando la captura de pantalla…"
+      "Testing screen capture…": "Probando la captura de pantalla…",
+      "Enabled": "Activado",
+      "Disconnect the agent and keep setup.": "Desconectar el agente y conservar la instalación.",
+      "Enable using the access selected below.": "Activar con el acceso seleccionado abajo."
     },
     "icons": {
       "folder": "Carpeta",
@@ -1332,7 +1340,6 @@
       "This upstream release is marked as a prerelease.": "Le projet d’origine indique qu’il s’agit d’une préversion.",
       "The plugin installs its reviewed driver version. New driver support arrives through plugin updates.": "Le plugin installe la version vérifiée du pilote. Les nouvelles versions seront prises en charge via les mises à jour du plugin.",
       "View official release notes": "Voir les notes de version officielles",
-      "Screen capture is tested automatically once desktop access is ready. The image is discarded; mouse and keyboard input are not tested.": "La capture d’écran est testée automatiquement dès que l’accès au bureau est prêt. L’image est supprimée ; la souris et le clavier ne sont pas testés.",
       "Downloading Cua Driver…": "Téléchargement de Cua Driver…",
       "Verifying the download…": "Vérification du téléchargement…",
       "Installing Cua Driver…": "Installation de Cua Driver…",
@@ -1341,7 +1348,10 @@
       "Installing agent skill…": "Installation de la compétence de l’agent…",
       "Registering tools in Antigravity…": "Enregistrement des outils dans Antigravity…",
       "Checking the MCP connection…": "Vérification de la connexion MCP…",
-      "Testing screen capture…": "Test de la capture d’écran…"
+      "Testing screen capture…": "Test de la capture d’écran…",
+      "Enabled": "Activé",
+      "Disconnect the agent and keep setup.": "Déconnecter l’agent et conserver l’installation.",
+      "Enable using the access selected below.": "Activer avec l’accès sélectionné ci-dessous."
     },
     "icons": {
       "folder": "Dossier",
@@ -1611,7 +1621,6 @@
       "This upstream release is marked as a prerelease.": "上游将此版本标记为预发布版。",
       "The plugin installs its reviewed driver version. New driver support arrives through plugin updates.": "插件仅安装经过审核的驱动版本。新驱动的支持将随插件更新提供。",
       "View official release notes": "查看官方发行说明",
-      "Screen capture is tested automatically once desktop access is ready. The image is discarded; mouse and keyboard input are not tested.": "桌面访问就绪后将自动测试屏幕截图。图像会被丢弃，不测试鼠标或键盘输入。",
       "Downloading Cua Driver…": "正在下载 Cua Driver…",
       "Verifying the download…": "正在验证下载文件…",
       "Installing Cua Driver…": "正在安装 Cua Driver…",
@@ -1620,7 +1629,10 @@
       "Installing agent skill…": "正在安装智能体技能…",
       "Registering tools in Antigravity…": "正在 Antigravity 中注册工具…",
       "Checking the MCP connection…": "正在检查 MCP 连接…",
-      "Testing screen capture…": "正在测试屏幕截图…"
+      "Testing screen capture…": "正在测试屏幕截图…",
+      "Enabled": "已启用",
+      "Disconnect the agent and keep setup.": "断开智能体连接并保留安装。",
+      "Enable using the access selected below.": "使用下方选择的访问范围启用。"
     },
     "icons": {
       "folder": "文件夹",
@@ -1890,7 +1902,6 @@
       "This upstream release is marked as a prerelease.": "開発元ではこのリリースをプレリリースとして公開しています。",
       "The plugin installs its reviewed driver version. New driver support arrives through plugin updates.": "プラグインは検証済みのドライバーをインストールします。新しいドライバーへの対応はプラグインの更新で提供されます。",
       "View official release notes": "公式リリースノートを表示",
-      "Screen capture is tested automatically once desktop access is ready. The image is discarded; mouse and keyboard input are not tested.": "デスクトップへのアクセスが準備できると、画面キャプチャを自動でテストします。画像は破棄され、マウスやキーボードの入力はテストしません。",
       "Downloading Cua Driver…": "Cua Driver をダウンロード中…",
       "Verifying the download…": "ダウンロードを検証中…",
       "Installing Cua Driver…": "Cua Driver をインストール中…",
@@ -1899,7 +1910,10 @@
       "Installing agent skill…": "エージェントのスキルを設定中…",
       "Registering tools in Antigravity…": "ツールを Antigravity に登録中…",
       "Checking the MCP connection…": "MCP 接続を確認中…",
-      "Testing screen capture…": "画面キャプチャをテスト中…"
+      "Testing screen capture…": "画面キャプチャをテスト中…",
+      "Enabled": "有効",
+      "Disconnect the agent and keep setup.": "設定を保持してエージェントを切断します。",
+      "Enable using the access selected below.": "下で選択したアクセス範囲で有効にします。"
     },
     "icons": {
       "folder": "フォルダー",

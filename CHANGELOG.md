@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1
+
+- Add a top-level enable/disable switch sharing the existing connection state; keep setup when switched off.
+- Move removal beside Stop and disconnect, style it red, and remove the redundant capture-explanation paragraph.
+- Keep activity spinners rotating under reduced-motion preferences, without changing the OS setting.
+- Match the Settings Projects label to the other navigation entries at 14 px and clarify Windows confidence limits after source review.
+
 ## 1.2.0
 
 - Show a setup progress dialog with real phase labels, downloaded bytes, per-step spinners and background/Stop controls.

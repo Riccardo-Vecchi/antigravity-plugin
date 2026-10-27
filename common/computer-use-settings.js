@@ -1,7 +1,7 @@
 /* Guided desktop access in a dedicated native Settings page. */
 (() => {
  'use strict';
- const VERSION = '1.4.0';
+ const VERSION = '1.4.1';
  if (globalThis.__AGComputerUse?.version === VERSION) return;
  globalThis.__AGComputerUse?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -59,7 +59,12 @@
   t('[data-cu-platform]', loginRequired ? 'Sign out of Linux to activate desktop access' : state.needsHelper ? state.helperInstalled ? 'The GNOME helper is disabled or could not load. Select Repair desktop helper, then refresh status.' : 'The setup will install the GNOME desktop helper. A new sign-in is required to activate it.' : state.session === 'wayland' ? 'Wayland: some apps require foreground input or additional desktop permission.' : state.experimental ? 'Windows support is experimental. Keep the target app visible in your desktop session.' : 'Desktop permissions may be requested when you first use an application.');
   section.querySelector('[data-cu-login-steps]').hidden = !loginRequired;
   t('[data-cu-operation]', state.error ? (errors[state.error] || errors.operationFailed) : working ? 'Working…' : state.enabled ? nativeRefresh ? 'Connected to the native Antigravity agent. Start a new conversation to use the tools.' : 'Start a new agent conversation after connecting. If tools are missing, refresh native MCP settings.' : 'Choose access and enable computer use. Existing Antigravity approvals remain in effect.');
-  t('[data-cu-connect]', working ? 'Preparing computer use…' : state.enabled ? 'Apply access changes' : 'Enable computer use');
+  t('[data-cu-connect]', working ? 'Preparing computer use…' : 'Apply access changes');
+  section.querySelector('[data-cu-connect]').hidden = !state.enabled;
+  const toggle=section.querySelector('[data-cu-toggle]');
+  toggle.setAttribute('aria-checked',String(!!state.enabled));
+  i18n.set(toggle,state.enabled?'Disconnect the agent and keep setup.':'Enable using the access selected below.',{},'title');
+  t('[data-cu-toggle-label]',state.enabled?'Enabled':'Disabled');
   t('[data-cu-removal]', state.removal?.skillRetained ? 'Computer use removed. Your locally edited skill was kept; rename or remove it before setting up again.' : 'Computer use removed. Select Enable computer use for a fresh setup.');
   section.querySelector('[data-cu-removal]').hidden = !state.removal;
   const checks = globalThis.__AGPAComputerUseChecks(state, globalThis.__AGNativeMcp?.status());
@@ -103,6 +108,7 @@
   section.querySelector('[data-cu-capture]').disabled ||= !state.enabled || !!state.needsHelper || state.scope !== 'desktop';
   section.querySelector('[data-cu-helper]').hidden = !state.needsHelper || !state.installed || loginRequired;
   section.querySelector('[data-cu-remove]').disabled ||= !state.installed && !state.registered && !state.skillReady;
+  toggle.disabled = working || !state.platform;
   const updateButton=section.querySelector('[data-cu-updates]');if(updateButton)updateButton.disabled=working||!!update?.checking;
   section.querySelector('[data-cu-progress-close]').disabled=false;section.querySelector('[data-cu-update-close]').disabled=false;
   section.querySelector('[data-cu-progress-stop]').disabled=false;
@@ -168,6 +174,9 @@
   const apps = node('div', {'data-cu-app-scope': '', class: 'agpa-cu-selected'}, node('div', {class: 'agpa-patch-actions'}, select, add), textarea);
   const enable = node('button', {type: 'button', class: 'agpa-app-icon-option agpa-cu-primary', 'data-cu-connect': '', text: 'Enable computer use'});
   enable.addEventListener('click', () => act('setup'));
+  const toggle=node('button',{type:'button',class:'agpa-cu-enable-switch',role:'switch','aria-label':'Computer use','aria-checked':'false','data-cu-toggle':''},
+   node('span',{'data-cu-toggle-label':''}),node('span',{class:'agpa-cu-switch-track','aria-hidden':'true'},node('span',{class:'agpa-cu-switch-thumb'})));
+  toggle.addEventListener('click',()=>act(state.enabled?'disconnect':'setup'));
   const stop = node('button', {type: 'button', class: 'agpa-app-icon-option', 'data-cu-disconnect': '', text: 'Stop and disconnect'});
   stop.addEventListener('click', () => act('disconnect'));
   const advancedActions = node('div', {class: 'agpa-patch-actions'});
@@ -175,9 +184,8 @@
    const button = node('button', {type: 'button', class: 'agpa-app-icon-option', [`data-cu-${key}`]: '', text: label});
    button.addEventListener('click', () => act(action));advancedActions.append(button);
   }
-  const remove = node('button', {type:'button',class:'agpa-app-icon-option','data-cu-remove':'',text:'Remove computer use…'});
+  const remove = node('button', {type:'button',class:'agpa-app-icon-option agpa-cu-danger','data-cu-remove':'',text:'Remove computer use…'});
   remove.addEventListener('click', () => {removal.showModal();cancel.focus();});
-  advancedActions.append(remove);
   const cancel = node('button', {type:'button',class:'agpa-app-icon-option',text:'Cancel'});
   cancel.addEventListener('click', () => removal.close());
   const confirm = node('button', {type:'button',class:'agpa-app-icon-option agpa-cu-danger','data-cu-remove-confirm':'',text:'Remove computer use'});
@@ -210,10 +218,10 @@
    node('p', {text: 'Open Calculator, calculate 6 × 7 and verify the result.'}),
    node('p', {text: 'Check the interface of my app and reproduce the issue visually.'}));
   section = node('section', {class: 'agpa-cu-panel', 'data-agpa-computer-use-setting': ''},
-   node('div', {class: 'agpa-cu-hero'}, node('span', {class: 'agpa-cu-status-dot', 'aria-hidden': 'true'}), node('h3', {'data-cu-connection': '', role: 'status'})),
+   node('div', {class: 'agpa-cu-hero'}, node('span', {class: 'agpa-cu-status-dot', 'aria-hidden': 'true'}), node('h3', {'data-cu-connection': '', role: 'status'}),toggle),
    node('p', {class: 'agpa-cu-summary', 'data-cu-summary': ''}), scopes, apps,
    node('p', {class: 'agpa-cu-muted', text: 'Entire desktop access includes visible screen content. The agent still follows your task and Antigravity approval settings.'}),
-   node('div', {class: 'agpa-patch-actions'}, enable, stop),
+   node('div', {class: 'agpa-cu-controls'}, enable, node('div',{class:'agpa-cu-stop-actions'},stop,remove)),
    node('div', {class: 'agpa-cu-notice'}, node('p', {'data-cu-platform': ''}),
     node('p', {'data-cu-login-steps': '', text: 'Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status.'})),
    examples,
@@ -221,7 +229,6 @@
     node('ul', {class:'agpa-cu-checks','data-cu-checks':'','aria-label':'Connection checks'}),
     advancedActions,
     node('p', {class: 'agpa-app-icon-status', 'data-cu-operation': '', role: 'status', 'aria-live': 'polite'}),
-    node('p', {class:'agpa-cu-muted',text:'Screen capture is tested automatically once desktop access is ready. The image is discarded; mouse and keyboard input are not tested.'}),
     removal,node('p',{class:'agpa-cu-notice','data-cu-removal':'',role:'status'}),
     node('p', {class: 'agpa-cu-muted', text: 'Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.'}),
     node('a', {href: 'https://github.com/Riccardo-Vecchi/antigravity-plugin/blob/main/docs/COMPUTER_USE.md', target: '_blank', rel: 'noopener noreferrer', text: 'Computer-use setup guide'})),progressDialog,updateDialog);
@@ -239,6 +246,12 @@
   .agpa-cu-panel{display:flex;flex-direction:column;gap:18px;color:var(--foreground,#eee);font-size:13px}
   .agpa-cu-panel p{margin:0;line-height:1.55}.agpa-cu-hero{display:flex;align-items:center;gap:10px;margin-top:4px}
   .agpa-cu-hero h3{font-size:14px;font-weight:500;margin:0;line-height:1.5}.agpa-cu-status-dot{width:8px;height:8px;flex-shrink:0;background:#888;border-radius:50%}
+  .agpa-cu-enable-switch{display:inline-flex;align-items:center;gap:8px;margin-left:auto;padding:5px 0 5px 10px;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .agpa-cu-enable-switch:focus-visible{outline:2px solid #398bdb;outline-offset:4px;border-radius:6px}.agpa-cu-enable-switch:disabled{opacity:.5;cursor:wait}
+  .agpa-cu-switch-track{display:block;position:relative;width:34px;height:20px;background:#666;border-radius:20px}
+  .agpa-cu-switch-thumb{display:block;position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:white}
+  .agpa-cu-enable-switch[aria-checked=true] .agpa-cu-switch-track{background:#398bdb}.agpa-cu-enable-switch[aria-checked=true] .agpa-cu-switch-thumb{left:17px}
+  .agpa-cu-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.agpa-cu-stop-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
   .agpa-cu-panel[data-state=enabled] .agpa-cu-status-dot{background:#55c98a}.agpa-cu-panel[data-state=attention] .agpa-cu-status-dot{background:#e5b35e}
   .agpa-cu-panel[data-state=error] .agpa-cu-status-dot{background:#e66d6d}.agpa-cu-summary{color:var(--muted-foreground,#aaa);font-size:14px}
   .agpa-cu-scopes{border:0;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -264,14 +277,13 @@
   .agpa-cu-confirm:not([open]){display:none}.agpa-cu-confirm[open]{display:flex;flex-direction:column;gap:18px}
   .agpa-cu-confirm::backdrop{background:#0009}.agpa-cu-confirm h3{margin:0;font-size:15px;font-weight:600}
   .agpa-cu-confirm p+p{margin-top:12px}.agpa-cu-confirm .agpa-patch-actions{justify-content:flex-end}
-  .agpa-cu-danger{color:#ef9898!important;border-color:#8e4d4d!important}
-  .agpa-cu-spinner{display:inline-block;box-sizing:border-box;width:15px;height:15px;flex-shrink:0;border:2px solid #7776;border-top-color:currentColor;border-radius:50%;animation:agpa-cu-spin .8s linear infinite}
-  .agpa-cu-rotating{animation:agpa-cu-spin .8s linear infinite}.agpa-cu-confirm h3{display:flex;align-items:center;gap:10px}
+  .agpa-cu-danger{background:#b4232c!important;color:#fff!important;border-color:#c33c45!important}.agpa-cu-danger:hover:not(:disabled){background:#c12b35!important}.agpa-cu-danger:disabled{opacity:.45;cursor:not-allowed}
+  .agpa-cu-spinner{display:inline-block;box-sizing:border-box;width:15px;height:15px;flex-shrink:0;border:2px solid #7776;border-top-color:currentColor;border-radius:50%;animation:agpa-cu-spin .85s linear infinite!important}
+  .agpa-cu-rotating{animation:agpa-cu-spin .85s linear infinite!important}.agpa-cu-confirm h3{display:flex;align-items:center;gap:10px}
   .agpa-cu-progress{width:min(560px,calc(100vw - 48px));max-height:calc(100vh - 48px);overflow:auto}
   .agpa-cu-update-button{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;padding:3px;border:0;border-radius:4px;background:transparent;color:inherit;cursor:pointer}.agpa-cu-update-button:hover{background:#8883}.agpa-cu-update-button:focus-visible{outline:2px solid #398bdb}
   .agpa-cu-confirm a{color:#7ab7f4}.agpa-cu-confirm ul{margin:0}
   @keyframes agpa-cu-spin{to{transform:rotate(360deg)}}
-  @media(prefers-reduced-motion:reduce){.agpa-cu-spinner,.agpa-cu-rotating{animation:none}}
   @media(max-width:700px){.agpa-cu-scopes{grid-template-columns:1fr}}
  `});
  document.head.append(style);

@@ -102,3 +102,9 @@ Windows desktop testing was deliberately limited for this revision. The automate
 ## 🖱️ Computer use
 
 Open **Settings → Computer use** for optional Cua Driver installation, entire-desktop or selected-application access, MCP checks and disconnection. See the [computer-use guide](../docs/COMPUTER_USE.md) for setup, OS permissions and validation limits.
+
+### Confidence and remaining validation
+
+Computer use already has a Windows x64 adapter, official driver/UI Automation helper extraction, and the shared MCP bridge, scope controls, wizard and settings. The enable switch, red removal button and activity indicators use that shared interface; they do not require a separate Windows UI implementation.
+
+A source review alone cannot establish live reliability for Windows applications, elevated windows, display scaling, multiple monitors or interactive/locked/remote sessions. These remain target-system validation questions. No Windows runtime tests or VM runs were performed for this revision; Windows computer use remains **experimental**, not production-verified.
