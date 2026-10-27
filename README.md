@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.1.0](https://img.shields.io/badge/version-1.1.0-blue)](CHANGELOG.md)
+[![Version 1.1.1](https://img.shields.io/badge/version-1.1.1-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -28,7 +28,7 @@
 ## ✨ Features
 
 - Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
-- Optional **Computer Use** through maintained Cua Driver: one-click setup, entire-desktop or selected-app access, MCP diagnostics and Stop controls. [Setup guide](docs/COMPUTER_USE.md).
+- Optional **Computer Use** through maintained Cua Driver: guided setup, entire-desktop or selected-app access, individual connection checks, Stop controls and clean reinstallation. [Setup guide](docs/COMPUTER_USE.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Compact sidebar that keeps navigation and project icons visible.
 - Settings navigation with icons, a dedicated Computer use page and a collapsible Projects group that uses your configured project icons and colors.
@@ -48,7 +48,7 @@
 
 ## 🐧 Install on Linux
 
-Install the **latest official** [Antigravity AppImage](https://antigravity.google/download) first. Requires Node.js 22+, Python 3 with PyGObject/Gio, a user systemd session, and GTK/desktop icon tools.
+Install the **latest official** [Antigravity AppImage](https://antigravity.google/download) and **Node.js 22+** first. Standard GNOME/Zorin desktop components are also used; see the [Linux requirements](linux/README.md#tested-linux-setup) for other distributions.
 
 ```bash
 git clone https://github.com/Riccardo-Vecchi/antigravity-plugin.git
@@ -73,6 +73,8 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 ## ⚙️ Settings and updates
 
 **Computer use** has its own Settings page. Choose **Entire desktop** or **Selected apps**, then select **Enable computer use**: the wizard installs the reviewed driver and connects it to Antigravity over MCP. The wizard refreshes the native MCP server when the app supports it; start a new agent conversation after connecting. Linux is the primary implementation; Windows remains experimental. The embedded Gemini website does not receive desktop tools.
+
+On GNOME/Wayland, newly installed desktop access needs one **Linux logout/login**. The page explains the steps; closing the app or signing out of Google is insufficient. **Connection details** shows a green check for each passed check and an orange dot for pending checks. **Remove computer use…** resets the plugin-managed setup for reinstallation, preserving unrelated integrations and the shared GNOME helper.
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Local customizations** contains status and recovery.
 

@@ -7,12 +7,18 @@ Give the **native Antigravity agent** desktop tools through the maintained [Cua 
 1. Open **Settings → Computer use**, its own item in the Settings menu. Settings navigation has icons; its Projects group can be collapsed and uses your configured project appearance.
 2. Choose **Entire desktop** to work across your environment, or **Selected apps** for an application allowlist.
 3. Select **Enable computer use**. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
-4. Follow any OS access prompt. On GNOME/Wayland, the helper needs a logout/login **once** to load. Do that when convenient; the wizard never logs you out or restarts your apps.
+4. Follow any OS access prompt. On GNOME/Wayland, the helper needs a **Linux session logout/login once** to load. Save your work, open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select **Refresh status**. Closing the app or signing out of Google does not load the extension. The wizard never logs you out or restarts your apps.
 5. Start a **new Antigravity conversation** and describe the result you want. Existing conversations can keep their earlier tool list.
 
 Try: “Open Calculator, calculate 6 × 7 and verify the displayed result.” The agent should observe **42 in the app**, rather than report only a successful tool call.
 
-**Connection details** contains the driver version, protocol check, refresh control and setup guide. If an upstream app change prevents automatic MCP refresh, use native **Customizations → Installed → MCP Servers**, or its Settings equivalent, and refresh/reopen Antigravity when convenient.
+**Connection details** displays each check on its own line: green checkmark for passed, orange dot for pending. It checks driver installation, MCP registration, the generated agent skill, the protocol handshake, native server detection and the desktop helper. In Entire desktop mode, **Test screen capture** separately checks whether the driver can read the screen. It captures once, discards the image and returns only the result; it does not test mouse or keyboard input. An MCP handshake alone never marks screen capture as passed.
+
+If an upstream app change prevents automatic MCP refresh, use native **Customizations → Installed → MCP Servers**, or its Settings equivalent, and refresh/reopen Antigravity when convenient.
+
+![Computer use: desktop access and Linux activation instructions](images/computer-use.png)
+
+![Connection checks with individual passed and pending states](images/computer-use-checks.png)
 
 ## 🖥️ Choose the access that fits
 
@@ -31,11 +37,17 @@ In either mode, the bridge exposes only the reviewed GUI tool set (17 tools for 
 
 The platform disable scripts also disconnect computer use. In Selected apps mode, capability sessions expire after eight hours, with a thirty-minute idle timeout; reconnect to start a fresh runtime. Entire desktop uses the normal driver session lifecycle.
 
+## ♻️ Remove and set up again
+
+Open **Settings → Computer use → Connection details → Remove computer use…** and confirm. This revokes the connection, removes only the plugin's own MCP entry, deletes its verified managed driver, setup preferences and unchanged generated skill. Then choose **Enable computer use** to download and configure it again.
+
+Other MCP servers, conversations, Antigravity/Gemini data, other Cua installations and the **shared WinRects GNOME extension** remain untouched. A locally edited skill is preserved and reported: rename or remove it yourself before a fresh setup. Unrecognized driver folders or missing/invalid receipts stop removal instead of deleting unknown files. Use **Repair desktop helper** for a disabled or failed helper; reinstallation is unnecessary when it only needs the next Linux sign-in.
+
 ## 🐧 Linux
 
 The wizard installs the official x86-64 or ARM64 driver asset. An active graphical session and AT-SPI are required; distro dependencies can include `at-spi2-core` and `libxi6`. It does not run `sudo`, change your PATH or install deprecated `cua-agent` or perception/model packages.
 
-GNOME/Mutter Wayland uses the bundled WinRects Shell helper and can require portal consent. Its installer preserves newer shared helper versions and other enabled extensions. Until GNOME loads the helper, the page shows **One last step: activate desktop access**. X11, GNOME, KDE and other compositors have different support: background input and occluded windows remain limited. See [upstream platform support](https://cua.ai/docs/cua-driver/concepts/platform-support).
+GNOME/Mutter Wayland uses the bundled WinRects Shell helper and can require portal consent. Its installer preserves newer shared helper versions and other enabled extensions. Until GNOME loads the helper, the page shows a compact **Desktop access needs activation** notice with explicit Linux logout/login steps. Installed files and an extension actively loaded by GNOME are checked separately. X11, GNOME, KDE and other compositors have different support: background input and occluded windows remain limited. See [upstream platform support](https://cua.ai/docs/cua-driver/concepts/platform-support).
 
 A successful MCP handshake checks the protocol and available tools. It does **not** prove that the OS permits capture/input or that an application task succeeded. The page keeps that distinction visible.
 

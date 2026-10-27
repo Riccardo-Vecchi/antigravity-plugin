@@ -46,6 +46,7 @@
     "common/computer-use-release.cjs",
     "common/computer-use-bridge.cjs",
     "common/computer-use-protocol.cjs",
+    "common/computer-use-checks.cjs",
     "common/computer-use-cli.cjs",
     "common/computer-use-settings.js",
     "docs/COMPUTER_USE.md",
@@ -53,7 +54,8 @@
     "common/native-mcp.js",
     "common/settings-navigation.js",
     "common/project-presentation.js",
-    "docs/images/computer-use.png"
+    "docs/images/computer-use.png",
+    "docs/images/computer-use-checks.png"
   ],
   "linux": [
     "linux/desktop.cjs",

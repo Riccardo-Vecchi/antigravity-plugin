@@ -4,6 +4,15 @@ const path = require('node:path');
 const {execFile} = require('node:child_process');
 const {promisify} = require('node:util');
 const run = promisify(execFile);
+function helperStatus(installed, output = '', failure = '') {
+  if (!installed) return 'missing';
+  const state = /^\s*State:\s*([^\r\n]+)/mi.exec(output)?.[1]?.trim().toUpperCase().replace(/\s+/g, '_');
+  if (['ACTIVE', 'ENABLED'].includes(state)) return 'active';
+  if (state === 'DISABLED') return 'disabled';
+  if (['ERROR', 'OUT_OF_DATE', 'OUT-OF-DATE'].includes(state)) return 'error';
+  if (/doesn.t exist|not found|unknown extension/i.test(failure + output)) return 'signInRequired';
+  return 'unknown';
+}
 
 async function extract(archive, target) {
   // Read exact, reviewed regular members; never extract archive paths or links.
@@ -22,16 +31,21 @@ async function environment(env = process.env) {
   const gnome = /gnome|zorin/i.test(env.XDG_CURRENT_DESKTOP || '');
   let helperReady = !wayland || !gnome;
   let helperInstalled = false;
+  let helperState = 'notRequired';
   if (wayland && gnome) {
-    try { await fs.access(path.join(env.XDG_DATA_HOME || path.join(require('node:os').homedir(), '.local/share'), 'gnome-shell/extensions/winrects@cua/metadata.json')); helperInstalled = true; } catch {}
+    try {
+      const directory = path.join(env.XDG_DATA_HOME || path.join(require('node:os').homedir(), '.local/share'), 'gnome-shell/extensions/winrects@cua');
+      await fs.access(path.join(directory, 'metadata.json'));await fs.access(path.join(directory, 'extension.js'));helperInstalled = true;
+    } catch {}
   }
   if (wayland && gnome) {
     try {
       const {stdout} = await run('/usr/bin/gnome-extensions', ['info', 'winrects@cua'], {env: {...env, LC_ALL: 'C'}, timeout: 4000});
-      helperReady = /State:\s*(ACTIVE|ENABLED)/.test(stdout);
-    } catch { helperReady = false; }
+      helperState = helperStatus(helperInstalled, stdout);
+    } catch (error) { helperState = helperStatus(helperInstalled, '', error.stderr || ''); }
+    helperReady = helperState === 'active';
   }
-  return {platform: 'linux', session: wayland ? 'wayland' : env.DISPLAY ? 'x11' : 'unknown', needsHelper: wayland && gnome && !helperReady, helperInstalled,
+  return {platform: 'linux', session: wayland ? 'wayland' : env.DISPLAY ? 'x11' : 'unknown', needsHelper: wayland && gnome && !helperReady, helperInstalled, helperState,
     environment: wayland ? {CUA_DRIVER_RS_ENABLE_WAYLAND: '1'} : {}, experimental: false};
 }
 async function defaultApps() {
@@ -52,4 +66,4 @@ async function applications() {
 async function setupHelper(driverDirectory) {
   await run('/bin/bash', [path.join(driverDirectory, 'wayland-helper/install.sh')], {timeout: 15000, maxBuffer: 16000});
 }
-module.exports = {extract, environment, defaultApps, applications, setupHelper, executable: 'cua-driver'};
+module.exports = {extract, environment, defaultApps, applications, setupHelper, helperStatus, executable: 'cua-driver'};

@@ -78,6 +78,7 @@ function createManager({platform = process.platform, home = os.homedir(), config
   const skillFile = path.join(home, '.gemini', 'config', 'skills', SERVER, 'SKILL.md');
   let operation = null, error = null, protocol = null, environmentCache = null, checkedAt = 0;
   let generation = 0, abortOperation;
+  let removal = null;
   let mutations = Promise.resolve();
   function mutate(job) {const next = mutations.then(job); mutations = next.catch(() => {}); return next;}
   function entry(disabled = false, scope = 'apps') {
@@ -125,12 +126,14 @@ function createManager({platform = process.platform, home = os.homedir(), config
       configured = !!current && owned(current) && current.disabled !== true;
     } catch { configError = 'invalidConfig'; }
     const env = await environment();
+    let skillReady = false;
+    try {skillReady = !!state.skillHash && crypto.createHash('sha256').update(await read(skillFile)).digest('hex') === state.skillHash;} catch {}
     return {platform, driverVersion: release.VERSION, installed: await installed(), enabled: !!state.enabled && configured, registered,
       scope: state.scope || (state.apps?.length ? 'apps' : 'desktop'),
       apps: Array.isArray(state.apps) ? state.apps : [], suggestedApps: await adapter.defaultApps(),
       availableApps: adapter.applications ? await adapter.applications() : [],
-      operation, error: error || configError || (conflict ? 'serverConflict' : null), protocol,
-      needsHelper: env.needsHelper, helperInstalled: !!env.helperInstalled, session: env.session, experimental: env.experimental};
+      operation, error: error || configError || (conflict ? 'serverConflict' : null), protocol, skillReady, removal,
+      needsHelper: env.needsHelper, helperInstalled: !!env.helperInstalled, helperState: env.helperState || (env.needsHelper ? 'unknown' : 'notRequired'), session: env.session, experimental: env.experimental};
   }
   async function configure(value) {
     if (!(await installed())) throw Error('installFirst');
@@ -158,7 +161,35 @@ function createManager({platform = process.platform, home = os.homedir(), config
     protocol = null;
     await updateMcp(true);
   }
+  async function uninstall() {
+    const previous = await record();
+    let driverExists = false;
+    const stat = await fs.lstat(driverDirectory).catch(error => {if (error.code !== 'ENOENT') throw error;return null;});
+    if (stat) {
+      driverExists = true;
+      if (!stat.isDirectory() || stat.isSymbolicLink()) throw Error('unownedDriver');
+      const receipt = parse(await read(path.join(driverDirectory, 'receipt.json')));
+      const expected = release.ASSETS[`${platform}-${process.arch}`];
+      if (!expected || receipt.version !== release.VERSION || receipt.sha256 !== expected[1]) throw Error('unownedDriver');
+    }
+    await disable();
+    // Let already-open bridges observe revocation before deleting runtime files.
+    if (driverExists) await new Promise(resolve => setTimeout(resolve, 1400));
+    let skillRetained = false;
+    const skill = await read(skillFile);
+    if (skill) {
+      if (previous.skillHash && crypto.createHash('sha256').update(skill).digest('hex') === previous.skillHash) {
+        await fs.unlink(skillFile);await fs.rmdir(path.dirname(skillFile)).catch(error => {if (!['ENOTEMPTY','ENOENT'].includes(error.code)) throw error;});
+      } else skillRetained = true;
+    }
+    if (driverExists) await fs.rm(driverDirectory, {recursive:true,force:true,maxRetries:10,retryDelay:200});
+    for (const file of [policyFile, stateFile]) {await read(file);await fs.rm(file, {force:true});}
+    await fs.rmdir(directory).catch(error => {if (!['ENOTEMPTY','ENOENT'].includes(error.code)) throw error;});
+    protocol = null;removal = {skillRetained, sharedHelperKept: !!(await environment()).helperInstalled};
+  }
   async function perform(action, value) {
+    if (action === 'refresh') {environmentCache = null;return status();}
+    if (action === 'status') return status();
     if (action === 'disconnect') {
       generation++;abortOperation?.abort();
       error = null;
@@ -166,12 +197,14 @@ function createManager({platform = process.platform, home = os.homedir(), config
       return status();
     }
     if (operation) throw Error('busy');
-    if (!['setup', 'install', 'connect', 'disconnect', 'check', 'setupHelper'].includes(action)) throw Error('invalidAction');
+    if (!['setup', 'install', 'connect', 'disconnect', 'check', 'capture', 'uninstall', 'setupHelper'].includes(action)) throw Error('invalidAction');
     operation = action; error = null;
     const jobGeneration = ++generation;
     abortOperation = new AbortController();
     // Long downloads run outside the renderer request timeout; status polls progress.
     const job = (async () => {
+      if (action === 'uninstall') {await mutate(uninstall);return;}
+      removal = null;
       if (action === 'install' || action === 'setup') {
         if (!(await installed())) {
           await release.install(driverDirectory, adapter, {platform, fetcher, signal: abortOperation.signal});
@@ -191,15 +224,17 @@ function createManager({platform = process.platform, home = os.homedir(), config
         if (platform !== 'linux' || !(await installed()) || !(await environment()).needsHelper) throw Error('helperUnavailable');
         await adapter.setupHelper(driverDirectory); environmentCache = null;
       } else {
+        environmentCache = null;
+        protocol = null;
         if (!(await installed())) throw Error('installFirst');
         const version = await run(driver, ['--version'], {timeout: 8000, windowsHide: true, maxBuffer: 16000, env: {...process.env, CUA_DRIVER_RS_TELEMETRY_ENABLED: '0', CUA_TELEMETRY_ENABLED: '0'}});
         if (!version.stdout.includes(release.VERSION)) throw Error('driverVersion');
         if (!(await status()).enabled) throw Error('connectFirst');
-        protocol = await require('./computer-use-protocol.cjs').probe(runtime, bridge);
+        protocol = await require('./computer-use-protocol.cjs').probe(runtime, bridge, {desktop:action === 'capture'});
       }
     })().catch(e => { error = generation !== jobGeneration ? null : /^[a-zA-Z]+$/.test(e.message) ? e.message : 'operationFailed'; })
       .finally(() => { operation = null;abortOperation = null; });
-    if (!['install', 'setup'].includes(action)) await job;
+    if (!['install', 'setup', 'capture', 'uninstall'].includes(action)) await job;
     return status();
   }
   return {status, perform, paths: {directory, driverDirectory, driver, stateFile, policyFile, mcpFile, skillFile}, entry, owned};

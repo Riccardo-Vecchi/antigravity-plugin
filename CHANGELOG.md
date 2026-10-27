@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+- Replace the oversized desktop-activation title with a compact notice and explicit Linux logout/login instructions; distinguish installed GNOME files from a loaded extension.
+- Show separate connection checks with green checkmarks and orange pending dots, plus an optional screen-capture diagnostic that discards image data.
+- Add confirmed removal and fresh setup for plugin-managed computer-use components, preserving shared helpers, other MCP servers and edited skills.
+- Translate the new controls into all seven supported languages and shorten the Linux quick-start requirements.
+
 ## 1.1.0
 
 - Add optional computer use for the native Antigravity agent through maintained Cua Driver 0.37.0, with hash-verified downloads and no deprecated packages.

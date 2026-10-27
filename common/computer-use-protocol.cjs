@@ -1,11 +1,12 @@
 'use strict';
 const {spawn} = require('node:child_process');
-// An actual initialize/tools/list exchange, without observing apps or taking images.
-function probe(runtime, bridge) {
+// Protocol checks are read-only; capture is a separate explicit diagnostic.
+function probe(runtime, bridge, {desktop = false} = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(runtime, [bridge], {env: {...process.env, ELECTRON_RUN_AS_NODE: '1'}, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true});
     let buffer = '', finished = false;
-    const timer = setTimeout(() => finish(Error('protocolFailed')), 12000);
+    let toolCount = 0;
+    const timer = setTimeout(() => finish(Error('protocolFailed')), desktop ? 18000 : 12000);
     function finish(error, result) { if (finished) return; finished = true; clearTimeout(timer); child.stdin.end(); child.kill(); error ? reject(error) : resolve(result); }
     function send(value) { child.stdin.write(JSON.stringify(value) + '\n'); }
     child.stdin.on('error', () => {}); child.stderr.resume();
@@ -13,7 +14,7 @@ function probe(runtime, bridge) {
     child.on('exit', () => { if (!finished) finish(Error('protocolFailed')); });
     child.stdout.on('data', data => {
       buffer += data.toString();
-      if (buffer.length > 2 * 1024 * 1024) return finish(Error('protocolFailed'));
+      if (buffer.length > 32 * 1024 * 1024) return finish(Error('protocolFailed'));
       for (;;) {
         const end = buffer.indexOf('\n'); if (end < 0) break;
         const line = buffer.slice(0, end); buffer = buffer.slice(end + 1);
@@ -23,11 +24,18 @@ function probe(runtime, bridge) {
         if (message.id === 2) {
           const tools = message.result?.tools;
           if (!Array.isArray(tools) || !tools.some(t => t.name === 'get_window_state') || !tools.some(t => t.name === 'click')) return finish(Error('protocolFailed'));
-          finish(null, {ok: true, toolCount: tools.length, checkedAt: new Date().toISOString()});
+          toolCount = tools.length;
+          if (desktop) send({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'get_desktop_state',arguments:{max_image_dimension:640}}});
+          else finish(null, {ok: true, toolCount, checkedAt: new Date().toISOString()});
+        }
+        if (message.id === 3) {
+          const capture = !message.result?.isError && message.result?.content?.some(item => item.type === 'image' && typeof item.data === 'string' && item.data.length > 0 && item.mimeType?.startsWith('image/'));
+          // Screenshots remain in memory and are discarded; no pixel data is returned.
+          finish(null, {ok:true,toolCount,checkedAt:new Date().toISOString(),desktop:{ok:!!capture}});
         }
       }
     });
-    send({jsonrpc: '2.0', id: 1, method: 'initialize', params: {protocolVersion: '2024-11-05', capabilities: {}, clientInfo: {name: 'antigravity-plugin-check', version: '1.1.0'}}});
+    send({jsonrpc: '2.0', id: 1, method: 'initialize', params: {protocolVersion: '2024-11-05', capabilities: {}, clientInfo: {name: 'antigravity-plugin-check', version: require('./versions.cjs').suite}}});
   });
 }
 module.exports = {probe};

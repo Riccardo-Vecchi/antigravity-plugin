@@ -23,6 +23,7 @@ const NATIVE_MCP=fs.readFileSync(path.join(BASE,'native-mcp.js'),'utf8');
 const SETTINGS_NAVIGATION=fs.readFileSync(path.join(BASE,'settings-navigation.js'),'utf8');
 const PROJECT_PRESENTATION=fs.readFileSync(path.join(BASE,'project-presentation.js'),'utf8');
 const computerUse=require('./computer-use.cjs').createManager();
+const {connectionChecks}=require('./computer-use-checks.cjs');
 const I18N=fs.readFileSync(path.join(BASE,'i18n.js'),'utf8');
 const TRANSLATIONS=JSON.parse(fs.readFileSync(path.join(BASE,'locales.json'),'utf8'));
 const WINDOW_CHROME=fs.readFileSync(path.join(BASE,'window-chrome.css'),'utf8');
@@ -159,7 +160,7 @@ class Client{
    if(await this.evaluate('globalThis.__AGShortcuts?.version')!==versions.shortcuts)await this.evaluate(SHORTCUTS);
    if(!await this.evaluate('!!globalThis.__AGNativeMcp'))await this.evaluate(NATIVE_MCP);
    if(await this.evaluate('globalThis.__AGSettingsNavigation?.version')!==versions.settingsNavigation)await this.evaluate(`globalThis.__AGPA_SETTINGS_PROJECT_STYLES__=${JSON.stringify(config)};\n${SETTINGS_NAVIGATION}`);
-   if(await this.evaluate('globalThis.__AGComputerUse?.version')!==versions.computerUse)await this.evaluate(COMPUTER_USE_SETTINGS);
+   if(await this.evaluate('globalThis.__AGComputerUse?.version')!==versions.computerUse)await this.evaluate(`globalThis.__AGPAComputerUseChecks=${connectionChecks.toString()};\n${COMPUTER_USE_SETTINGS}`);
    await this.evaluate(`(()=>{let style=document.getElementById('agpa-window-chrome-styles');if(style?.getAttribute('data-version')===${JSON.stringify(VERSION)})return;if(!style){style=document.createElement('style');style.id='agpa-window-chrome-styles';document.head.append(style);}style.textContent=${JSON.stringify(WINDOW_CHROME)};style.setAttribute('data-version',${JSON.stringify(VERSION)});})()`);
    const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
    if(signature!==this.healthSignature){this.healthSignature=signature;await this.checkCompatibility();}
@@ -226,7 +227,7 @@ class Client{
   try{
    if(params.payload.length>90000)throw Error('Request too large.');
    payload=JSON.parse(params.payload);
-   if(!UUID.test(payload.requestId)||!['status','setup','install','connect','disconnect','check','setupHelper'].includes(payload.action))throw Error('Invalid request.');
+   if(!UUID.test(payload.requestId)||!['status','refresh','setup','install','connect','disconnect','check','capture','uninstall','setupHelper'].includes(payload.action))throw Error('Invalid request.');
    if(['connect','setup'].includes(payload.action)){
     const apps=Array.isArray(payload.value)?payload.value:payload.value?.apps;
     if(!Array.isArray(payload.value)&&!['desktop','apps'].includes(payload.value?.scope))throw Error('Invalid scope.');
