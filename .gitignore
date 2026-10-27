@@ -25,3 +25,25 @@ icon-refresh.json
 .DS_Store
 node_modules/
 /icons/current.png
+
+# Local credentials, captures and virtual-machine media.
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+*.har
+*.dmp
+*.iso
+*.qcow2
+*.vhd
+*.vhdx
+*.vmdk
+*.wim
+*.exe
+*.msi
+windows-icon-request.json
+windows-native-status.json

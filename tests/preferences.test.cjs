@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {validate}=require('../desktop-icon.cjs');
+const {validate}=require('../common/desktop-icon.cjs');
 test('legacy fixed icon migrates without enabling autostart or changing startup view',()=>{
  assert.deepEqual(validate({version:1,taskbarIcon:'gemini'}),{version:2,taskbarIcon:'gemini',startupView:'antigravity',autostart:false});
 });

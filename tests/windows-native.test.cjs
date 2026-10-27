@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),fsp=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),vm=require('node:vm');
-const {installNativeController}=require('../windows-native-controller.cjs');
+const {installNativeController}=require('../windows/native-controller.cjs');
 async function fixture(t){
  const dir=await fsp.mkdtemp(path.join(os.tmpdir(),'agpa-native-'));t.after(()=>fsp.rm(dir,{recursive:true,force:true}));let callback=null;const events=new Map(),images=[],details=[];
  const window={isDestroyed:()=>false,setIcon:image=>images.push(image.id),setAppDetails:value=>details.push(value)};const tray={isDestroyed:()=>false,setImage:image=>images.push('tray:'+image.id)};

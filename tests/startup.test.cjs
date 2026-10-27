@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test');const assert=require('node:assert/strict');const vm=require('node:vm');const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');
-const script=fs.readFileSync(path.join(__dirname,'../app-settings.js'),'utf8');
+const script=fs.readFileSync(path.join(__dirname,'../common/app-settings.js'),'utf8');
 async function fixture({startupView='antigravity',lastView,guestCreated=false,visible=false,preserved=false}={}){
  let opens=0;const observers=[],events=[];
  const element=()=>({setAttribute(){},append(){},remove(){},textContent:''});

@@ -7,20 +7,20 @@ const {promisify}=require('node:util');
 const run=promisify(execFile);
 const DIRECTORY=path.join(os.homedir(),'.config','antigravity-project-appearance');
 const PREFERENCES=path.join(DIRECTORY,'app.json');
-const session=require('./session-state.cjs').createSessionStore(path.join(DIRECTORY,'session.json'));
+const session=require('../common/session-state.cjs').createSessionStore(path.join(DIRECTORY,'session.json'));
 let lastView='antigravity';
 const DESKTOP=process.env.AGPA_DESKTOP_FILE||path.join(os.homedir(),'.local','share','applications','alacarte-made.desktop');
 const EXECUTABLE=process.env.AGPA_APPIMAGE||path.join(os.homedir(),'.local','opt','Antigravity.AppImage');
-const GEMINI_ICON=path.join(__dirname,'icons','gemini-512.png');
-const LEGACY_ICON=path.join(__dirname,'icons','gemini.png');
-const CURRENT_ICON=path.join(__dirname,'icons','current.png');
+const GEMINI_ICON=path.join(__dirname,'..','icons','gemini-512.png');
+const LEGACY_ICON=path.join(__dirname,'..','icons','gemini.png');
+const CURRENT_ICON=path.join(__dirname,'..','icons','current.png');
 const ORIGINALS=path.join(DIRECTORY,'icon-originals');
 const SIZES=[16,24,32,48,64,128,256,512];
 const AUTOSTART=path.join(os.homedir(),'.config','autostart','antigravity-linux-customizations.desktop');
 const ICON_ROOT=path.join(os.homedir(),'.local','share','icons','hicolor');
 let state={version:2,taskbarIcon:'antigravity',startupView:'antigravity',autostart:false};
 let currentView='antigravity',effectiveIcon=null,trayAvailable=false;
-const {validate}=require('./app-preferences.cjs');
+const {validate}=require('../common/app-preferences.cjs');
 
 function desiredIcon(){return state.taskbarIcon==='dynamic'?currentView:state.taskbarIcon;}
 function getState(){return {...state,lastView,startupTarget:state.startupView==='last'?lastView:state.startupView,currentView,effectiveIcon:effectiveIcon||desiredIcon(),trayAvailable};}
@@ -57,11 +57,11 @@ async function themeIcons(choice){
   const stat=await fs.lstat(file);if(!stat.isFile())throw Error('The local Antigravity icon changed.');
   const original=path.join(ORIGINALS,`${size}.png`);
   try{await fs.copyFile(file,original,require('node:fs').constants.COPYFILE_EXCL);await fs.chmod(original,0o600);}catch(e){if(e.code!=='EEXIST')throw e;}
-  replacements.push({file,mode:stat.mode&0o777,bytes:await fs.readFile(choice==='gemini'?path.join(__dirname,'icons',`gemini-${size}.png`):original)});
+  replacements.push({file,mode:stat.mode&0o777,bytes:await fs.readFile(choice==='gemini'?path.join(__dirname,'..','icons',`gemini-${size}.png`):original)});
  }
  // Stable file identity for new Shell.App instances, plus compatibility with
  // the absolute Gemini path already cached by windows from the first version.
- const current=await fs.readFile(choice==='gemini'?GEMINI_ICON:path.join(__dirname,'icons','antigravity.png'));
+ const current=await fs.readFile(choice==='gemini'?GEMINI_ICON:path.join(__dirname,'..','icons','antigravity.png'));
  replacements.push({file:CURRENT_ICON,mode:0o600,bytes:current},{file:LEGACY_ICON,mode:0o600,bytes:current});
  const changed=[];
  const restore=async item=>{if(item.before===null)await fs.rm(item.file,{force:true});else await atomic(item.file,item.before,item.mode);};

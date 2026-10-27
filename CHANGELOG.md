@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.1
+
+- Separate the shared runtime, Linux integration and Windows integration into `common/`, `linux/` and `windows/`, preserving installer commands and user-data paths.
+- Centralize deployed file lists in `distribution.json` and verify platform payloads and relative imports.
+- Add Linux-hosted CI for unit/distribution tests and JavaScript, shell, Python and PowerShell syntax; Windows remains experimental.
+- Add README badges, privacy notes and additional exclusions for credentials, captures and VM media. License the original integration code under 0BSD, excluding Google branding and other third-party assets.
+
 ## 1.8.0
 
 - Add an **experimental** Windows companion using the official signed application runtime, a customized Start-menu launcher, and current-user installation.

@@ -1,0 +1,35 @@
+name: Checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Unit and distribution tests
+        run: node --test tests/*.test.cjs
+      - name: JavaScript and shell syntax
+        run: |
+          for file in common/*.cjs common/*.js linux/*.cjs windows/*.cjs; do node --check "$file"; done
+          bash -n install.sh disable.sh linux/install.sh linux/disable.sh
+          python3 -m py_compile linux/*.py
+      - name: PowerShell syntax (no Windows execution)
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem *.ps1, windows/*.ps1 | ForEach-Object {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors) { $failed = $true; $errors | Write-Error }
+          }
+          if ($failed) { exit 1 }

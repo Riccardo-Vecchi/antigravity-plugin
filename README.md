@@ -6,6 +6,13 @@
 
 # Antigravity Customizations
 
+[![Version 1.8.1](https://img.shields.io/badge/version-1.8.1-blue)](CHANGELOG.md)
+[![Checks](https://github.com/Riccardo-Vecchi/antigravity-customizations/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-customizations/actions/workflows/checks.yml)
+[![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/REFERENCE.md)
+[![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](WINDOWS.md)
+[![Unofficial](https://img.shields.io/badge/Google-unofficial-lightgrey)](NOTICE.md)
+[![License 0BSD](https://img.shields.io/badge/license-0BSD-blue)](LICENSE)
+
 Unofficial additions for Google Antigravity on **Linux and Windows**, kept separate from the official application.
 
 **Independent project, not affiliated with or endorsed by Google. Antigravity and Gemini names and logos belong to Google.** See [NOTICE](NOTICE.md).
@@ -58,3 +65,9 @@ To update, get the latest source and rerun the installer for your platform. To d
 - **Windows:** run the command in [Update and disable](WINDOWS.md#update-and-disable).
 
 The official application and conversation databases are not patched. Gemini sign-in stays separate from browser profiles. Detailed settings, session behavior, data locations and Linux recovery are in the [reference](docs/REFERENCE.md).
+
+## Development
+
+`common/` contains the shared runtime and UI; `linux/` and `windows/` contain platform adapters and scripts. Root installer commands remain stable. `distribution.json` defines the files each installer deploys. Run `node --test tests/*.test.cjs`; CI also checks script syntax. See [privacy notes](PRIVACY.md) for published-data boundaries.
+
+The original integration code is licensed under [0BSD](LICENSE): use, modify, fork and redistribute it, including commercially, without an attribution requirement. Google branding is excluded; see [NOTICE](NOTICE.md).

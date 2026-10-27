@@ -4,9 +4,9 @@ const path=require('node:path');
 const {execFile}=require('node:child_process');
 const {promisify}=require('node:util');
 const run=promisify(execFile);
-const {validate}=require('./app-preferences.cjs');
-function createController({paths=require('./platform-paths.cjs').getPaths(),runProgram=run,base=__dirname,pidAlive=pid=>process.kill(pid,0)}={}){
-const session=require('./session-state.cjs').createSessionStore(path.join(paths.configDir,'session.json'));
+const {validate}=require('../common/app-preferences.cjs');
+function createController({paths=require('../common/platform-paths.cjs').getPaths(),runProgram=run,base=__dirname,pidAlive=pid=>process.kill(pid,0)}={}){
+const session=require('../common/session-state.cjs').createSessionStore(path.join(paths.configDir,'session.json'));
 const preferences=path.join(paths.configDir,'app.json');
 const requestFile=path.join(paths.configDir,'windows-icon-request.json');
 const statusFile=path.join(paths.configDir,'windows-native-status.json');
@@ -30,7 +30,7 @@ async function renderIcon(){
  await readNative();return getState();
 }
 async function autostart(action){
- const result=await runProgram('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',path.join(base,'windows-autostart.ps1'),'-Action',action],{windowsHide:true,timeout:12000});
+ const result=await runProgram('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',path.join(base,'autostart.ps1'),'-Action',action],{windowsHide:true,timeout:12000});
  return JSON.parse(result.stdout.trim());
 }
 async function save(patch){

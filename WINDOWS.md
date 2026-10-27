@@ -89,9 +89,9 @@ This restores the native icon choice, removes the companion's owned Start-menu s
 
 | Check | Result |
 | --- | --- |
-| Shared code and adapter tests | 37 tests passed on Linux, including Windows path/state behavior, native-controller validation/restoration, and real loopback inspector attachment/closure in a Node fixture |
-| PowerShell syntax | Four scripts parsed successfully using PowerShell 7 on Linux |
-| Linux regression | Helper 1.8.0 applied to the running app; compatibility passed, the existing Gemini guest remained mounted, and project styles/AppImage hashes were unchanged |
+| Shared code and adapter tests | 39 tests passed on Linux, including Windows path/state behavior, native-controller validation/restoration, and real loopback inspector attachment/closure in a Node fixture |
+| PowerShell syntax | PowerShell scripts are syntax-checked by Linux CI; this does not execute Windows APIs |
+| Linux regression | Helper 1.8.1 installed and running from the new layout while the app was closed; project styles, preferences and AppImage hashes were unchanged. Earlier 1.8.0 live checks preserved the Gemini guest and passed compatibility |
 | Windows laboratory | A separate clean Windows 11 VM reached the desktop; this establishes the test environment only |
 | Actual Windows application integration | **Not yet verified**: installer execution under Windows PowerShell 5.1, native window/tray icons, pinned shortcuts, sign-in autostart, and authenticated application workflows |
 

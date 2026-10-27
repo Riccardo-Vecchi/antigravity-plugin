@@ -3,7 +3,8 @@ param([ValidateSet('Read','Enable','Disable')][string]$Action='Read')
 $ErrorActionPreference='Stop'
 $startup=[Environment]::GetFolderPath('Startup')
 $linkPath=Join-Path $startup 'Antigravity Customizations.lnk'
-$launcher=Join-Path $PSScriptRoot 'start-windows.ps1'
+$root=Split-Path -Parent $PSScriptRoot
+$launcher=Join-Path $root 'start-windows.ps1'
 $shellExe=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $expectedArgs='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$launcher+'" -Launch'
 $shell=New-Object -ComObject WScript.Shell
@@ -15,7 +16,7 @@ if(Test-Path -LiteralPath $linkPath){
 }
 if($Action -eq 'Enable'){
  $link=$shell.CreateShortcut($linkPath);$link.TargetPath=$shellExe;$link.Arguments=$expectedArgs
- $link.WorkingDirectory=$PSScriptRoot;$link.WindowStyle=7;$link.Description='AGPA local customization launcher'
- $link.IconLocation=(Join-Path $PSScriptRoot 'icons\antigravity.ico');$link.Save();$owned=$true
+ $link.WorkingDirectory=$root;$link.WindowStyle=7;$link.Description='AGPA local customization launcher'
+ $link.IconLocation=(Join-Path $root 'icons\antigravity.ico');$link.Save();$owned=$true
 }elseif($Action -eq 'Disable' -and $owned){Remove-Item -LiteralPath $linkPath;$owned=$false}
 @{enabled=$owned}|ConvertTo-Json -Compress

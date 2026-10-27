@@ -4,8 +4,8 @@ const assert=require('node:assert/strict');
 const vm=require('node:vm');
 const fs=require('node:fs');
 const path=require('node:path');
-const catalogs=require('../locales.json');
-const script=fs.readFileSync(path.join(__dirname,'../i18n.js'),'utf8');
+const catalogs=require('../common/locales.json');
+const script=fs.readFileSync(path.join(__dirname,'../common/i18n.js'),'utf8');
 function element(){const attributes=new Map();return {textContent:'',value:'unsaved input',getAttribute:key=>attributes.get(key)??null,setAttribute:(key,value)=>attributes.set(key,value)};}
 async function fixture(lang='en',browser='de-DE'){
  const html=element();if(lang!==null)html.setAttribute('lang',lang);

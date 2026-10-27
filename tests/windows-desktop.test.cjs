@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
-const {createController}=require('../desktop-windows.cjs');
+const {createController}=require('../windows/desktop.cjs');
 async function fixture(t){
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-win-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));let enabled=false;const actions=[];
  const paths={configDir:dir};const make=()=>createController({paths,pidAlive:pid=>{if(pid!==123)throw Error('Stale process');},runProgram:async(exe,args)=>{assert.equal(exe,'powershell.exe');const action=args.at(-1);actions.push(action);if(action==='Enable')enabled=true;if(action==='Disable')enabled=false;return {stdout:JSON.stringify({enabled})};}});

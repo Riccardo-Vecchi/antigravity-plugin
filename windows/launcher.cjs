@@ -5,8 +5,8 @@ const path=require('node:path');
 const net=require('node:net');
 const crypto=require('node:crypto');
 const {spawn}=require('node:child_process');
-const paths=require('./platform-paths.cjs').getPaths();
-const {attachNative}=require('./windows-native-attach.cjs');
+const paths=require('../common/platform-paths.cjs').getPaths();
+const {attachNative}=require('./native-attach.cjs');
 const pipe='\\\\.\\pipe\\agpa-'+crypto.createHash('sha256').update(paths.configDir.toLowerCase()).digest('hex').slice(0,24);
 let daemon=null,launching=null,server=null;
 async function installation(){
@@ -42,7 +42,7 @@ async function launch(){
 }
 async function startDaemon(){
  const data=await installation();const output=fs.openSync(path.join(paths.configDir,'helper.log'),'a');
- daemon=spawn(data.appExe,[path.join(__dirname,'daemon.cjs')],{cwd:__dirname,env:{...process.env,ELECTRON_RUN_AS_NODE:'1'},stdio:['ignore',output,output],windowsHide:true});fs.closeSync(output);
+ daemon=spawn(data.appExe,[path.join(__dirname,'..','common','daemon.cjs')],{cwd:__dirname,env:{...process.env,ELECTRON_RUN_AS_NODE:'1'},stdio:['ignore',output,output],windowsHide:true});fs.closeSync(output);
  daemon.on('exit',()=>{daemon=null;if(server)setTimeout(()=>startDaemon().catch(e=>log(e.message)),3000).unref();});
 }
 function send(command){return new Promise((resolve,reject)=>{const socket=net.connect(pipe);socket.once('connect',()=>socket.end(command));socket.once('error',reject);socket.once('close',resolve);});}

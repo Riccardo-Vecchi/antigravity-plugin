@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs/promises');const os=require('node:os');const path=require('node:path');
-const {createSessionStore}=require('../session-state.cjs');
+const {createSessionStore}=require('../common/session-state.cjs');
 async function fixture(t){const dir=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-session-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));return path.join(dir,'state','session.json');}
 test('last view survives a fresh store and stores no conversation or account data',async t=>{
  const file=await fixture(t),store=createSessionStore(file);assert.equal(await store.read(),'antigravity');await store.record('gemini');

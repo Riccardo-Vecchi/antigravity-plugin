@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),net=require('node:net');
 const {spawn}=require('node:child_process');
-const {attachNative}=require('../windows-native-attach.cjs');
+const {attachNative}=require('../windows/native-attach.cjs');
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 test('native attachment discovers an existing closure tray and closes the real inspector',async t=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-attach-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));

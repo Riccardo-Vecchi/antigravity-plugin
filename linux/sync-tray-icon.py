@@ -10,7 +10,7 @@ from gi.repository import Gio, GLib
 if len(sys.argv) != 2 or sys.argv[1] not in ('antigravity', 'gemini', '--restore'):
     raise SystemExit('Choose antigravity, gemini, or --restore')
 choice = sys.argv[1]
-base = Path(__file__).resolve().parent
+base = Path(__file__).resolve().parent.parent
 storage = Path.home() / '.config/antigravity-project-appearance'
 receipt = storage / 'tray-settings-original.json'
 source = Gio.SettingsSchemaSource.get_default()

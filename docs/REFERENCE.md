@@ -139,9 +139,9 @@ This disables the helper and this project's desktop autostart entry. Code, prefe
 
 ```bash
 node --test tests/*.test.cjs
-node --check daemon.cjs
+node --check common/daemon.cjs
 bash -n install.sh disable.sh
-python3 -m py_compile refresh-icon-theme.py sync-tray-icon.py
+python3 -m py_compile linux/refresh-icon-theme.py linux/sync-tray-icon.py
 ```
 
 Automated tests cover preference migration, independent startup/icon choices, one-time/remember-last startup, session-state persistence and recovery, shortcut handling and AltGr, compatibility/recovery gates, translation coverage/placeholders, regional languages, English fallback, and updating open controls without losing input. Live checks cover switching with the shortcut from both the native page and Gemini, recovery after removing a helper stylesheet, refusing recovery when a native hook is missing, helper restarts with the last view preserved, and localized controls in all seven languages. Earlier live checks cover project appearance, compact sidebar, fixed/dynamic icons, tray, menu hiding, and XDG autostart. A full logout/login is deliberately not part of the automated checks.
@@ -153,3 +153,12 @@ This repository contains the integration source and generic tests, not personal 
 ## Branding and attribution
 
 See [NOTICE.md](../NOTICE.md) and [asset sources](../assets/SOURCES.md). Google owns the Antigravity and Gemini branding. No rights in Google logos or the proprietary application are granted by this repository.
+
+## Source layout
+
+- `common/`: shared renderer, settings, localization, preferences and runtime.
+- `linux/`: GNOME/tray integration and Linux installer/disable scripts.
+- `windows/`: native icon attachment, launcher, autostart and PowerShell scripts.
+- `tests/`: shared and platform-adapter fixtures; `distribution.json` defines deployment payloads.
+
+Root installation commands forward to the platform scripts, preserving existing shortcuts. Configuration directories, the service name and icon/backup paths retain their existing names so upgrades keep user preferences.

@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const {getPaths}=require('../platform-paths.cjs');const {loopbackSocket}=require('../cdp-connection.cjs');
+const {getPaths}=require('../common/platform-paths.cjs');const {loopbackSocket}=require('../common/cdp-connection.cjs');
 test('Linux profile and installation defaults remain unchanged',()=>{
  const p=getPaths({platform:'linux',env:{},home:'/home/test'});assert.equal(p.configDir,'/home/test/.config/antigravity-project-appearance');assert.equal(p.profileDir,'/home/test/.config/Antigravity');assert.equal(p.defaultExecutable,'/home/test/.local/opt/Antigravity.AppImage');
 });
