@@ -192,7 +192,10 @@
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.",
       "Connection checks": "Connection checks",
       "Save your work. Open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select Refresh status. Closing the app or signing out of Google does not activate the helper.": "Save your work. Open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select Refresh status. Closing the app or signing out of Google does not activate the helper.",
-      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input."
+      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.",
+      "Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.": "Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.",
+      "Remove computer use?": "Remove computer use?",
+      "Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status.": "Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status."
     },
     "icons": {
       "folder": "Folder",
@@ -438,7 +441,10 @@
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "Gli altri server MCP, le conversazioni e le skill modificate vengono conservati. L’estensione GNOME condivisa e le altre installazioni Cua vengono mantenute.",
       "Connection checks": "Verifiche del collegamento",
       "Save your work. Open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select Refresh status. Closing the app or signing out of Google does not activate the helper.": "Salva il tuo lavoro. Apri il menu di sistema → Alimentazione → Termina sessione (su Zorin), poi accedi di nuovo a Linux. Riapri Antigravity e seleziona Aggiorna stato. Chiudere l’app o uscire dall’account Google non attiva l’estensione.",
-      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "Verifica cattura schermo acquisisce lo schermo una volta ed elimina l’immagine. Non verifica mouse e tastiera."
+      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "Verifica cattura schermo acquisisce lo schermo una volta ed elimina l’immagine. Non verifica mouse e tastiera.",
+      "Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.": "Termina la sessione Linux e accedi di nuovo. Bloccare e sbloccare lo schermo non basta.",
+      "Remove computer use?": "Rimuovere Computer use?",
+      "Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status.": "Salva il lavoro, poi scegli Termina sessione / Esci dal menu di sistema Linux e accedi di nuovo. Blocca / Sblocca mantiene la stessa sessione e non carica l’estensione. Riapri Antigravity e seleziona Aggiorna stato."
     },
     "icons": {
       "folder": "Cartella",
@@ -684,7 +690,10 @@
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "Andere MCP-Server, Unterhaltungen und bearbeitete Skill-Dateien bleiben erhalten. Die gemeinsam genutzte GNOME-Erweiterung und andere Cua-Installationen bleiben ebenfalls erhalten.",
       "Connection checks": "Verbindungsprüfungen",
       "Save your work. Open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select Refresh status. Closing the app or signing out of Google does not activate the helper.": "Speichere deine Arbeit. Öffne das Systemmenü → Ausschalten → Abmelden (unter Zorin) und melde dich erneut bei Linux an. Öffne Antigravity und wähle Status aktualisieren. Das Schließen der App oder die Abmeldung bei Google aktiviert die Erweiterung nicht.",
-      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "Der Bildschirmtest erfasst den Bildschirm einmal und verwirft das Bild. Maus- und Tastatureingaben werden nicht getestet."
+      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "Der Bildschirmtest erfasst den Bildschirm einmal und verwirft das Bild. Maus- und Tastatureingaben werden nicht getestet.",
+      "Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.": "Melde dich von Linux ab und wieder an. Den Bildschirm zu sperren und zu entsperren reicht nicht aus.",
+      "Remove computer use?": "Computer use entfernen?",
+      "Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status.": "Speichere deine Arbeit, wähle im Linux-Systemmenü Abmelden / Sitzung beenden und melde dich erneut an. Sperren / Entsperren behält dieselbe Sitzung bei und lädt die Erweiterung nicht. Öffne Antigravity erneut und wähle Status aktualisieren."
     },
     "icons": {
       "folder": "Ordner",
@@ -930,7 +939,10 @@
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "Se conservan los demás servidores MCP, conversaciones y habilidades editadas, así como la extensión compartida de GNOME y otras instalaciones de Cua.",
       "Connection checks": "Verificaciones de conexión",
       "Save your work. Open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select Refresh status. Closing the app or signing out of Google does not activate the helper.": "Guarda tu trabajo. Abre el menú del sistema → Apagar → Cerrar sesión (en Zorin) y vuelve a iniciar sesión en Linux. Abre Antigravity y selecciona Actualizar estado. Cerrar la app o salir de Google no activa la extensión.",
-      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "La prueba captura la pantalla una vez y descarta la imagen. No verifica el ratón ni el teclado."
+      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "La prueba captura la pantalla una vez y descarta la imagen. No verifica el ratón ni el teclado.",
+      "Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.": "Cierra la sesión de Linux y vuelve a iniciarla. Bloquear y desbloquear la pantalla no es suficiente.",
+      "Remove computer use?": "¿Eliminar Computer use?",
+      "Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status.": "Guarda tu trabajo, selecciona Cerrar sesión / Terminar sesión en el menú del sistema Linux y vuelve a iniciarla. Bloquear / Desbloquear mantiene la misma sesión y no carga la extensión. Abre Antigravity y selecciona Actualizar estado."
     },
     "icons": {
       "folder": "Carpeta",
@@ -1176,7 +1188,10 @@
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "Les autres serveurs MCP, les conversations et les compétences modifiées sont conservés, ainsi que l’extension GNOME partagée et les autres installations de Cua.",
       "Connection checks": "Vérifications de connexion",
       "Save your work. Open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select Refresh status. Closing the app or signing out of Google does not activate the helper.": "Enregistrez votre travail. Ouvrez le menu système → Alimentation → Fermer la session (sur Zorin), puis reconnectez-vous à Linux. Rouvrez Antigravity et sélectionnez Actualiser l’état. Fermer l’application ou se déconnecter de Google n’active pas l’extension.",
-      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "Le test capture l’écran une fois puis supprime l’image. Il ne vérifie pas la souris ni le clavier."
+      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "Le test capture l’écran une fois puis supprime l’image. Il ne vérifie pas la souris ni le clavier.",
+      "Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.": "Fermez la session Linux, puis reconnectez-vous. Verrouiller et déverrouiller l’écran ne suffit pas.",
+      "Remove computer use?": "Supprimer Computer use ?",
+      "Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status.": "Enregistrez votre travail, puis choisissez Fermer la session / Se déconnecter dans le menu système Linux et reconnectez-vous. Verrouiller / Déverrouiller conserve la même session et ne charge pas l’extension. Rouvrez Antigravity et sélectionnez Actualiser l’état."
     },
     "icons": {
       "folder": "Dossier",
@@ -1422,7 +1437,10 @@
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "其他 MCP 服务器、对话和已编辑的技能将保留。共享的 GNOME 扩展及其他 Cua 安装也将保留。",
       "Connection checks": "连接检查",
       "Save your work. Open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select Refresh status. Closing the app or signing out of Google does not activate the helper.": "请先保存工作。在 Zorin 中打开系统菜单 → 电源 → 注销，然后重新登录 Linux。重新打开 Antigravity 并选择“刷新状态”。关闭应用或退出 Google 账号不会激活扩展。",
-      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "截图测试仅捕获一次屏幕并丢弃图像，不测试鼠标或键盘输入。"
+      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "截图测试仅捕获一次屏幕并丢弃图像，不测试鼠标或键盘输入。",
+      "Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.": "请注销 Linux 会话，然后重新登录。仅锁定和解锁屏幕是不够的。",
+      "Remove computer use?": "移除电脑操作功能？",
+      "Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status.": "请先保存工作，在 Linux 系统菜单中选择“注销 / 结束会话”，然后重新登录。“锁定 / 解锁”会保留当前会话，不会加载扩展。重新打开 Antigravity 并选择“刷新状态”。"
     },
     "icons": {
       "folder": "文件夹",
@@ -1668,7 +1686,10 @@
       "Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.": "他の MCP サーバー、会話、編集済みのスキルは保持されます。共有の GNOME 拡張機能と他の Cua 環境も保持されます。",
       "Connection checks": "接続チェック",
       "Save your work. Open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select Refresh status. Closing the app or signing out of Google does not activate the helper.": "作業を保存してください。Zorin のシステムメニュー → 電源 → ログアウトを選び、Linux に再度ログインしてください。Antigravity を開き直して「状態を更新」を選択します。アプリを閉じたり Google からログアウトしたりしても拡張機能は有効になりません。",
-      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "画面キャプチャのテストは画面を一度取得し、画像を破棄します。マウスやキーボードの入力はテストしません。"
+      "Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.": "画面キャプチャのテストは画面を一度取得し、画像を破棄します。マウスやキーボードの入力はテストしません。",
+      "Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.": "Linux からログアウトして、再度ログインしてください。画面のロックと解除だけでは有効になりません。",
+      "Remove computer use?": "コンピューター操作を削除しますか？",
+      "Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status.": "作業を保存し、Linux のシステムメニューで「ログアウト / セッションを終了」を選んでから、再度ログインしてください。「ロック / ロック解除」では同じセッションが維持され、拡張機能は読み込まれません。Antigravity を開き直し、「状態を更新」を選択してください。"
     },
     "icons": {
       "folder": "フォルダー",

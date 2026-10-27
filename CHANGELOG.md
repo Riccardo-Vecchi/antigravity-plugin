@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.2
+
+- Show Linux logout/login instructions directly beside the pending GNOME check and explain that lock/unlock keeps the same session.
+- Remove repeated driver/handshake status paragraphs and show the driver version in its check row.
+- Center computer-use removal in a modal confirmation with Cancel/Escape, visible progress and results beside the controls.
+
 ## 1.1.1
 
 - Replace the oversized desktop-activation title with a compact notice and explicit Linux logout/login instructions; distinguish installed GNOME files from a loaded extension.

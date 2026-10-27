@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.1.1](https://img.shields.io/badge/version-1.1.1-blue)](CHANGELOG.md)
+[![Version 1.1.2](https://img.shields.io/badge/version-1.1.2-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -74,7 +74,7 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 **Computer use** has its own Settings page. Choose **Entire desktop** or **Selected apps**, then select **Enable computer use**: the wizard installs the reviewed driver and connects it to Antigravity over MCP. The wizard refreshes the native MCP server when the app supports it; start a new agent conversation after connecting. Linux is the primary implementation; Windows remains experimental. The embedded Gemini website does not receive desktop tools.
 
-On GNOME/Wayland, newly installed desktop access needs one **Linux logout/login**. The page explains the steps; closing the app or signing out of Google is insufficient. **Connection details** shows a green check for each passed check and an orange dot for pending checks. **Remove computer use…** resets the plugin-managed setup for reinstallation, preserving unrelated integrations and the shared GNOME helper.
+On GNOME/Wayland, newly installed desktop access needs one **Linux logout/login** (locking and unlocking is insufficient). The page explains the steps; closing the app or signing out of Google is insufficient. **Connection details** shows a green check for each passed check and an orange dot for pending checks. **Remove computer use…** resets the plugin-managed setup for reinstallation, preserving unrelated integrations and the shared GNOME helper.
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Local customizations** contains status and recovery.
 

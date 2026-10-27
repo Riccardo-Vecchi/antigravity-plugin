@@ -7,7 +7,7 @@ Give the **native Antigravity agent** desktop tools through the maintained [Cua 
 1. Open **Settings → Computer use**, its own item in the Settings menu. Settings navigation has icons; its Projects group can be collapsed and uses your configured project appearance.
 2. Choose **Entire desktop** to work across your environment, or **Selected apps** for an application allowlist.
 3. Select **Enable computer use**. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
-4. Follow any OS access prompt. On GNOME/Wayland, the helper needs a **Linux session logout/login once** to load. Save your work, open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select **Refresh status**. Closing the app or signing out of Google does not load the extension. The wizard never logs you out or restarts your apps.
+4. Follow any OS access prompt. On GNOME/Wayland, the helper needs a **Linux session logout/login once** to load. Save your work, open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select **Refresh status**. **Locking/unlocking the screen keeps the same Linux session and does not load the extension.** Closing the app or signing out of Google also does not load it. The wizard never logs you out or restarts your apps.
 5. Start a **new Antigravity conversation** and describe the result you want. Existing conversations can keep their earlier tool list.
 
 Try: “Open Calculator, calculate 6 × 7 and verify the displayed result.” The agent should observe **42 in the app**, rather than report only a successful tool call.
@@ -39,7 +39,7 @@ The platform disable scripts also disconnect computer use. In Selected apps mode
 
 ## ♻️ Remove and set up again
 
-Open **Settings → Computer use → Connection details → Remove computer use…** and confirm. This revokes the connection, removes only the plugin's own MCP entry, deletes its verified managed driver, setup preferences and unchanged generated skill. Then choose **Enable computer use** to download and configure it again.
+Open **Settings → Computer use → Connection details → Remove computer use…** and confirm in the centered dialog. Cancel or press Escape to keep the setup. This revokes the connection, removes only the plugin's own MCP entry, deletes its verified managed driver, setup preferences and unchanged generated skill. Then choose **Enable computer use** to download and configure it again.
 
 Other MCP servers, conversations, Antigravity/Gemini data, other Cua installations and the **shared WinRects GNOME extension** remain untouched. A locally edited skill is preserved and reported: rename or remove it yourself before a fresh setup. Unrecognized driver folders or missing/invalid receipts stop removal instead of deleting unknown files. Use **Repair desktop helper** for a disabled or failed helper; reinstallation is unnecessary when it only needs the next Linux sign-in.
 
@@ -68,7 +68,7 @@ Windows is covered by adapter/configuration tests, release archive-layout verifi
 
 ## ✅ Validation boundaries
 
-Verified live on Linux: the dedicated Settings page, navigation icons, Projects collapse, scoped/full-desktop configuration, native Antigravity discovery of the reviewed tool set, protocol checks and disconnection. On GNOME/Wayland, the installed helper still requires the next desktop sign-in; a complete desktop calculation has not been verified in that session. An Xvfb test without a window manager did not establish GUI readiness. Windows remains experimental as described above.
+Verified live on Linux: the dedicated Settings page, navigation icons, Projects collapse, scoped/full-desktop configuration, native Antigravity discovery of the reviewed tool set, protocol checks, disconnection, confirmed removal and fresh reinstallation. On GNOME/Wayland, the installed helper still requires the next desktop sign-in; a complete desktop calculation has not been verified in that session. An Xvfb test without a window manager did not establish GUI readiness. Windows remains experimental as described above.
 
 ## 📚 References
 

@@ -1,7 +1,7 @@
 /* Guided desktop access in a dedicated native Settings page. */
 (() => {
  'use strict';
- const VERSION = '1.3.0';
+ const VERSION = '1.3.1';
  if (globalThis.__AGComputerUse?.version === VERSION) return;
  globalThis.__AGComputerUse?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -10,7 +10,7 @@
  const pending = new Map();
  let section, state = {}, busy = false, draft = typeof savedDraft === 'string' ? savedDraft : savedDraft?.apps;
  let scopeDraft = savedDraft?.scope, nativeRefresh = null, scheduled = false, destroyed = false, refreshing = false;
- let confirmRemoval = false, checksSignature = '';
+ let checksSignature = '';
  const errors = {
   selectApps: 'Choose at least one application executable.', invalidApp: 'Use an existing absolute executable path for each application.',
   serverConflict: 'This MCP server name is already used. Resolve the conflict in native MCP settings.',
@@ -35,23 +35,23 @@
   const working = busy || !!state.operation;
   t('[data-cu-connection]', state.operation === 'uninstall' ? 'Removing computer use…' : state.operation ? 'Preparing computer use…' : state.enabled ? state.needsHelper ? 'Desktop access needs activation' : 'Computer use is enabled' : 'Your agent, across your desktop');
   t('[data-cu-summary]', state.enabled ? 'Describe the result you want in Antigravity. The agent can see and operate the desktop within your chosen access.' : 'Let Antigravity work across your apps: explore, click, type and verify the result.');
-  t('[data-cu-driver]', state.installed ? 'Cua Driver {version} installed' : 'The setup installs the current reviewed Cua Driver for you.', {version: state.driverVersion || '—'});
   const loginRequired = state.needsHelper && state.helperInstalled && ['signInRequired', 'unknown'].includes(state.helperState);
   t('[data-cu-platform]', loginRequired ? 'Sign out of Linux to activate desktop access' : state.needsHelper ? state.helperInstalled ? 'The GNOME helper is disabled or could not load. Select Repair desktop helper, then refresh status.' : 'The setup will install the GNOME desktop helper. A new sign-in is required to activate it.' : state.session === 'wayland' ? 'Wayland: some apps require foreground input or additional desktop permission.' : state.experimental ? 'Windows support is experimental. Keep the target app visible in your desktop session.' : 'Desktop permissions may be requested when you first use an application.');
   section.querySelector('[data-cu-login-steps]').hidden = !loginRequired;
-  t('[data-cu-protocol]', state.protocol?.ok ? 'MCP handshake passed. Desktop actions still need verification.' : 'MCP connection has not been checked.');
   t('[data-cu-operation]', state.error ? (errors[state.error] || errors.operationFailed) : working ? 'Working…' : state.enabled ? nativeRefresh ? 'Connected to the native Antigravity agent. Start a new conversation to use the tools.' : 'Start a new agent conversation after connecting. If tools are missing, refresh native MCP settings.' : 'Choose access and enable computer use. Existing Antigravity approvals remain in effect.');
   t('[data-cu-connect]', working ? 'Preparing computer use…' : state.enabled ? 'Apply access changes' : 'Enable computer use');
   t('[data-cu-removal]', state.removal?.skillRetained ? 'Computer use removed. Your locally edited skill was kept; rename or remove it before setting up again.' : 'Computer use removed. Select Enable computer use for a fresh setup.');
   section.querySelector('[data-cu-removal]').hidden = !state.removal;
-  section.querySelector('[data-cu-confirm-removal]').hidden = !confirmRemoval;
   const checks = globalThis.__AGPAComputerUseChecks(state, globalThis.__AGNativeMcp?.status());
-  const checksKey = JSON.stringify([checks, i18n.language]);
+  const checksKey = JSON.stringify([checks, i18n.language, state.driverVersion, loginRequired]);
   if (checksKey !== checksSignature) {
    checksSignature = checksKey;
    section.querySelector('[data-cu-checks]').replaceChildren(...checks.map(check => {
     const icon = node('span', {class: `agpa-cu-check-icon ${check.passed ? 'passed' : 'pending'}`, 'aria-hidden': 'true', text: check.passed ? '✓' : '●'});
-    return node('li', {'data-cu-check-id': check.id, 'data-passed': String(check.passed)}, icon, node('span', {text: check.label}), node('span', {class:'agpa-cu-check-state', text: check.passed ? 'Passed' : 'Pending'}));
+    const label = node('span', {class:'agpa-cu-check-label'}, node('span', {text:check.label}));
+    if (check.id === 'driver' && state.installed) label.append(node('span', {class:'agpa-cu-check-version',text:state.driverVersion}));
+    if (check.id === 'desktop' && loginRequired) label.append(node('span', {class:'agpa-cu-check-help',text:'Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.'}));
+    return node('li', {'data-cu-check-id': check.id, 'data-passed': String(check.passed)}, icon, label, node('span', {class:'agpa-cu-check-state', text: check.passed ? 'Passed' : 'Pending'}));
    }));
   }
   for (const input of section.querySelectorAll('[name=agpa-cu-scope]')) {input.checked = input.value === scope();input.disabled = working;}
@@ -132,15 +132,17 @@
    button.addEventListener('click', () => act(action));advancedActions.append(button);
   }
   const remove = node('button', {type:'button',class:'agpa-app-icon-option','data-cu-remove':'',text:'Remove computer use…'});
-  remove.addEventListener('click', () => {confirmRemoval = true;paint();section.querySelector('[data-cu-confirm-removal]').scrollIntoView({block:'nearest'});});
+  remove.addEventListener('click', () => {removal.showModal();cancel.focus();});
   advancedActions.append(remove);
   const cancel = node('button', {type:'button',class:'agpa-app-icon-option',text:'Cancel'});
-  cancel.addEventListener('click', () => {confirmRemoval = false;paint();});
-  const confirm = node('button', {type:'button',class:'agpa-app-icon-option','data-cu-remove-confirm':'',text:'Remove computer use'});
-  confirm.addEventListener('click', () => {confirmRemoval = false;act('uninstall');});
-  const removal = node('div', {class:'agpa-cu-notice','data-cu-confirm-removal':'',hidden:''},
+  cancel.addEventListener('click', () => removal.close());
+  const confirm = node('button', {type:'button',class:'agpa-app-icon-option agpa-cu-danger','data-cu-remove-confirm':'',text:'Remove computer use'});
+  confirm.addEventListener('click', () => {removal.close();act('uninstall');});
+  const removal = node('dialog', {class:'agpa-cu-confirm','data-cu-confirm-removal':'','aria-labelledby':'agpa-cu-remove-title','aria-describedby':'agpa-cu-remove-description'},
+   node('h3',{id:'agpa-cu-remove-title',text:'Remove computer use?'}),
+   node('div',{id:'agpa-cu-remove-description'},
    node('p',{text:'Remove the plugin-managed driver, MCP entry, generated skill and setup preferences? You can then enable computer use again to reinstall.'}),
-   node('p',{class:'agpa-cu-muted',text:'Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.'}),
+   node('p',{class:'agpa-cu-muted',text:'Other MCP servers, conversations and edited skills are kept. The shared GNOME helper and other Cua installations are kept.'})),
    node('div',{class:'agpa-patch-actions'}, cancel,confirm));
   const examples = node('div', {class: 'agpa-cu-examples'}, node('strong', {text: 'Try asking Antigravity'}),
    node('p', {text: 'Open Calculator, calculate 6 × 7 and verify the result.'}),
@@ -151,11 +153,12 @@
    node('p', {class: 'agpa-cu-muted', text: 'Entire desktop access includes visible screen content. The agent still follows your task and Antigravity approval settings.'}),
    node('div', {class: 'agpa-patch-actions'}, enable, stop),
    node('div', {class: 'agpa-cu-notice'}, node('p', {'data-cu-platform': ''}),
-    node('p', {'data-cu-login-steps': '', text: 'Save your work. Open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select Refresh status. Closing the app or signing out of Google does not activate the helper.'})),
-   node('p', {class: 'agpa-app-icon-status', 'data-cu-operation': '', role: 'status', 'aria-live': 'polite'}), examples,
+    node('p', {'data-cu-login-steps': '', text: 'Save your work, then choose Log Out / End Session in the Linux system menu and sign in again. Lock / Unlock keeps the same session and does not load the helper. Reopen Antigravity and select Refresh status.'})),
+   examples,
    node('details', {class: 'agpa-cu-advanced'}, node('summary', {text: 'Connection details'}),
     node('ul', {class:'agpa-cu-checks','data-cu-checks':'','aria-label':'Connection checks'}),
-    node('p', {class: 'agpa-cu-muted', 'data-cu-driver': ''}), node('p', {class: 'agpa-cu-muted', 'data-cu-protocol': ''}), advancedActions,
+    advancedActions,
+    node('p', {class: 'agpa-app-icon-status', 'data-cu-operation': '', role: 'status', 'aria-live': 'polite'}),
     node('p', {class:'agpa-cu-muted',text:'Test screen capture reads the display once and discards the image. It does not test mouse or keyboard input.'}),
     removal,node('p',{class:'agpa-cu-notice','data-cu-removal':'',role:'status'}),
     node('p', {class: 'agpa-cu-muted', text: 'Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.'}),
@@ -188,22 +191,35 @@
   .agpa-cu-notice [data-cu-platform]{color:var(--foreground,#ddd);font-weight:500}.agpa-cu-notice [data-cu-login-steps]{margin-top:8px}
   .agpa-cu-examples{padding:16px;border-radius:12px;background:var(--secondary,#1d1d1d);display:flex;flex-direction:column;gap:8px}
   .agpa-cu-examples p{color:var(--muted-foreground,#aaa)}.agpa-cu-advanced{border-top:1px solid var(--border,#353535);padding-top:16px}
-  .agpa-cu-advanced summary{cursor:pointer;color:var(--muted-foreground,#aaa)}.agpa-cu-advanced>*:not(summary){margin-top:12px}
+  .agpa-cu-advanced summary{cursor:pointer;color:var(--muted-foreground,#aaa)}.agpa-cu-advanced>*:not(summary):not(dialog){margin-top:12px}
   .agpa-cu-checks{padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
   .agpa-cu-checks li{display:flex;align-items:center;gap:10px;font-size:12px;line-height:1.5}
   .agpa-cu-check-icon{width:16px;text-align:center;flex-shrink:0}.agpa-cu-check-icon.passed{color:#55c98a;font-size:16px;font-weight:700}.agpa-cu-check-icon.pending{color:#e5ad4b;font-size:11px}
   .agpa-cu-check-state{margin-left:auto;color:var(--muted-foreground,#aaa);font-size:11px}
-  [data-cu-confirm-removal]{display:flex;flex-direction:column;gap:12px}
+  .agpa-cu-check-label{flex:1;min-width:0}.agpa-cu-check-version{margin-left:8px;color:var(--muted-foreground,#aaa)}
+  .agpa-cu-check-help{display:block;color:var(--foreground,#ddd);margin-top:5px;line-height:1.6}
+  .agpa-cu-confirm{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);margin:0;box-sizing:border-box;width:min(480px,calc(100vw - 48px));padding:24px;border:1px solid var(--border,#444);border-radius:14px;background:var(--background,#171717);color:var(--foreground,#eee);font-family:inherit;font-size:13px;line-height:1.6}
+  .agpa-cu-confirm:not([open]){display:none}.agpa-cu-confirm[open]{display:flex;flex-direction:column;gap:18px}
+  .agpa-cu-confirm::backdrop{background:#0009}.agpa-cu-confirm h3{margin:0;font-size:15px;font-weight:600}
+  .agpa-cu-confirm p+p{margin-top:12px}.agpa-cu-confirm .agpa-patch-actions{justify-content:flex-end}
+  .agpa-cu-danger{color:#ef9898!important;border-color:#8e4d4d!important}
   @media(max-width:700px){.agpa-cu-scopes{grid-template-columns:1fr}}
  `});
  document.head.append(style);
  function schedule() {if (scheduled || destroyed) return;scheduled = true;queueMicrotask(() => {scheduled = false;apply();});}
  const observer = new MutationObserver(schedule);observer.observe(document.body, {subtree: true, childList: true});
  const interval = setInterval(() => {if (!section?.isConnected || !globalThis.__AGSettingsNavigation?.isOpen() || busy) return;request('status', true).then(receive).catch(() => {});}, 1500);
+ function dismissRemoval(event) {
+  const dialog = section?.querySelector('[data-cu-confirm-removal]');
+  if (event.key !== 'Escape' || !dialog?.open) return;
+  // The native Settings focus trap handles Escape too; dismiss only this dialog.
+  event.preventDefault();event.stopImmediatePropagation();dialog.close();
+ }
+ window.addEventListener('keydown', dismissRemoval, true);
  window.addEventListener('agpa:settings-page', schedule);
  const untranslate = i18n.subscribe(paint);
  globalThis.__AGComputerUse = {version: VERSION, status: () => ({...state, mounted: !!section?.isConnected}),
   onResult(id, ok, next) {const item = pending.get(id);if (!item) return;clearTimeout(item.timer);pending.delete(id);ok ? item.resolve(next) : item.reject(Error('operationFailed'));},
-  destroy() {globalThis.__AGPA_CU_DRAFT__ = {apps: section?.querySelector('textarea')?.value ?? draft, scope: scopeDraft};destroyed = true;observer.disconnect();clearInterval(interval);window.removeEventListener('agpa:settings-page', schedule);untranslate();for (const item of pending.values()) {clearTimeout(item.timer);item.reject(Error('stopped'));}pending.clear();section?.remove();style.remove();delete globalThis.__AGComputerUse;}};
+  destroy() {section?.querySelector('dialog[open]')?.close();globalThis.__AGPA_CU_DRAFT__ = {apps: section?.querySelector('textarea')?.value ?? draft, scope: scopeDraft};destroyed = true;observer.disconnect();clearInterval(interval);window.removeEventListener('keydown', dismissRemoval, true);window.removeEventListener('agpa:settings-page', schedule);untranslate();for (const item of pending.values()) {clearTimeout(item.timer);item.reject(Error('stopped'));}pending.clear();section?.remove();style.remove();delete globalThis.__AGComputerUse;}};
  schedule();
 })();
