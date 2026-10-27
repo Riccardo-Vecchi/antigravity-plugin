@@ -7,6 +7,11 @@ $installation=Get-Content -LiteralPath (Join-Path $config 'installation.json') -
 $oldRuntime=$env:ELECTRON_RUN_AS_NODE
 try{
  $env:ELECTRON_RUN_AS_NODE='1'
+ $computerUse=Join-Path $root 'common\computer-use-cli.cjs'
+ if(Test-Path -LiteralPath $computerUse){
+  & $installation.appExe $computerUse disconnect
+  if($LASTEXITCODE -ne 0){Write-Warning 'Computer-use lease revoked; review native MCP settings.'}
+ }
  & $installation.appExe -e "require(process.argv[1]).restoreIntegration().catch(e=>{console.error(e.message);process.exit(1)})" (Join-Path $PSScriptRoot 'desktop.cjs')
  if($LASTEXITCODE -ne 0){throw 'Could not restore the native icon preference.'}
 }finally{$env:ELECTRON_RUN_AS_NODE=$oldRuntime}

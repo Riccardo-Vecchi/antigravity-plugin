@@ -11,3 +11,9 @@ Local diagnostics and laboratory files stay under ignored directories. Additiona
 This is a bounded review of tracked content and prior repository history, not a guarantee about files stored elsewhere on a user's machine.
 
 The two README demonstration screenshots were supplied by the repository owner for publication. They show a generic project label and a visible profile avatar, but no visible credentials, email address or conversation content.
+
+## Optional computer use
+
+The optional Cua Driver integration stores access scope, selected local executable paths, a capability manifest and its own MCP entry locally. Disconnecting removes only that entry and retains the choices. These files are not published. **Entire desktop** enables observation and GUI control across the desktop using the driver's normal `standard` permission mode. Screen content, windows and screenshots can contain private information and are returned to the model used by Antigravity during a task. **Selected apps** uses `bounded` mode and an executable allowlist. The plugin disables Cua telemetry in its driver environment and adds no blanket Antigravity approvals. Its tool filter excludes direct shell/file tools and browser-profile attachment; operating an application through its GUI can still affect files, signed-in websites and other state. Driver files and the owned local skill are retained when disconnected. The Settings Projects collapse preference is saved locally in the app's local storage. See [computer-use scope and setup](COMPUTER_USE.md).
+
+The Computer use documentation screenshot shows only the Settings UI, cropped above the account footer with the Projects group collapsed. It contains no account identifier, chat content or local executable path.

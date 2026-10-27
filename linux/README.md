@@ -88,3 +88,7 @@ To remove the active integration and restore original desktop/tray icons:
 ```
 
 This disables the helper and this project's desktop autostart entry. Code, preferences, icon backups, and Google's persistent web session remain on disk for later use. Disabling removes the embedded view, so save or send any Gemini draft before doing so.
+
+## 🖱️ Computer use
+
+Open **Settings → Computer use** for optional Cua Driver installation, entire-desktop or selected-application access, MCP checks and disconnection. See the [computer-use guide](../docs/COMPUTER_USE.md) for setup, OS permissions and validation limits.

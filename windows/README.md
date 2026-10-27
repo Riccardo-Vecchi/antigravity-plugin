@@ -98,3 +98,7 @@ This restores the native icon choice, removes the companion's owned Start-menu s
 | Actual Windows application integration | **Not yet verified**: installer execution under Windows PowerShell 5.1, native window/tray icons, pinned shortcuts, sign-in autostart, and authenticated application workflows |
 
 Windows desktop testing was deliberately limited for this revision. The automated tests use fixtures for Windows APIs; they are not a claim that the taskbar, tray, or autostart already passed a live Windows check. No Microsoft or Google account data is included in the repository.
+
+## 🖱️ Computer use
+
+Open **Settings → Computer use** for optional Cua Driver installation, entire-desktop or selected-application access, MCP checks and disconnection. See the [computer-use guide](../docs/COMPUTER_USE.md) for setup, OS permissions and validation limits.

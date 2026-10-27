@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0
+
+- Add optional computer use for the native Antigravity agent through maintained Cua Driver 0.37.0, with hash-verified downloads and no deprecated packages.
+- Add a dedicated Computer use Settings page and seven-language one-click setup, with Entire desktop and Selected apps modes. Preserve other MCP servers and user skills.
+- Use standard driver permissions for Entire desktop and bounded sessions for Selected apps, with filtered tools, disabled driver telemetry and revocation on stop or scope changes.
+- Add Settings navigation icons and a persistent, collapsible Projects group with the same configured icons, emoji and colors as the sidebar.
+- Add Linux GNOME/Wayland helper setup and experimental Windows x64 support using the existing bundled runtime.
+
 ## 1.0.1
 
 - Put all platform commands and installation guides under `linux/` and `windows/`; keep shared guidance in `docs/`.

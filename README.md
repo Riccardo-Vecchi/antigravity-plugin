@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.0.1](https://img.shields.io/badge/version-1.0.1-blue)](CHANGELOG.md)
+[![Version 1.1.0](https://img.shields.io/badge/version-1.1.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -28,13 +28,17 @@
 ## ✨ Features
 
 - Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
+- Optional **computer use** through maintained Cua Driver: one-click setup, entire-desktop or selected-app access, MCP diagnostics and Stop controls. [Setup guide](docs/COMPUTER_USE.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Compact sidebar that keeps navigation and project icons visible.
+- Settings navigation with icons, a dedicated Computer use page and a collapsible Projects group that uses your configured project icons and colors.
 - Fixed Antigravity/Gemini icons or a Dynamic mode, including supported tray integrations.
 - Startup view, Remember last view, desktop autostart, and patch status/recovery controls.
 - English, Italian, German, Spanish, French, Simplified Chinese and Japanese, with English fallback.
 
 ## 📸 Screenshots
+
+![Computer use: dedicated settings, entire-desktop access and guided activation](docs/images/computer-use.png)
 
 | Antigravity: project colors and compact sidebar | Gemini in the same window |
 | --- | --- |
@@ -69,6 +73,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\install.ps1 -L
 Open **Antigravity (customized)** from the Start menu for subsequent launches. The execution-policy option applies only to that invocation. See the [Windows guide](windows/README.md) for custom app paths, integration details, and the exact validation limits.
 
 ## ⚙️ Settings and updates
+
+**Computer use** has its own Settings page. Choose **Entire desktop** or **Selected apps**, then select **Enable computer use**: the wizard installs the reviewed driver and connects it to Antigravity over MCP. The wizard refreshes the native MCP server when the app supports it; start a new agent conversation after connecting. Linux is the primary implementation; Windows remains experimental. The embedded Gemini website does not receive desktop tools.
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Local customizations** contains status and recovery.
 

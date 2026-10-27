@@ -48,3 +48,9 @@ secrets/
 windows-icon-request.json
 windows-native-status.json
 launcher-original-icons.json
+
+# Optional computer-use runtime (never publish local scopes or driver binaries).
+capabilities.json
+*.agpa-lock
+.driver-install-*/
+driver-*/

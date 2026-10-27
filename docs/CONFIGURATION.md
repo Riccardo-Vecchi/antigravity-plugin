@@ -82,3 +82,7 @@ See [NOTICE.md](../NOTICE.md) and [asset sources](../assets/SOURCES.md). Google 
 - `tests/`: shared and platform-adapter fixtures; `common/distribution.json` defines deployment payloads.
 
 Installation commands live in their platform folders. Owned Windows shortcuts from older installations are migrated, while deployed icon paths remain stable. Configuration directories, the service name and icon/backup paths retain their existing names so upgrades keep user preferences.
+
+## 🖱️ Computer use
+
+Open **Settings → Computer use** for optional Cua Driver installation, entire-desktop or selected-application access, MCP checks and disconnection. See the [computer-use guide](COMPUTER_USE.md) for setup, OS permissions and validation limits.

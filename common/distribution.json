@@ -41,7 +41,19 @@
     "common/icon-path.cjs",
     "linux/README.md",
     "docs/images/antigravity-demo.png",
-    "docs/images/gemini-demo.png"
+    "docs/images/gemini-demo.png",
+    "common/computer-use.cjs",
+    "common/computer-use-release.cjs",
+    "common/computer-use-bridge.cjs",
+    "common/computer-use-protocol.cjs",
+    "common/computer-use-cli.cjs",
+    "common/computer-use-settings.js",
+    "docs/COMPUTER_USE.md",
+    "common/computer-use-skill.md",
+    "common/native-mcp.js",
+    "common/settings-navigation.js",
+    "common/project-presentation.js",
+    "docs/images/computer-use.png"
   ],
   "linux": [
     "linux/desktop.cjs",
@@ -56,7 +68,8 @@
     "assets/icons/gemini-64.png",
     "assets/icons/gemini-128.png",
     "assets/icons/gemini-256.png",
-    "linux/installation.cjs"
+    "linux/installation.cjs",
+    "linux/computer-use.cjs"
   ],
   "windows": [
     "windows/desktop.cjs",
@@ -67,7 +80,9 @@
     "windows/start.ps1",
     "windows/disable.ps1",
     "assets/icons/antigravity.ico",
-    "assets/icons/gemini.ico"
+    "assets/icons/gemini.ico",
+    "windows/computer-use.cjs",
+    "windows/extract-driver.ps1"
   ],
   "mappings": {
     "assets/icons/": "icons/"

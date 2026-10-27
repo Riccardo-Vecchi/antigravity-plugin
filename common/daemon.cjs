@@ -18,6 +18,11 @@ const SWITCH_CSS=fs.readFileSync(path.join(BASE,'gemini-switch.css'),'utf8');
 const compatibility=require('./compatibility.cjs');
 const INLINE=fs.readFileSync(path.join(BASE,'gemini-inline.js'),'utf8');
 const APP_SETTINGS=fs.readFileSync(path.join(BASE,'app-settings.js'),'utf8');
+const COMPUTER_USE_SETTINGS=fs.readFileSync(path.join(BASE,'computer-use-settings.js'),'utf8');
+const NATIVE_MCP=fs.readFileSync(path.join(BASE,'native-mcp.js'),'utf8');
+const SETTINGS_NAVIGATION=fs.readFileSync(path.join(BASE,'settings-navigation.js'),'utf8');
+const PROJECT_PRESENTATION=fs.readFileSync(path.join(BASE,'project-presentation.js'),'utf8');
+const computerUse=require('./computer-use.cjs').createManager();
 const I18N=fs.readFileSync(path.join(BASE,'i18n.js'),'utf8');
 const TRANSLATIONS=JSON.parse(fs.readFileSync(path.join(BASE,'locales.json'),'utf8'));
 const WINDOW_CHROME=fs.readFileSync(path.join(BASE,'window-chrome.css'),'utf8');
@@ -93,6 +98,7 @@ class Client{
    if(m.method==='Runtime.executionContextsCleared')this.contexts.clear();
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaPersist')this.onBinding(m.params).catch(e=>log(`Save request rejected: ${e.message}`));
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaAppSettings')this.onAppSettings(m.params).catch(e=>log(`Application preference rejected: ${e.message}`));
+   if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaComputerUse')this.onComputerUse(m.params).catch(()=>log('Computer-use request rejected.'));
   };
   ws.onclose=()=>{for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(Error('Antigravity window disconnected.'));}this.pending.clear();if(clients.get(this.key)===this)clients.delete(this.key);};
   await this.call('Page.enable');
@@ -100,6 +106,7 @@ class Client{
   await this.call('Runtime.enable');
   await this.call('Runtime.addBinding',{name:'__agpaPersist'});
   await this.call('Runtime.addBinding',{name:'__agpaAppSettings'});
+  await this.call('Runtime.addBinding',{name:'__agpaComputerUse'});
   await this.ensure();
   await desktopIcon.ensureTray();
   await desktopIcon.setView(await this.evaluate('globalThis.__AGGeminiSwitch?.status().visible?"gemini":"antigravity"'));
@@ -124,6 +131,7 @@ class Client{
    const data=JSON.parse(state||'{}');
    if(!data.top||!/^https:\/\/127\.0\.0\.1:\d+$/.test(data.origin))return;
    this.origin=data.origin;
+   if(!await this.evaluate('!!globalThis.__AGProjectPresentation'))await this.evaluate(PROJECT_PRESENTATION);
    if(await this.evaluate('globalThis.__AGPAShortcutRules?.version')!==1)await this.evaluate(`globalThis.__AGPACreateShortcutRules=${shortcutRules.createShortcutRules.toString()};globalThis.__AGPAShortcutRules=globalThis.__AGPACreateShortcutRules();`);
    await this.evaluate(`globalThis.__AGPA_TOGGLE_SHORTCUT__=${JSON.stringify(desktopIcon.getState().toggleShortcut)};`);
    if(await this.evaluate('globalThis.__AGPAI18n?.version')!==I18N_VERSION){
@@ -149,12 +157,15 @@ class Client{
     log('Applied application icon setting.');
    }
    if(await this.evaluate('globalThis.__AGShortcuts?.version')!==versions.shortcuts)await this.evaluate(SHORTCUTS);
+   if(!await this.evaluate('!!globalThis.__AGNativeMcp'))await this.evaluate(NATIVE_MCP);
+   if(await this.evaluate('globalThis.__AGSettingsNavigation?.version')!==versions.settingsNavigation)await this.evaluate(`globalThis.__AGPA_SETTINGS_PROJECT_STYLES__=${JSON.stringify(config)};\n${SETTINGS_NAVIGATION}`);
+   if(await this.evaluate('globalThis.__AGComputerUse?.version')!==versions.computerUse)await this.evaluate(COMPUTER_USE_SETTINGS);
    await this.evaluate(`(()=>{let style=document.getElementById('agpa-window-chrome-styles');if(style?.getAttribute('data-version')===${JSON.stringify(VERSION)})return;if(!style){style=document.createElement('style');style.id='agpa-window-chrome-styles';document.head.append(style);}style.textContent=${JSON.stringify(WINDOW_CHROME)};style.setAttribute('data-version',${JSON.stringify(VERSION)});})()`);
    const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
    if(signature!==this.healthSignature){this.healthSignature=signature;await this.checkCompatibility();}
   }finally{this.busy=false;}
  }
- async updateConfig(){if(this.initialized)await this.evaluate(`globalThis.__AGProjectAppearance?.setConfig(${JSON.stringify(config)})`);}
+ async updateConfig(){if(this.initialized)await this.evaluate(`globalThis.__AGProjectAppearance?.setConfig(${JSON.stringify(config)});globalThis.__AGSettingsNavigation?.setProjectStyles(${JSON.stringify(config)})`);}
  async updateAppState(){const state=desktopIcon.getState();await this.evaluate(`globalThis.__AGAppSettings?.setState(${JSON.stringify(state)});globalThis.__AGShortcuts?.configure(${JSON.stringify(state.toggleShortcut)});globalThis.__AGGeminiInline?.setShortcut(${JSON.stringify(state.toggleShortcut)})`);}
  async checkCompatibility(extra={}){
   const data=await this.evaluate(`(${compatibility.probe.toString()})(${JSON.stringify(VERSION)},${JSON.stringify(versions)})`);
@@ -208,6 +219,25 @@ class Client{
    if(payload.action!=='viewChanged')log(`Application preference ${payload.action}: ${payload.value}`);
   }catch(error){if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGAppSettings?.onSaved(${JSON.stringify(payload.requestId)},false,${JSON.stringify(error.message)})`,params.executionContextId).catch(()=>{});else throw error;}
  }
+ async onComputerUse(params){
+  const context=this.contexts.get(params.executionContextId);
+  if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin)return;
+  let payload;
+  try{
+   if(params.payload.length>90000)throw Error('Request too large.');
+   payload=JSON.parse(params.payload);
+   if(!UUID.test(payload.requestId)||!['status','setup','install','connect','disconnect','check','setupHelper'].includes(payload.action))throw Error('Invalid request.');
+   if(['connect','setup'].includes(payload.action)){
+    const apps=Array.isArray(payload.value)?payload.value:payload.value?.apps;
+    if(!Array.isArray(payload.value)&&!['desktop','apps'].includes(payload.value?.scope))throw Error('Invalid scope.');
+    if(!Array.isArray(apps)||apps.length>20||apps.some(v=>typeof v!=='string'||v.length>4096))throw Error('Invalid applications.');
+   }else if(payload.value!==true)throw Error('Invalid request value.');
+   const result=payload.action==='status'?await computerUse.status():await computerUse.perform(payload.action,payload.value);
+   await this.evaluate(`globalThis.__AGComputerUse?.onResult(${JSON.stringify(payload.requestId)},true,${JSON.stringify(result)})`,params.executionContextId);
+  }catch{
+   if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGComputerUse?.onResult(${JSON.stringify(payload.requestId)},false)`,params.executionContextId).catch(()=>{});
+  }
+ }
  async onBinding(params){
   const context=this.contexts.get(params.executionContextId);
   if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin)return;
@@ -225,7 +255,7 @@ class Client{
    else throw error;
   }
  }
- async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
+ async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
 }
 async function discover(){
  const contents=await fsp.readFile(PORT_PATH,'utf8');const port=contents.split('\n')[0];
