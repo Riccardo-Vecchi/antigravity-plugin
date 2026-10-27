@@ -1,13 +1,12 @@
 # Windows installation (experimental)
 
-This is the Windows companion for the same unofficial Antigravity customizations. The repository name still contains `linux`; the shared interface code is used on both platforms. Google's signed application, ASAR resources, security fuses, account data, and conversation databases are not patched.
+This is the Windows companion for Antigravity Customizations. The interface code is shared with Linux. Google's signed application, ASAR resources, security fuses, account data, and conversation databases are not patched.
 
 **Status:** implemented, with automated adapter tests and PowerShell syntax checks. Full Windows application and desktop verification is pending. Use this companion as an experimental port.
 
 ## Requirements
 
 - Windows 11 x64.
-
 - The official **Antigravity App 2.26.0**, Windows x64 build, installed from [Google](https://antigravity.google/download).
 - Windows PowerShell 5.1 or later, available with Windows.
 - A normal interactive Windows user session. Administrator privileges are not required for the companion.
