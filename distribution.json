@@ -35,7 +35,9 @@
     "docs/images/integration.png",
     "docs/images/shortcuts.png",
     "PRIVACY.md",
-    "LICENSE"
+    "LICENSE",
+    "common/shortcut-config.cjs",
+    "assets/windows.svg"
   ],
   "linux": [
     "linux/desktop.cjs",
@@ -50,7 +52,8 @@
     "icons/gemini-48.png",
     "icons/gemini-64.png",
     "icons/gemini-128.png",
-    "icons/gemini-256.png"
+    "icons/gemini-256.png",
+    "linux/installation.cjs"
   ],
   "windows": [
     "windows/desktop.cjs",

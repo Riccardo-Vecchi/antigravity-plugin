@@ -7,3 +7,5 @@ Antigravity and Gemini names and logos are Google branding and remain the proper
 The repository does not distribute Antigravity's AppImage, Windows installer/executable, or its proprietary application source. It does not grant rights in Google's logos or trademarks.
 
 The original integration code is licensed under the BSD Zero Clause License (0BSD); see `LICENSE`. That license does not apply to Google logos, trademarks, the proprietary application, or other third-party assets.
+
+Windows is a Microsoft trademark. The Windows platform indicator is used only to identify the supported operating system; no Microsoft trademark rights are granted.

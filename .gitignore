@@ -47,3 +47,4 @@ secrets/
 *.msi
 windows-icon-request.json
 windows-native-status.json
+launcher-original-icons.json

@@ -10,7 +10,7 @@ const session=require('../common/session-state.cjs').createSessionStore(path.joi
 const preferences=path.join(paths.configDir,'app.json');
 const requestFile=path.join(paths.configDir,'windows-icon-request.json');
 const statusFile=path.join(paths.configDir,'windows-native-status.json');
-let state={version:2,taskbarIcon:'antigravity',startupView:'antigravity',autostart:false};
+let state={version:2,taskbarIcon:'antigravity',startupView:'antigravity',autostart:false,toggleShortcut:'Ctrl+Alt+G'};
 let currentView='antigravity',lastView='antigravity',effectiveIcon=null,nativeAvailable=false,trayAvailable=false;
 async function atomic(file,value){
  await fs.mkdir(path.dirname(file),{recursive:true});const temp=file+'.'+process.pid+'.tmp';
@@ -47,10 +47,11 @@ async function initialize(){
 }
 async function apply(choice){if(!['antigravity','gemini','dynamic'].includes(choice))throw Error('Invalid icon choice.');return save({taskbarIcon:choice});}
 async function setStartupView(view){if(!['antigravity','gemini','last'].includes(view))throw Error('Invalid startup view.');return save({startupView:view});}
+async function setToggleShortcut(value){return save({toggleShortcut:require('../common/shortcut-config.cjs').normalize(value)});}
 async function setAutostart(value){if(typeof value!=='boolean')throw Error('Invalid autostart value.');return save({autostart:value});}
 async function setView(view){if(!['antigravity','gemini'].includes(view))throw Error('Unknown view.');lastView=await session.record(view);currentView=view;return renderIcon();}
 async function ensureTray(){await readNative();return getState();}
 async function restoreIntegration(){await initialize();await apply('antigravity');await setAutostart(false);await atomic(requestFile,{version:1,choice:'antigravity',restore:true});return getState();}
-return {initialize,apply,setStartupView,setAutostart,setView,ensureTray,getState,validate,restoreIntegration};
+return {initialize,apply,setStartupView,setAutostart,setToggleShortcut,setView,ensureTray,getState,validate,restoreIntegration};
 }
 module.exports={...createController(),createController};

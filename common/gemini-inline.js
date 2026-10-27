@@ -1,7 +1,7 @@
 /* Layout extension for the existing Gemini guest; no session or native API bridge. */
 (() => {
   'use strict';
-  const VERSION='1.7.0';
+  const VERSION='1.0.0';
   const i18n=globalThis.__AGPAI18n;
   const icon=globalThis.__AGPA_INLINE_ICON__;
   delete globalThis.__AGPA_INLINE_ICON__;
@@ -9,6 +9,8 @@
   globalThis.__AGGeminiInline?.destroy();
   if(!icon||!globalThis.__AGGeminiSwitch)return;
   const WORLD=6731;
+  const shortcutFactory=globalThis.__AGPACreateShortcutRules;
+  let toggleShortcut=globalThis.__AGPA_TOGGLE_SHORTCUT__;
   const signal='agpa-return-antigravity:'+crypto.randomUUID();
   let destroyed=false,tracked=null,installed=false,busy=false,rerun=false;
   const unbind=[];
@@ -26,8 +28,9 @@
   const label=document.createElement('span');label.textContent='Antigravity';fallback.append(image,label);
   function returnToApp(){document.querySelector('[data-agpa-return-antigravity]')?.click();}
   fallback.addEventListener('click',returnToApp);
-  function installInGuest(settings){
-    const VERSION='1.7.0';
+  function installInGuest(settings,createRules){
+    const rules=createRules();
+    const VERSION='1.0.0';
     const old=globalThis.__agpaInlineReturn;
     if(old?.version===VERSION){old.configure(settings);return old.status();}
     old?.destroy();
@@ -47,7 +50,7 @@
     const image=document.createElement('img');image.src=current.icon;image.alt='';image.width=20;image.height=20;
     const label=document.createElement('span');label.textContent='Antigravity';button.append(image,label);
     const activate=e=>{e.preventDefault();e.stopImmediatePropagation();console.info(current.signal);};
-    const shortcut=e=>{if(e.code==='KeyG'&&e.ctrlKey&&e.altKey&&!e.metaKey&&!e.shiftKey&&!e.repeat&&!e.isComposing&&!e.getModifierState?.('AltGraph'))activate(e);};
+    const shortcut=e=>{if(rules.matches(e,current.toggleShortcut))activate(e);};
     window.addEventListener('keydown',shortcut,true);
     button.addEventListener('click',activate);
     function anchor(){
@@ -87,7 +90,7 @@
     try{
       const url=new URL(tracked.getURL());
       if(url.origin!=='https://gemini.google.com'){installed=false;fallback.hidden=false;return;}
-      const result=await isolated(`(${installInGuest.toString()})(${JSON.stringify({icon,signal,returnLabel:i18n.t('Return to Antigravity')})})`);
+      const result=await isolated(`(${installInGuest.toString()})(${JSON.stringify({icon,signal,returnLabel:i18n.t('Return to Antigravity'),toggleShortcut})},${shortcutFactory.toString()})`);
       installed=!!result?.installed;fallback.hidden=installed;
     }catch{installed=false;fallback.hidden=false;}
     finally{busy=false;if(rerun&&!destroyed){rerun=false;queueMicrotask(inject);}}
@@ -110,6 +113,7 @@
   const untranslate=i18n.subscribe(inject);
   const api=globalThis.__AGGeminiInline={
     version:VERSION,
+    async setShortcut(value){if(toggleShortcut===value)return;toggleShortcut=value;await inject();},
     async reapply(){if(!css.isConnected)document.head.append(css);track();await inject();},
     status(){return{version:VERSION,toolbarRemoved:!!css.isConnected,guestButtonInstalled:installed,guestTracked:!!tracked};},
     async destroy(){destroyed=true;untranslate();observer.disconnect();for(const remove of unbind)remove();try{await isolated('globalThis.__agpaInlineReturn?.destroy()');}catch{}fallback.removeEventListener('click',returnToApp);fallback.remove();css.remove();if(globalThis.__AGGeminiInline===api)delete globalThis.__AGGeminiInline;}

@@ -13,14 +13,21 @@ The integration uses the app's existing local debugging endpoint. Other app vers
 
 ## Install on Linux
 
-Install the official Antigravity AppImage first. The current defaults are:
+Install the latest official Antigravity AppImage first. The tested compatibility baseline is 2.26.0.
 
-```text
-~/.local/opt/Antigravity.AppImage
-~/.local/share/applications/alacarte-made.desktop
+Linux discovery first reads valid Antigravity `.desktop` entries in the XDG user and system applications directories. It accepts executable AppImages with the AppImage header, including quoted paths and launcher arguments. System launchers are represented by a user override; system files are not edited.
+
+If there is no matching launcher, discovery checks common AppImage locations (`~/.local/opt`, `~/.local/bin`, `~/Applications`, `~/AppImages`, and the configured download folder). A unique image gets a user launcher when desktop integration is applied. Multiple distinct images are not resolved by guessing a version.
+
+To choose an installation explicitly, run `systemctl --user edit antigravity-project-appearance.service` and add:
+
+```ini
+[Service]
+Environment="AGPA_APPIMAGE=/absolute/path/Antigravity.AppImage"
+Environment="AGPA_DESKTOP_FILE=/absolute/path/antigravity.desktop"
 ```
 
-The launcher must invoke that AppImage directly. If your paths differ, configure `AGPA_APPIMAGE` and `AGPA_DESKTOP_FILE` in the user service before using the application-icon controls. These paths are validated before the launcher is modified.
+The launcher must point directly to that AppImage; quoted paths and arguments are preserved. After saving, restart the helper with `systemctl --user restart antigravity-project-appearance.service`. Explicit invalid selections are reported rather than replaced with another app. Missing/ambiguous desktop detection leaves the other plugin controls available.
 
 ```bash
 gh repo clone Riccardo-Vecchi/antigravity-customizations
@@ -60,7 +67,7 @@ On Linux, the helper service starting with your session does **not** itself laun
 
 In Dynamic mode, the taskbar and supported tray follow the last view reported by an app window. The icon is global to the app; multiple windows do not have separate taskbar identities.
 
-Open **Settings → Shortcuts** for **Ctrl+Alt+G**, the window-local switch between Antigravity and Gemini. It does not register an operating-system-wide shortcut, and repeated keys, input-method composition, and AltGr typing are ignored. The in-page shortcut is added only on the official Gemini origin; account sign-in pages retain the visible return button.
+Open **Settings → Shortcuts** for the configurable window-local switch between Antigravity and Gemini (default **Ctrl+Alt+G**). Choose Change shortcut, press Ctrl+Alt or Ctrl+Shift with a letter/number, then Save shortcut. Escape cancels recording; Reset shortcut restores the default, and Disable shortcut turns the binding off. Preferences update existing native and Gemini views without reloading them. System shortcuts may take priority. It does not register an operating-system-wide shortcut, and repeated keys, input-method composition, and AltGr typing are ignored. The in-page shortcut is added only on the official Gemini origin; account sign-in pages retain the visible return button.
 
 ## Patch status and recovery
 

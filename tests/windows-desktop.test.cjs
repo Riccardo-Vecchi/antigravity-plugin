@@ -24,3 +24,7 @@ test('failed Windows preference writes roll back only the owned autostart change
 test('fixed and dynamic icon modes produce different requests while rejecting unknown values',async t=>{
  const f=await fixture(t),c=f.make();await c.initialize();await c.apply('dynamic');await c.setView('gemini');assert.equal(c.getState().effectiveIcon,'gemini');await c.setView('antigravity');assert.equal(c.getState().effectiveIcon,'antigravity');await assert.rejects(c.apply('other'));await assert.rejects(c.setAutostart('yes'));
 });
+test('custom and disabled shortcuts survive a fresh preference store',async t=>{
+ const f=await fixture(t),c=f.make();await c.initialize();await c.setToggleShortcut('Ctrl+Shift+K');const next=f.make();await next.initialize();assert.equal(next.getState().toggleShortcut,'Ctrl+Shift+K');
+ await next.setToggleShortcut(null);const disabled=f.make();await disabled.initialize();assert.equal(disabled.getState().toggleShortcut,null);await assert.rejects(disabled.setToggleShortcut('K'));
+});

@@ -1,7 +1,7 @@
 /* Local application appearance and startup preferences in native Settings. */
 (() => {
  'use strict';
- const VERSION='1.8.0';
+ const VERSION='1.0.0';
  const i18n=globalThis.__AGPAI18n;
  const initial=globalThis.__AGPA_APP_SETTINGS__||{version:2,taskbarIcon:'antigravity',startupView:'antigravity'};
  const icons=globalThis.__AGPA_APP_ICON_ASSETS__;
@@ -11,6 +11,8 @@
  globalThis.__AGAppSettings?.destroy();
  let state=initial,section=null,startupSection=null,patchSection=null,shortcutSection=null,scheduled=false,destroyed=false,busy=false,lastView=null;
  const pending=new Map();
+ let shortcutDraft,recording=false;
+ const shortcutRules=globalThis.__AGPAShortcutRules;
  function node(tag,attrs={},...children){const n=document.createElement(tag);for(const[k,v]of Object.entries(attrs))if(k==='text')n.textContent=v;else n.setAttribute(k,v);for(const c of children)if(c)n.append(c);i18n.attrs(n,attrs);return n;}
  const styles=node('style',{id:'agpa-app-settings-styles',text:`
   .agpa-app-icon-section {display:flex;flex-direction:column;gap:12px;padding:15px;border:1px solid var(--border,#353535);border-radius:12px;color:var(--foreground,#eee)}
@@ -33,14 +35,21 @@
   .agpa-patch-check {display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:5px 0}
   .agpa-patch-summary[data-state=compatible] {color:#75c98b}
   .agpa-patch-summary[data-state=needsRepair],.agpa-patch-summary[data-state=incompatible] {color:#efbd6a}
+  .agpa-shortcut-input {background:transparent;color:inherit;min-width:190px}
   .agpa-shortcut-key {align-self:flex-start;padding:6px 10px;border:1px solid var(--border,#444);border-radius:6px;font-size:13px}
  `});document.head.append(styles);
  function paint(){
   for(const b of section?.querySelectorAll('[data-agpa-app-icon]')||[]){b.setAttribute('aria-checked',String(b.getAttribute('data-agpa-app-icon')===state.taskbarIcon));b.disabled=busy;}
   for(const b of startupSection?.querySelectorAll('[data-agpa-startup-view]')||[]){b.setAttribute('aria-checked',String(b.getAttribute('data-agpa-startup-view')===state.startupView));b.disabled=busy;}
   const autostart=startupSection?.querySelector('[data-agpa-autostart]');if(autostart){autostart.checked=!!state.autostart;autostart.disabled=busy;}
+  if(shortcutSection){
+   const input=shortcutSection.querySelector('[data-agpa-shortcut-input]');
+   input.value=recording?i18n.t('Press a shortcut…'):(shortcutDraft!==undefined?shortcutDraft:state.toggleShortcut===undefined?shortcutRules.defaultShortcut:state.toggleShortcut)||i18n.t('Disabled');
+   for(const b of shortcutSection.querySelectorAll('button'))b.disabled=busy;
+   shortcutSection.querySelector('[data-agpa-shortcut-save]').disabled=busy||recording||shortcutDraft===undefined;
+  }
   const tray=section?.querySelector('[data-agpa-tray-status]');
-  if(tray)i18n.set(tray,state.platform==='win32'&&!state.desktopIconAvailable?'Open Antigravity (customized) to enable window and tray icons.':state.trayAvailable?'The tray icon follows the same choice.':'Tray updates are available with supported GNOME/Zorin AppIndicator setups.');
+  if(tray)i18n.set(tray,state.platform==='linux'&&!state.desktopIconAvailable?'AppImage or launcher not found. Check the plugin installation settings.':state.platform==='win32'&&!state.desktopIconAvailable?'Open Antigravity (customized) to enable window and tray icons.':state.trayAvailable?'The tray icon follows the same choice.':'Tray updates are available with supported GNOME/Zorin AppIndicator setups.');
   if(patchSection){
    i18n.set(patchSection.querySelector('[data-agpa-patch-version]'),'Version {version}',{version:patch.version});
    const summary=patchSection.querySelector('[data-agpa-patch-summary]');
@@ -57,10 +66,11 @@
  async function choose(action,value){
   if(busy)return;busy=true;paint();
   const diagnostic=['checkCompatibility','repairIntegration'].includes(action);
-  const status=(diagnostic?patchSection:action==='setTaskbarIcon'?section:startupSection).querySelector(diagnostic?'[data-agpa-patch-operation]':'[role=status]');i18n.set(status,action==='checkCompatibility'?'Checking…':action==='repairIntegration'?'Reapplying…':'Applying…');
+  const status=(diagnostic?patchSection:action==='setToggleShortcut'?shortcutSection:action==='setTaskbarIcon'?section:startupSection).querySelector(diagnostic?'[data-agpa-patch-operation]':'[role=status]');i18n.set(status,action==='checkCompatibility'?'Checking…':action==='repairIntegration'?'Reapplying…':'Applying…');
   const requestId=crypto.randomUUID();
   try{
    const result=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(requestId);reject(Error('Could not apply the preference. Check the local integration service.'));},12000);pending.set(requestId,{resolve,reject,timer});try{globalThis.__agpaAppSettings(JSON.stringify({requestId,action,value}));}catch(e){clearTimeout(timer);pending.delete(requestId);reject(e);}});
+   if(action==='setToggleShortcut'){shortcutDraft=undefined;recording=false;}
    i18n.set(status,action==='checkCompatibility'?(result?.state==='compatible'?'Compatibility check passed.':'Some checks need attention.'):action==='repairIntegration'?(result?.repaired?'Patch reapplied.':result?.reason==='editor'?'Close the project editor before reapplying the patch.':result?.reason==='session'?'The open Gemini session was preserved. Reopen the app to finish recovery.':'The native interface changed. Reapplying was skipped to preserve the current session.'):action==='setTaskbarIcon'&&state.platform==='win32'&&!state.desktopIconAvailable?'Saved. Native icons will apply when started from the customized launcher.':action==='setStartupView'?'Saved for the next window.':action==='setAutostart'?'Saved for your next desktop sign-in.':'Applied.');
   }catch(e){i18n.set(status,'Could not apply the preference. Check the local integration service.');}finally{busy=false;paint();}
  }
@@ -119,7 +129,29 @@
     node('p',{class:'agpa-app-icon-description',text:'Check the current interface or reapply the additions without reloading your open pages.'}),
     node('div',{class:'agpa-patch-actions'},check,repair),node('p',{class:'agpa-app-icon-status',role:'status','aria-live':'polite','data-agpa-patch-operation':''}));
   }
-  if(shortcuts&&!shortcutSection)shortcutSection=node('section',{class:'agpa-app-icon-section','data-agpa-shortcut-setting':''},node('h3',{text:'Switch between Antigravity and Gemini'}),node('kbd',{class:'agpa-shortcut-key',text:'Ctrl+Alt+G'}),node('p',{class:'agpa-app-icon-description',text:'Works while an Antigravity or Gemini window is focused.'}));
+  if(shortcuts&&!shortcutSection){
+   const input=node('input',{type:'text',readonly:'',class:'agpa-shortcut-key agpa-shortcut-input','data-agpa-shortcut-input':'','aria-label':'Switch shortcut'});
+   const change=node('button',{type:'button',class:'agpa-app-icon-option',text:'Change shortcut'});
+   const save=node('button',{type:'button',class:'agpa-app-icon-option','data-agpa-shortcut-save':'',text:'Save shortcut'});
+   const reset=node('button',{type:'button',class:'agpa-app-icon-option',text:'Reset shortcut'});
+   const disable=node('button',{type:'button',class:'agpa-app-icon-option',text:'Disable shortcut'});
+   change.addEventListener('click',()=>{recording=true;shortcutDraft=undefined;paint();input.focus();});
+   input.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();recording=false;shortcutDraft=undefined;paint();return;}
+    if(!recording)return;e.preventDefault();e.stopImmediatePropagation();
+    const value=shortcutRules.fromEvent(e);if(value===undefined)return;
+    shortcutDraft=value;recording=false;paint();
+   });
+   save.addEventListener('click',()=>choose('setToggleShortcut',shortcutDraft));
+   reset.addEventListener('click',()=>choose('setToggleShortcut',shortcutRules.defaultShortcut));
+   disable.addEventListener('click',()=>choose('setToggleShortcut',null));
+   shortcutSection=node('section',{class:'agpa-app-icon-section','data-agpa-shortcut-setting':''},
+    node('h3',{text:'Switch between Antigravity and Gemini'}),input,
+    node('p',{class:'agpa-app-icon-description',text:'Use Ctrl+Alt or Ctrl+Shift with a letter or number. System shortcuts may take priority.'}),
+    node('div',{class:'agpa-patch-actions'},change,save,reset,disable),
+    node('p',{class:'agpa-app-icon-description',text:'Works while an Antigravity or Gemini window is focused.'}),
+    node('p',{class:'agpa-app-icon-status',role:'status','aria-live':'polite'}));
+  }
 
   if(shortcutSection&&shortcuts&&shortcutSection.parentElement!==shortcuts)shortcuts.children[0]?.after(shortcutSection);
   if(section&&appearance&&section.parentElement!==appearance)appearance.children[0]?.after(section);
@@ -155,7 +187,7 @@
   setPatchStatus(next){patch=next;paint();},
   reapply(){if(!styles.isConnected)document.head.append(styles);apply();},
   onSaved(id,ok,message,next,nextPatch){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);if(ok){if(next)this.setState(next);if(nextPatch)this.setPatchStatus(nextPatch);p.resolve(nextPatch);}else p.reject(Error(message||'Could not apply the preference.'));},
-  status(){return {version:VERSION,taskbarIcon:state.taskbarIcon,startupView:state.startupView,effectiveIcon:state.effectiveIcon,currentView:state.currentView,trayAvailable:state.trayAvailable,autostart:!!state.autostart,controlInstalled:!!section?.isConnected,startupControlInstalled:!!startupSection?.isConnected,language:i18n.language,patchState:patch.state,lastView:state.lastView,busy};},
+  status(){return {version:VERSION,taskbarIcon:state.taskbarIcon,startupView:state.startupView,toggleShortcut:state.toggleShortcut,shortcutControlInstalled:!!shortcutSection?.isConnected,effectiveIcon:state.effectiveIcon,currentView:state.currentView,trayAvailable:state.trayAvailable,autostart:!!state.autostart,controlInstalled:!!section?.isConnected,startupControlInstalled:!!startupSection?.isConnected,language:i18n.language,patchState:patch.state,lastView:state.lastView,busy};},
   destroy(){destroyed=true;untranslate();observer.disconnect();window.removeEventListener('focus',focus);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Application appearance service stopped.'));}pending.clear();section?.remove();startupSection?.remove();patchSection?.remove();shortcutSection?.remove();styles.remove();delete globalThis.__AGAppSettings;}
  };
  schedule();

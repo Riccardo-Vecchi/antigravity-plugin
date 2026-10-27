@@ -11,6 +11,7 @@ const CONFIG_PATH=path.join(CONFIG_DIR,'projects.json');
 const PORT_PATH=path.join(platformPaths.profileDir,'DevToolsActivePort');
 const RENDERER=fs.readFileSync(path.join(BASE,'renderer.js'),'utf8');
 const SWITCH=fs.readFileSync(path.join(BASE,'gemini-switch.js'),'utf8');
+const shortcutRules=require('./shortcut-config.cjs');
 const SHORTCUTS=fs.readFileSync(path.join(BASE,'shortcuts.js'),'utf8');
 const SWITCH_CSS=fs.readFileSync(path.join(BASE,'gemini-switch.css'),'utf8');
 const compatibility=require('./compatibility.cjs');
@@ -121,6 +122,8 @@ class Client{
    const data=JSON.parse(state||'{}');
    if(!data.top||!/^https:\/\/127\.0\.0\.1:\d+$/.test(data.origin))return;
    this.origin=data.origin;
+   if(await this.evaluate('globalThis.__AGPAShortcutRules?.version')!==1)await this.evaluate(`globalThis.__AGPACreateShortcutRules=${shortcutRules.createShortcutRules.toString()};globalThis.__AGPAShortcutRules=globalThis.__AGPACreateShortcutRules();`);
+   await this.evaluate(`globalThis.__AGPA_TOGGLE_SHORTCUT__=${JSON.stringify(desktopIcon.getState().toggleShortcut)};`);
    if(await this.evaluate('globalThis.__AGPAI18n?.version')!==I18N_VERSION){
     await this.evaluate(`globalThis.__AGPA_TRANSLATIONS__=${JSON.stringify(TRANSLATIONS)};\n${I18N}`);
     this.catalogUpdated=true;
@@ -150,7 +153,7 @@ class Client{
   }finally{this.busy=false;}
  }
  async updateConfig(){if(this.initialized)await this.evaluate(`globalThis.__AGProjectAppearance?.setConfig(${JSON.stringify(config)})`);}
- async updateAppState(){await this.evaluate(`globalThis.__AGAppSettings?.setState(${JSON.stringify(desktopIcon.getState())})`);}
+ async updateAppState(){const state=desktopIcon.getState();await this.evaluate(`globalThis.__AGAppSettings?.setState(${JSON.stringify(state)});globalThis.__AGShortcuts?.configure(${JSON.stringify(state.toggleShortcut)});globalThis.__AGGeminiInline?.setShortcut(${JSON.stringify(state.toggleShortcut)})`);}
  async checkCompatibility(extra={}){
   const data=await this.evaluate(`(${compatibility.probe.toString()})(${JSON.stringify(VERSION)},${JSON.stringify(versions)})`);
   this.patchStatus={...compatibility.assess(data,VERSION),...extra};
@@ -184,12 +187,14 @@ class Client{
    payload=JSON.parse(params.payload);
    if(!UUID.test(payload.requestId))throw Error('Invalid preference request.');
    const actions={setTaskbarIcon:['antigravity','gemini','dynamic'],setStartupView:['antigravity','gemini','last'],checkCompatibility:[true],repairIntegration:[true],setAutostart:[true,false],viewChanged:['antigravity','gemini']};
-   if(!actions[payload.action]?.includes(payload.value))throw Error('Invalid application preference.');
+   if(payload.action==='setToggleShortcut')payload.value=shortcutRules.normalize(payload.value);
+   else if(!actions[payload.action]?.includes(payload.value))throw Error('Invalid application preference.');
    const revision=payload.action==='viewChanged'?++viewRevision:null;
    const job=writeChain.then(async()=>{
     if(revision!==null&&revision!==viewRevision)return desktopIcon.getState();
     if(payload.action==='checkCompatibility'){await this.checkCompatibility();return desktopIcon.getState();}
     if(payload.action==='repairIntegration')return this.repairIntegration();
+    if(payload.action==='setToggleShortcut')return desktopIcon.setToggleShortcut(payload.value);
     if(payload.action==='setTaskbarIcon')return desktopIcon.apply(payload.value);
     if(payload.action==='setStartupView')return desktopIcon.setStartupView(payload.value);
     if(payload.action==='setAutostart')return desktopIcon.setAutostart(payload.value);

@@ -7,11 +7,13 @@ This is the Windows companion for Antigravity Customizations. The interface code
 ## Requirements
 
 - Windows 11 x64.
-- The official **Antigravity App 2.26.0**, Windows x64 build, installed from [Google](https://antigravity.google/download).
+- The **latest official Antigravity app**, Windows x64 build, installed from [Google](https://antigravity.google/download).
 - Windows PowerShell 5.1 or later, available with Windows.
 - A normal interactive Windows user session. Administrator privileges are not required for the companion.
 
 The installer checks the application's Google Authenticode signature and the runtime capabilities used by the companion. A future Google build can disable those capabilities; the installer will report the incompatibility instead of modifying the executable or its security settings.
+
+The compatibility baseline inspected for this port is Antigravity 2.26.0. Newer app builds must pass the runtime checks; full Windows desktop validation is still pending.
 
 ## Install and launch
 
@@ -36,7 +38,7 @@ The shared controls remain in the same locations:
 - **Settings → Appearance:** Antigravity, Gemini, or Dynamic icons.
 - **Settings → Application → Startup:** startup view, Remember last view, and launch at sign-in.
 - **Settings → Application → Local customizations:** helper version, interface checks, and UI reapplication.
-- **Settings → Shortcuts:** Ctrl+Alt+G view switching.
+- **Settings → Shortcuts:** configurable view switching (Ctrl+Alt+G by default), including reset and disable.
 - **Project ⋯ → Edit:** project icons, emoji, colors, and search.
 
 Translations and English fallback behave as described in the main README.
@@ -89,9 +91,9 @@ This restores the native icon choice, removes the companion's owned Start-menu s
 
 | Check | Result |
 | --- | --- |
-| Shared code and adapter tests | 39 tests passed on Linux, including Windows path/state behavior, native-controller validation/restoration, and real loopback inspector attachment/closure in a Node fixture |
+| Shared code and adapter tests | Tests run on Linux in CI, including Windows path/state behavior, native-controller validation/restoration, and real loopback inspector attachment/closure in a Node fixture |
 | PowerShell syntax | PowerShell scripts are syntax-checked by Linux CI; this does not execute Windows APIs |
-| Linux regression | Helper 1.8.1 installed and running from the new layout while the app was closed; project styles, preferences and AppImage hashes were unchanged. Earlier 1.8.0 live checks preserved the Gemini guest and passed compatibility |
+| Linux regression | Linux helper upgrades preserve project styles, preferences and the official AppImage. Earlier live checks preserved the Gemini guest and passed compatibility |
 | Windows laboratory | A separate clean Windows 11 VM reached the desktop; this establishes the test environment only |
 | Actual Windows application integration | **Not yet verified**: installer execution under Windows PowerShell 5.1, native window/tray icons, pinned shortcuts, sign-in autostart, and authenticated application workflows |
 
