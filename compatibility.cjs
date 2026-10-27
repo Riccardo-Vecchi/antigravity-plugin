@@ -1,6 +1,6 @@
 'use strict';
 // This function is serialized into the native local page. It reads only UI hooks.
-function probe(version){
+function probe(version,expected={}){
  const exists=selector=>!!document.querySelector(selector);
  const local=globalThis.top===globalThis&&/^https:\/\/127\.0\.0\.1:\d+$/.test(location.origin);
  const settingsOpen=exists('[role=dialog][aria-label=Settings]')||exists('[data-testid=settings-nav-item-App]');
@@ -10,10 +10,10 @@ function probe(version){
   guest:typeof globalThis.electronNative?.executeJavaScriptInIsolatedWorld==='function'
  };
  const added={
-  projects:globalThis.__AGProjectAppearance?.version===version&&exists('#agpa-styles'),
-  settings:globalThis.__AGAppSettings?.version===version&&globalThis.__AGPAI18n?.version===version&&exists('#agpa-app-settings-styles')&&(!settingsOpen||(exists('[data-agpa-app-icon-setting]')&&exists('[data-agpa-startup-setting]')&&exists('[data-agpa-patch-setting]'))),
-  gemini:!!globalThis.__AGGeminiSwitch&&exists('[data-agpa-open-gemini]')&&exists('#agpa-gemini-styles')&&globalThis.__AGGeminiInline?.version===version&&exists('#agpa-gemini-inline-styles')&&exists('#agpa-window-chrome-styles'),
-  shortcut:globalThis.__AGShortcuts?.version===version&&!!globalThis.__AGShortcuts?.status().installed
+  projects:globalThis.__AGProjectAppearance?.version===(expected.appearance||version)&&exists('#agpa-styles'),
+  settings:globalThis.__AGAppSettings?.version===(expected.settings||version)&&globalThis.__AGPAI18n?.version===(expected.i18n||version)&&exists('#agpa-app-settings-styles')&&(!settingsOpen||(exists('[data-agpa-app-icon-setting]')&&exists('[data-agpa-startup-setting]')&&exists('[data-agpa-patch-setting]'))),
+  gemini:!!globalThis.__AGGeminiSwitch&&exists('[data-agpa-open-gemini]')&&exists('#agpa-gemini-styles')&&globalThis.__AGGeminiInline?.version===(expected.inline||version)&&exists('#agpa-gemini-inline-styles')&&exists('#agpa-window-chrome-styles'),
+  shortcut:globalThis.__AGShortcuts?.version===(expected.shortcuts||version)&&!!globalThis.__AGShortcuts?.status().installed
  };
  return {native,added,editorOpen:!!globalThis.__AGProjectAppearance?.status().editorOpen};
 }

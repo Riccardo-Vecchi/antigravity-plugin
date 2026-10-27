@@ -89,7 +89,10 @@
       "Keyboard shortcut": "Keyboard shortcut",
       "Check the current interface or reapply the additions without reloading your open pages.": "Check the current interface or reapply the additions without reloading your open pages.",
       "Switch between Antigravity and Gemini": "Switch between Antigravity and Gemini",
-      "Works while an Antigravity or Gemini window is focused.": "Works while an Antigravity or Gemini window is focused."
+      "Works while an Antigravity or Gemini window is focused.": "Works while an Antigravity or Gemini window is focused.",
+      "Open Antigravity (customized) to enable window and tray icons.": "Open Antigravity (customized) to enable window and tray icons.",
+      "Saved. Native icons will apply when started from the customized launcher.": "Saved. Native icons will apply when started from the customized launcher.",
+      "Start the app automatically when you sign in to Windows.": "Start the app automatically when you sign in to Windows."
     },
     "icons": {
       "folder": "Folder",
@@ -232,7 +235,10 @@
       "Keyboard shortcut": "Scorciatoia da tastiera",
       "Check the current interface or reapply the additions without reloading your open pages.": "Verifica l’interfaccia corrente o riapplica le aggiunte senza ricaricare le pagine aperte.",
       "Switch between Antigravity and Gemini": "Passa da Antigravity a Gemini",
-      "Works while an Antigravity or Gemini window is focused.": "Funziona quando una finestra di Antigravity o Gemini è attiva."
+      "Works while an Antigravity or Gemini window is focused.": "Funziona quando una finestra di Antigravity o Gemini è attiva.",
+      "Open Antigravity (customized) to enable window and tray icons.": "Apri Antigravity (customized) per attivare le icone della finestra e dell’area di notifica.",
+      "Saved. Native icons will apply when started from the customized launcher.": "Salvato. Le icone native saranno applicate avviando l’app dal collegamento personalizzato.",
+      "Start the app automatically when you sign in to Windows.": "Avvia automaticamente l’app quando accedi a Windows."
     },
     "icons": {
       "folder": "Cartella",
@@ -375,7 +381,10 @@
       "Keyboard shortcut": "Tastenkombination",
       "Check the current interface or reapply the additions without reloading your open pages.": "Prüfe die aktuelle Oberfläche oder wende die Ergänzungen erneut an, ohne offene Seiten neu zu laden.",
       "Switch between Antigravity and Gemini": "Zwischen Antigravity und Gemini wechseln",
-      "Works while an Antigravity or Gemini window is focused.": "Funktioniert, wenn ein Antigravity- oder Gemini-Fenster aktiv ist."
+      "Works while an Antigravity or Gemini window is focused.": "Funktioniert, wenn ein Antigravity- oder Gemini-Fenster aktiv ist.",
+      "Open Antigravity (customized) to enable window and tray icons.": "Öffne Antigravity (customized), um Fenster- und Infobereichssymbole zu aktivieren.",
+      "Saved. Native icons will apply when started from the customized launcher.": "Gespeichert. Native Symbole werden beim Start über die angepasste Verknüpfung angewendet.",
+      "Start the app automatically when you sign in to Windows.": "Starte die App automatisch bei der Anmeldung unter Windows."
     },
     "icons": {
       "folder": "Ordner",
@@ -518,7 +527,10 @@
       "Keyboard shortcut": "Atajo de teclado",
       "Check the current interface or reapply the additions without reloading your open pages.": "Comprueba la interfaz actual o vuelve a aplicar las mejoras sin recargar las páginas abiertas.",
       "Switch between Antigravity and Gemini": "Cambiar entre Antigravity y Gemini",
-      "Works while an Antigravity or Gemini window is focused.": "Funciona cuando una ventana de Antigravity o Gemini está activa."
+      "Works while an Antigravity or Gemini window is focused.": "Funciona cuando una ventana de Antigravity o Gemini está activa.",
+      "Open Antigravity (customized) to enable window and tray icons.": "Abre Antigravity (customized) para activar los iconos de la ventana y la bandeja.",
+      "Saved. Native icons will apply when started from the customized launcher.": "Guardado. Los iconos nativos se aplicarán al iniciar desde el acceso personalizado.",
+      "Start the app automatically when you sign in to Windows.": "Inicia la aplicación automáticamente al acceder a Windows."
     },
     "icons": {
       "folder": "Carpeta",
@@ -661,7 +673,10 @@
       "Keyboard shortcut": "Raccourci clavier",
       "Check the current interface or reapply the additions without reloading your open pages.": "Vérifiez l’interface ou réappliquez les ajouts sans recharger les pages ouvertes.",
       "Switch between Antigravity and Gemini": "Basculer entre Antigravity et Gemini",
-      "Works while an Antigravity or Gemini window is focused.": "Fonctionne lorsqu’une fenêtre Antigravity ou Gemini est active."
+      "Works while an Antigravity or Gemini window is focused.": "Fonctionne lorsqu’une fenêtre Antigravity ou Gemini est active.",
+      "Open Antigravity (customized) to enable window and tray icons.": "Ouvrez Antigravity (customized) pour activer les icônes de fenêtre et de notification.",
+      "Saved. Native icons will apply when started from the customized launcher.": "Enregistré. Les icônes natives seront appliquées au lancement via le raccourci personnalisé.",
+      "Start the app automatically when you sign in to Windows.": "Lancez automatiquement l’application à la connexion à Windows."
     },
     "icons": {
       "folder": "Dossier",
@@ -804,7 +819,10 @@
       "Keyboard shortcut": "键盘快捷键",
       "Check the current interface or reapply the additions without reloading your open pages.": "检查当前界面或重新应用新增功能，无需重新加载已打开的页面。",
       "Switch between Antigravity and Gemini": "在 Antigravity 和 Gemini 之间切换",
-      "Works while an Antigravity or Gemini window is focused.": "当 Antigravity 或 Gemini 窗口处于焦点时可用。"
+      "Works while an Antigravity or Gemini window is focused.": "当 Antigravity 或 Gemini 窗口处于焦点时可用。",
+      "Open Antigravity (customized) to enable window and tray icons.": "打开 Antigravity (customized) 以启用窗口和托盘图标。",
+      "Saved. Native icons will apply when started from the customized launcher.": "已保存。通过自定义启动器启动后将应用原生图标。",
+      "Start the app automatically when you sign in to Windows.": "登录 Windows 时自动启动应用。"
     },
     "icons": {
       "folder": "文件夹",
@@ -947,7 +965,10 @@
       "Keyboard shortcut": "キーボードショートカット",
       "Check the current interface or reapply the additions without reloading your open pages.": "現在の画面を確認するか、開いているページを再読み込みせずに追加機能を再適用します。",
       "Switch between Antigravity and Gemini": "Antigravity と Gemini を切り替え",
-      "Works while an Antigravity or Gemini window is focused.": "Antigravity または Gemini のウィンドウがアクティブなときに使えます。"
+      "Works while an Antigravity or Gemini window is focused.": "Antigravity または Gemini のウィンドウがアクティブなときに使えます。",
+      "Open Antigravity (customized) to enable window and tray icons.": "Antigravity (customized) を開くと、ウィンドウとトレイのアイコンが有効になります。",
+      "Saved. Native icons will apply when started from the customized launcher.": "保存しました。カスタムランチャーから起動すると、ネイティブアイコンが適用されます。",
+      "Start the app automatically when you sign in to Windows.": "Windows へのログイン時にアプリを自動起動します。"
     },
     "icons": {
       "folder": "フォルダー",

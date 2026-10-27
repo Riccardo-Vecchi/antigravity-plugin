@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.0
+
+- Add an **experimental** Windows companion using the official signed application runtime, a customized Start-menu launcher, and current-user installation.
+- Share project appearance, Gemini switching, shortcuts, localization, and preferences across Linux and Windows.
+- Add Windows fixed/dynamic window and native tray icons with temporary loopback inspector attachment and closure reporting.
+- Use an owned current-user Startup shortcut for the app autostart checkbox; keep idle-helper startup separate.
+- Split platform-specific desktop integration and component versions; retain existing Linux sessions during upgrades.
+- Add platform, Windows preferences/autostart, native-controller, and real inspector attachment/closure tests. Document the boundary between automated fixtures and pending Windows desktop validation.
+
 ## 1.7.0
 
 - Add Ctrl+Alt+G to switch views from the native page or the official Gemini website, with AltGr/repeat/composition guards.

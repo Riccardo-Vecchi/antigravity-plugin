@@ -6,7 +6,7 @@ const os=require('node:os');
 const restore=process.argv.includes('--restore');
 const expression=restore?`(()=>{const entries=globalThis.__AGPA_RELOAD_HANDOFF__||[];for(const entry of entries){if(entry.api.destroy===entry.wrapper)entry.api.destroy=entry.original;}delete globalThis.__AGPA_RELOAD_HANDOFF__;return true})()`:`(()=>{if(globalThis.__AGPA_RELOAD_HANDOFF__)return true;globalThis.__AGPA_STARTUP_APPLIED__=true;const entries=[];for(const key of ['__AGGeminiInline','__AGGeminiSwitch','__AGPAI18n']){const api=globalThis[key];if(!api)continue;const original=api.destroy;const wrapper=function(){api.destroy=original;};entries.push({api,original,wrapper});api.destroy=wrapper;}globalThis.__AGPA_RELOAD_HANDOFF__=entries;return true})()`;
 (async()=>{
- let port;try{port=(await fs.readFile(path.join(os.homedir(),'.config/Antigravity/DevToolsActivePort'),'utf8')).split('\n')[0];}catch(e){if(e.code==='ENOENT')return;throw e;}
+ let port;try{port=(await fs.readFile(path.join(require('./platform-paths.cjs').getPaths().profileDir,'DevToolsActivePort'),'utf8')).split('\n')[0];}catch(e){if(e.code==='ENOENT')return;throw e;}
  if(!/^\d{2,5}$/.test(port)||Number(port)>65535)throw Error('Invalid local debugging port');
  let targets;try{targets=await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(2500)}).then(r=>r.json());}catch(e){if(e.cause?.code==='ECONNREFUSED')return;throw e;}
  let count=0;

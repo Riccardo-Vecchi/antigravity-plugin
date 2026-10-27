@@ -1,7 +1,7 @@
 /* Local application appearance and startup preferences in native Settings. */
 (() => {
  'use strict';
- const VERSION='1.7.0';
+ const VERSION='1.8.0';
  const i18n=globalThis.__AGPAI18n;
  const initial=globalThis.__AGPA_APP_SETTINGS__||{version:2,taskbarIcon:'antigravity',startupView:'antigravity'};
  const icons=globalThis.__AGPA_APP_ICON_ASSETS__;
@@ -40,7 +40,7 @@
   for(const b of startupSection?.querySelectorAll('[data-agpa-startup-view]')||[]){b.setAttribute('aria-checked',String(b.getAttribute('data-agpa-startup-view')===state.startupView));b.disabled=busy;}
   const autostart=startupSection?.querySelector('[data-agpa-autostart]');if(autostart){autostart.checked=!!state.autostart;autostart.disabled=busy;}
   const tray=section?.querySelector('[data-agpa-tray-status]');
-  if(tray)i18n.set(tray,state.trayAvailable?'The tray icon follows the same choice.':'Tray updates are available with supported GNOME/Zorin AppIndicator setups.');
+  if(tray)i18n.set(tray,state.platform==='win32'&&!state.desktopIconAvailable?'Open Antigravity (customized) to enable window and tray icons.':state.trayAvailable?'The tray icon follows the same choice.':'Tray updates are available with supported GNOME/Zorin AppIndicator setups.');
   if(patchSection){
    i18n.set(patchSection.querySelector('[data-agpa-patch-version]'),'Version {version}',{version:patch.version});
    const summary=patchSection.querySelector('[data-agpa-patch-summary]');
@@ -61,7 +61,7 @@
   const requestId=crypto.randomUUID();
   try{
    const result=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(requestId);reject(Error('Could not apply the preference. Check the local integration service.'));},12000);pending.set(requestId,{resolve,reject,timer});try{globalThis.__agpaAppSettings(JSON.stringify({requestId,action,value}));}catch(e){clearTimeout(timer);pending.delete(requestId);reject(e);}});
-   i18n.set(status,action==='checkCompatibility'?(result?.state==='compatible'?'Compatibility check passed.':'Some checks need attention.'):action==='repairIntegration'?(result?.repaired?'Patch reapplied.':result?.reason==='editor'?'Close the project editor before reapplying the patch.':result?.reason==='session'?'The open Gemini session was preserved. Reopen the app to finish recovery.':'The native interface changed. Reapplying was skipped to preserve the current session.'):action==='setStartupView'?'Saved for the next window.':action==='setAutostart'?'Saved for your next desktop sign-in.':'Applied.');
+   i18n.set(status,action==='checkCompatibility'?(result?.state==='compatible'?'Compatibility check passed.':'Some checks need attention.'):action==='repairIntegration'?(result?.repaired?'Patch reapplied.':result?.reason==='editor'?'Close the project editor before reapplying the patch.':result?.reason==='session'?'The open Gemini session was preserved. Reopen the app to finish recovery.':'The native interface changed. Reapplying was skipped to preserve the current session.'):action==='setTaskbarIcon'&&state.platform==='win32'&&!state.desktopIconAvailable?'Saved. Native icons will apply when started from the customized launcher.':action==='setStartupView'?'Saved for the next window.':action==='setAutostart'?'Saved for your next desktop sign-in.':'Applied.');
   }catch(e){i18n.set(status,'Could not apply the preference. Check the local integration service.');}finally{busy=false;paint();}
  }
  function radioGroup(attribute,choices,label,action){
@@ -101,7 +101,7 @@
     radioGroup('data-agpa-startup-view',['antigravity','gemini','last'],'Startup view','setStartupView'),
     node('p',{class:'agpa-app-icon-description',text:'Remember last view restores the last view used in any app window.'}),
     node('label',{class:'agpa-autostart-row'},node('input',{type:'checkbox','data-agpa-autostart':'','aria-label':'Launch at desktop sign-in'}),node('span',{text:'Launch at desktop sign-in'})),
-    node('p',{class:'agpa-app-icon-description',text:'Start the app automatically when you sign in to Linux.'}),
+    node('p',{class:'agpa-app-icon-description',text:state.platform==='win32'?'Start the app automatically when you sign in to Windows.':'Start the app automatically when you sign in to Linux.'}),
     node('p',{class:'agpa-app-icon-status',role:'status','aria-live':'polite'}));
    startupSection.querySelector('[data-agpa-autostart]').addEventListener('change',e=>choose('setAutostart',e.target.checked));
   }

@@ -5,9 +5,10 @@ const fsp=require('node:fs/promises');
 const path=require('node:path');
 const os=require('node:os');
 const BASE=__dirname;
-const CONFIG_DIR=path.join(os.homedir(),'.config','antigravity-project-appearance');
+const platformPaths=require('./platform-paths.cjs').getPaths();
+const CONFIG_DIR=platformPaths.configDir;
 const CONFIG_PATH=path.join(CONFIG_DIR,'projects.json');
-const PORT_PATH=path.join(os.homedir(),'.config','Antigravity','DevToolsActivePort');
+const PORT_PATH=path.join(platformPaths.profileDir,'DevToolsActivePort');
 const RENDERER=fs.readFileSync(path.join(BASE,'renderer.js'),'utf8');
 const SWITCH=fs.readFileSync(path.join(BASE,'gemini-switch.js'),'utf8');
 const SHORTCUTS=fs.readFileSync(path.join(BASE,'shortcuts.js'),'utf8');
@@ -21,12 +22,13 @@ const WINDOW_CHROME=fs.readFileSync(path.join(BASE,'window-chrome.css'),'utf8');
 const desktopIcon=require('./desktop-icon.cjs');
 const SWITCH_ASSETS=JSON.parse(fs.readFileSync(path.join(BASE,'switch-assets.json'),'utf8'));
 const APP_ICON_ASSETS={antigravity:'data:image/png;base64,'+fs.readFileSync(path.join(BASE,'icons','antigravity.png')).toString('base64'),gemini:SWITCH_ASSETS.gemini};
-const VERSION='1.7.0';
-const I18N_VERSION='1.7.0';
-const APP_SETTINGS_VERSION='1.7.0';
-const APPEARANCE_VERSION='1.7.0';
-const SWITCH_VERSION='1.2.0';
-const INLINE_VERSION='1.7.0';
+const versions=require('./versions.cjs');
+const VERSION=versions.suite;
+const I18N_VERSION=versions.i18n;
+const APP_SETTINGS_VERSION=versions.settings;
+const APPEARANCE_VERSION=versions.appearance;
+const SWITCH_VERSION=versions.geminiSwitch;
+const INLINE_VERSION=versions.inline;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ICONS=new Set('folder terminal code monitor server chip cloud robot settings wrench briefcase book notebook graduation pencil pen music film atom palette stethoscope puzzle leaf shopping chart money dumbbell scales globe plane heart paw flask brain flower home camera phone shield rocket gamepad coffee bicycle lightbulb flag tree mail star'.split(' '));
 let config={version:1,projects:{}};
@@ -77,7 +79,7 @@ async function commit(projectId,style){
  return next;
 }
 class Client{
- constructor(target,key){this.target=target;this.key=key;this.pending=new Map();this.contexts=new Map();this.next=0;this.busy=false;this.initialized=false;this.ws=null;this.catalogUpdated=false;this.patchStatus={version:VERSION,state:'unchecked',checks:[]};}
+ constructor(target,key){this.target=target;this.key=key;this.pending=new Map();this.contexts=new Map();this.next=0;this.busy=false;this.initialized=false;this.ws=null;this.catalogUpdated=false;this.healthSignature=null;this.patchStatus={version:VERSION,state:'unchecked',checks:[]};}
  async open(){
   const ws=new WebSocket(this.target.webSocketDebuggerUrl);this.ws=ws;
   await new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(Error('CDP connection timed out.')),2500);ws.onopen=()=>{clearTimeout(t);resolve();};ws.onerror=()=>{clearTimeout(t);reject(Error('CDP connection failed.'));};});
@@ -99,7 +101,6 @@ class Client{
   await this.ensure();
   await desktopIcon.ensureTray();
   await this.updateAppState();
-  await this.checkCompatibility();
  }
  call(method,params={}){
   return new Promise((resolve,reject)=>{
@@ -142,14 +143,16 @@ class Client{
     await this.evaluate(`globalThis.__AGPA_APP_SETTINGS__=${JSON.stringify(desktopIcon.getState())};globalThis.__AGPA_PATCH_STATUS__=${JSON.stringify(this.patchStatus)};globalThis.__AGPA_APP_ICON_ASSETS__=${JSON.stringify(APP_ICON_ASSETS)};\n${APP_SETTINGS}`);
     log('Applied application icon setting.');
    }
-   if(await this.evaluate('globalThis.__AGShortcuts?.version')!==VERSION)await this.evaluate(SHORTCUTS);
+   if(await this.evaluate('globalThis.__AGShortcuts?.version')!==versions.shortcuts)await this.evaluate(SHORTCUTS);
    await this.evaluate(`(()=>{let style=document.getElementById('agpa-window-chrome-styles');if(style?.getAttribute('data-version')===${JSON.stringify(VERSION)})return;if(!style){style=document.createElement('style');style.id='agpa-window-chrome-styles';document.head.append(style);}style.textContent=${JSON.stringify(WINDOW_CHROME)};style.setAttribute('data-version',${JSON.stringify(VERSION)});})()`);
+   const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
+   if(signature!==this.healthSignature){this.healthSignature=signature;await this.checkCompatibility();}
   }finally{this.busy=false;}
  }
  async updateConfig(){if(this.initialized)await this.evaluate(`globalThis.__AGProjectAppearance?.setConfig(${JSON.stringify(config)})`);}
  async updateAppState(){await this.evaluate(`globalThis.__AGAppSettings?.setState(${JSON.stringify(desktopIcon.getState())})`);}
  async checkCompatibility(extra={}){
-  const data=await this.evaluate(`(${compatibility.probe.toString()})(${JSON.stringify(VERSION)})`);
+  const data=await this.evaluate(`(${compatibility.probe.toString()})(${JSON.stringify(VERSION)},${JSON.stringify(versions)})`);
   this.patchStatus={...compatibility.assess(data,VERSION),...extra};
   await this.evaluate(`globalThis.__AGAppSettings?.setPatchStatus(${JSON.stringify(this.patchStatus)})`);
   return data;
@@ -233,6 +236,7 @@ async function poll(){
  try{
   const stat=await fsp.stat(CONFIG_PATH).catch(e=>e.code==='ENOENT'?null:Promise.reject(e));
   if(stat&&stat.mtimeMs!==configMtime){config=await readConfig();for(const c of clients.values())await c.updateConfig().catch(()=>{});}
+  if(platformPaths.platform==='win32'){const before=desktopIcon.getState();const after=await desktopIcon.ensureTray();if(before.desktopIconAvailable!==after.desktopIconAvailable||before.trayAvailable!==after.trayAvailable)for(const c of clients.values())await c.updateAppState().catch(()=>{});}
   const targets=await discover();
   for(const target of targets){let c=clients.get(target.key);if(!c){c=new Client(target,target.key);clients.set(target.key,c);try{await c.open();}catch(e){c.ws?.close();clients.delete(target.key);throw e;}}else await c.ensure();}
   const keys=new Set(targets.map(t=>t.key));for(const [key,c]of clients)if(!keys.has(key)){c.ws?.close();clients.delete(key);}
