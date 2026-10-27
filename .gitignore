@@ -24,7 +24,7 @@ tray-settings-original.json
 icon-refresh.json
 .DS_Store
 node_modules/
-/icons/current.png
+/assets/icons/current.png
 
 # Local credentials, captures and virtual-machine media.
 .env

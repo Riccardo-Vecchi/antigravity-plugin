@@ -21,13 +21,13 @@ jobs:
       - name: JavaScript and shell syntax
         run: |
           for file in common/*.cjs common/*.js linux/*.cjs windows/*.cjs; do node --check "$file"; done
-          bash -n install.sh disable.sh linux/install.sh linux/disable.sh
+          bash -n linux/install.sh linux/disable.sh
           python3 -m py_compile linux/*.py
       - name: PowerShell syntax (no Windows execution)
         shell: pwsh
         run: |
           $failed = $false
-          Get-ChildItem *.ps1, windows/*.ps1 | ForEach-Object {
+          Get-ChildItem windows/*.ps1 | ForEach-Object {
             $tokens = $null; $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
             if ($errors) { $failed = $true; $errors | Write-Error }

@@ -5,6 +5,7 @@ const fsp=require('node:fs/promises');
 const path=require('node:path');
 const os=require('node:os');
 const BASE=__dirname;
+const {iconPath}=require('./icon-path.cjs');
 const platformPaths=require('./platform-paths.cjs').getPaths();
 const CONFIG_DIR=platformPaths.configDir;
 const CONFIG_PATH=path.join(CONFIG_DIR,'projects.json');
@@ -22,7 +23,7 @@ const TRANSLATIONS=JSON.parse(fs.readFileSync(path.join(BASE,'locales.json'),'ut
 const WINDOW_CHROME=fs.readFileSync(path.join(BASE,'window-chrome.css'),'utf8');
 const desktopIcon=require('./desktop-icon.cjs');
 const SWITCH_ASSETS=JSON.parse(fs.readFileSync(path.join(BASE,'switch-assets.json'),'utf8'));
-const APP_ICON_ASSETS={antigravity:'data:image/png;base64,'+fs.readFileSync(path.join(BASE,'..','icons','antigravity.png')).toString('base64'),gemini:SWITCH_ASSETS.gemini};
+const APP_ICON_ASSETS={antigravity:'data:image/png;base64,'+fs.readFileSync(iconPath('antigravity.png')).toString('base64'),gemini:SWITCH_ASSETS.gemini};
 const versions=require('./versions.cjs');
 const VERSION=versions.suite;
 const I18N_VERSION=versions.i18n;
@@ -101,6 +102,7 @@ class Client{
   await this.call('Runtime.addBinding',{name:'__agpaAppSettings'});
   await this.ensure();
   await desktopIcon.ensureTray();
+  await desktopIcon.setView(await this.evaluate('globalThis.__AGGeminiSwitch?.status().visible?"gemini":"antigravity"'));
   await this.updateAppState();
  }
  call(method,params={}){

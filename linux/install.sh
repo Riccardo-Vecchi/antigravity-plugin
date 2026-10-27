@@ -7,21 +7,22 @@ node_bin="$(command -v node)"
 payload="$("$node_bin" - "$source_dir" <<'JS'
 const fs=require('node:fs'),path=require('node:path');
 if(!globalThis.WebSocket)throw Error('Node.js 22+ is required.');
-const root=process.argv[2],manifest=require(path.join(root,'distribution.json'));
+const root=process.argv[2],manifest=require(path.join(root,'common/distribution.json'));
 if(manifest.version!==1)throw Error('Unsupported distribution manifest.');
 const files=[...manifest.common,...manifest.linux];
 for(const file of files){
  if(typeof file!=='string'||path.posix.isAbsolute(file)||file.includes('\\')||file.split('/').some(part=>!part||part==='.'||part==='..')||!fs.lstatSync(path.join(root,file)).isFile())throw Error('Invalid distribution file.');
 }
-console.log([...new Set(files)].join('\n'));
+const targets=new Set();
+console.log([...new Set(files)].map(file=>{const mapping=Object.entries(manifest.mappings||{}).find(([prefix])=>file.startsWith(prefix));const target=mapping?mapping[1]+file.slice(mapping[0].length):file;if(path.posix.isAbsolute(target)||target.includes('\\')||target.split('/').some(p=>!p||p==='.'||p==='..')||targets.has(target))throw Error('Invalid deployment target.');targets.add(target);return file+'\t'+target;}).join('\n'));
 JS
 )"
 install -d -m 700 "$target_dir"
-while IFS= read -r file; do
-  install -d -m 700 "$(dirname -- "$target_dir/$file")"
+while IFS=$'\t' read -r file destination; do
+  install -d -m 700 "$(dirname -- "$target_dir/$destination")"
   mode=600
   case "$file" in *.sh) mode=700 ;; esac
-  install -m "$mode" "$source_dir/$file" "$target_dir/$file"
+  install -m "$mode" "$source_dir/$file" "$target_dir/$destination"
 done <<< "$payload"
 install -d -m 755 "$unit_dir"
 cat > "$unit_dir/antigravity-project-appearance.service" <<UNIT

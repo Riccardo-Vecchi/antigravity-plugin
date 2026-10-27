@@ -22,31 +22,44 @@ foreach($directory in @($target,$config)){
  if(Test-Path -LiteralPath $directory){if((Get-Item -LiteralPath $directory).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Integration folders must not be junctions or symbolic links.'}}
  [void](New-Item -ItemType Directory -Force -Path $directory)
 }
-$manifest=Get-Content -LiteralPath (Join-Path $root 'distribution.json') -Raw -Encoding UTF8|ConvertFrom-Json
+$manifest=Get-Content -LiteralPath (Join-Path $root 'common\distribution.json') -Raw -Encoding UTF8|ConvertFrom-Json
 if($manifest.version -ne 1){throw 'Unsupported distribution manifest.'}
 $files=@($manifest.common)+@($manifest.windows)
+$destinations=@{}
 foreach($file in $files){
+ $relative=$file
+ foreach($mapping in $manifest.mappings.PSObject.Properties){if($file.StartsWith($mapping.Name)){$relative=$mapping.Value+$file.Substring($mapping.Name.Length);break}}
+ if([IO.Path]::IsPathRooted($relative) -or $relative -match '(^|[\\/])\.\.([\\/]|$)' -or $destinations.ContainsKey($relative)){throw 'Invalid deployment target.'}
+ $destinations[$relative]=$true
  if([IO.Path]::IsPathRooted($file) -or $file -match '(^|[\\/])\.\.([\\/]|$)' -or !(Test-Path -LiteralPath (Join-Path $root $file) -PathType Leaf)){throw 'Invalid distribution file.'}
 }
-if(Test-Path -LiteralPath (Join-Path $target 'start-windows.ps1')){& (Join-Path $target 'start-windows.ps1') -Stop}
+if(Test-Path -LiteralPath (Join-Path $target 'windows\start.ps1')){& (Join-Path $target 'windows\start.ps1') -Stop}elseif(Test-Path -LiteralPath (Join-Path $target 'start-windows.ps1')){& (Join-Path $target 'start-windows.ps1') -Stop}
 foreach($file in $files){
- $destination=Join-Path $target $file
+ $relative=$file
+ foreach($mapping in $manifest.mappings.PSObject.Properties){if($file.StartsWith($mapping.Name)){$relative=$mapping.Value+$file.Substring($mapping.Name.Length);break}}
+ $destination=Join-Path $target $relative
  [void](New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination))
  Copy-Item -LiteralPath (Join-Path $root $file) -Destination $destination -Force
 }
 [IO.File]::WriteAllText((Join-Path $config 'installation.json'),(@{version=1;appExe=$AppExe;nativeIconsSupported=$nativeIcons}|ConvertTo-Json),(New-Object Text.UTF8Encoding($false)))
 $psExe=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-$start=Join-Path $target 'start-windows.ps1'
+$start=Join-Path $target 'windows\start.ps1'
+$legacyStart=Join-Path $target 'start-windows.ps1'
 $run='"'+$psExe+'" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$start+'" -Watch'
 $runKey='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run';$valueName='AntigravityLocalCustomizations'
 $previous=Get-ItemPropertyValue -LiteralPath $runKey -Name $valueName -ErrorAction SilentlyContinue
-if($previous -and $previous -ne $run){throw 'An unrelated helper startup entry already exists.'}
+$legacyRun='"'+$psExe+'" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$legacyStart+'" -Watch'
+if($previous -and $previous -notin @($run,$legacyRun)){throw 'An unrelated helper startup entry already exists.'}
 [void](New-Item -Path $runKey -Force);[void](New-ItemProperty -LiteralPath $runKey -Name $valueName -Value $run -PropertyType String -Force)
 $shortcut=Join-Path ([Environment]::GetFolderPath('Programs')) 'Antigravity (customized).lnk'
 $shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut($shortcut)
-if((Test-Path -LiteralPath $shortcut) -and $link.Description -ne 'AGPA local customization launcher'){throw 'An unrelated customized launcher already exists.'}
+$expectedLaunch='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$start+'" -Launch'
+$legacyLaunch='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$legacyStart+'" -Launch'
+if((Test-Path -LiteralPath $shortcut) -and ($link.Description -ne 'AGPA local customization launcher' -or $link.TargetPath -ne $psExe -or $link.Arguments -notin @($expectedLaunch,$legacyLaunch))){throw 'An unrelated customized launcher already exists.'}
 $link.TargetPath=$psExe;$link.Arguments='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$start+'" -Launch'
 $link.WorkingDirectory=$target;$link.WindowStyle=7;$link.IconLocation=$AppExe;$link.Description='AGPA local customization launcher';$link.Save()
+$auto=Join-Path $target 'windows\autostart.ps1'
+if((& $auto -Action Read|ConvertFrom-Json).enabled){& $auto -Action Enable|Out-Null}
 & $start -Watch
 if($Launch){& $start -Launch}
 Write-Output 'Installed for the current user. Open Antigravity (customized) from Start.'

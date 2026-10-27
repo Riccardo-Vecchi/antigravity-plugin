@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Put all platform commands and installation guides under `linux/` and `windows/`; keep shared guidance in `docs/`.
+- Consolidate runtime icons and platform logos under `assets/`.
+- Preserve deployed icon file identities and migrate owned Windows launch shortcuts without changing account or preference paths.
+
 ## 1.0.0
 
 First release of the unofficial Antigravity plugin. Earlier Git commits were local development iterations, not separately tagged releases.

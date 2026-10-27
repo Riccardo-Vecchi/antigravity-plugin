@@ -4,14 +4,15 @@ $ErrorActionPreference='Stop'
 $startup=[Environment]::GetFolderPath('Startup')
 $linkPath=Join-Path $startup 'Antigravity Customizations.lnk'
 $root=Split-Path -Parent $PSScriptRoot
-$launcher=Join-Path $root 'start-windows.ps1'
+$launcher=Join-Path $PSScriptRoot 'start.ps1'
 $shellExe=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $expectedArgs='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$launcher+'" -Launch'
+$legacyArgs='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+(Join-Path $root 'start-windows.ps1')+'" -Launch'
 $shell=New-Object -ComObject WScript.Shell
 $owned=$false
 if(Test-Path -LiteralPath $linkPath){
  $old=$shell.CreateShortcut($linkPath)
- $owned=($old.TargetPath -eq $shellExe -and $old.Arguments -eq $expectedArgs -and $old.Description -eq 'AGPA local customization launcher')
+ $owned=($old.TargetPath -eq $shellExe -and $old.Arguments -in @($expectedArgs,$legacyArgs) -and $old.Description -eq 'AGPA local customization launcher')
  if(!$owned -and $Action -ne 'Read'){throw 'An unrelated startup shortcut already exists.'}
 }
 if($Action -eq 'Enable'){

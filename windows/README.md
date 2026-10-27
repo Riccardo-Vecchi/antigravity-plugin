@@ -1,4 +1,4 @@
-# Windows installation (experimental)
+# <img src="../assets/logos/windows.svg" width="24" alt="Windows"> Windows installation (experimental)
 
 This is the Windows companion for Antigravity Customizations. The interface code is shared with Linux. Google's signed application, ASAR resources, security fuses, account data, and conversation databases are not patched.
 
@@ -17,16 +17,16 @@ The compatibility baseline inspected for this port is Antigravity 2.26.0. Newer 
 
 ## Install and launch
 
-Clone or download this private repository using your GitHub account. From its directory, run:
+Clone or download this repository. From its directory, run:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-windows.ps1 -Launch
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\install.ps1 -Launch
 ```
 
 For a nonstandard application location:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-windows.ps1 -AppExe 'D:\Apps\Antigravity\Antigravity.exe' -Launch
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\install.ps1 -AppExe 'D:\Apps\Antigravity\Antigravity.exe' -Launch
 ```
 
 The invocation's execution policy applies to that process only. The installer does not change the system execution policy.
@@ -77,12 +77,12 @@ The official app profile remains `%APPDATA%\Antigravity`. The embedded Gemini we
 
 ## Update and disable
 
-To update, run `install-windows.ps1` again from the updated repository. Finish any settings operation before doing so. The helper is restarted; the native application is not automatically closed.
+To update, run `windows\install.ps1` again from the updated repository. Finish any settings operation before doing so. The helper is restarted; the native application is not automatically closed.
 
 To disable:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\antigravity-project-appearance\disable-windows.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\antigravity-project-appearance\windows\disable.ps1"
 ```
 
 This restores the native icon choice, removes the companion's owned Start-menu shortcut, app-autostart shortcut, and idle-helper Run entry, and stops the helper. Reopen Antigravity normally to remove the injected UI. Preferences and Google's session stay on disk; the current guest is left mounted until the app closes so an unsent draft is not discarded by disabling the helper.

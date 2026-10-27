@@ -11,6 +11,7 @@ if len(sys.argv) != 2 or sys.argv[1] not in ('antigravity', 'gemini', '--restore
     raise SystemExit('Choose antigravity, gemini, or --restore')
 choice = sys.argv[1]
 base = Path(__file__).resolve().parent.parent
+icons = base / 'assets' / 'icons' if (base / 'assets' / 'icons').is_dir() else base / 'icons'
 storage = Path.home() / '.config/antigravity-project-appearance'
 receipt = storage / 'tray-settings-original.json'
 source = Gio.SettingsSchemaSource.get_default()
@@ -31,7 +32,7 @@ if choice == '--restore':
     result = list(rows)
     for key, old in original['entries'].items():
         current = [row for row in result if row[0] == key]
-        if current and all(str(row[1]).startswith(str(base / 'icons') + '/') for row in current):
+        if current and all(str(row[1]).startswith(str(icons) + '/') for row in current):
             result = [row for row in result if row[0] != key] + old
     if result != rows:
         settings.set_value('custom-icons', GLib.Variant('a(sss)', result)); Gio.Settings.sync()
@@ -69,7 +70,7 @@ fd = os.open(temporary, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o600)
 with os.fdopen(fd, 'w') as stream:
     json.dump(original, stream); stream.flush(); os.fsync(stream.fileno())
 os.replace(temporary, receipt)
-image = base / 'icons' / ('gemini-512.png' if choice == 'gemini' else 'antigravity.png')
+image = icons / ('gemini-512.png' if choice == 'gemini' else 'antigravity.png')
 if not image.is_file(): raise ValueError('Missing application icon')
 result = [row for row in rows if row[0] not in ids]
 result += [(key, str(image), '') for key in sorted(ids)]
