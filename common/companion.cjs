@@ -96,6 +96,7 @@ async function createCompanion({
     return {
       browser: {
         enabled: store.settings.browserEnabled,
+        needsReload:[...connections.values()].some(c=>!c.scope&&Date.now()-c.connectedAt>2000),
         registered: owned(data.mcpServers?.[SERVER]),
         extensionPath: extensionDir,
         ...await discovery,

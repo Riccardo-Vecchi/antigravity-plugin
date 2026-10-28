@@ -340,7 +340,11 @@
       "Profile name": "Profile name",
       "Reconnect": "Reconnect",
       "Tab {id}": "Tab {id}",
-      "Access is managed in the extension.": "Access is managed in the extension."
+      "Access is managed in the extension.": "Access is managed in the extension.",
+      "Update Antigravity Browser": "Update Antigravity Browser",
+      "Reload the extension to use the latest sharing controls.": "Reload the extension to use the latest sharing controls.",
+      "Click Reload next to Antigravity Browser on the Extensions page.": "Click Reload next to Antigravity Browser on the Extensions page.",
+      "If its folder is missing, choose Load unpacked and use the folder below.": "If its folder is missing, choose Load unpacked and use the folder below."
     },
     "icons": {
       "folder": "Folder",
@@ -734,7 +738,11 @@
       "Profile name": "Nome del profilo",
       "Reconnect": "Riconnetti",
       "Tab {id}": "Scheda {id}",
-      "Access is managed in the extension.": "L’accesso si gestisce nell’estensione."
+      "Access is managed in the extension.": "L’accesso si gestisce nell’estensione.",
+      "Update Antigravity Browser": "Aggiorna Antigravity Browser",
+      "Reload the extension to use the latest sharing controls.": "Ricarica l’estensione per usare i nuovi controlli di condivisione.",
+      "Click Reload next to Antigravity Browser on the Extensions page.": "Clicca Ricarica accanto ad Antigravity Browser nella pagina Estensioni.",
+      "If its folder is missing, choose Load unpacked and use the folder below.": "Se la cartella manca, scegli Carica estensione non pacchettizzata e usa la cartella qui sotto."
     },
     "icons": {
       "folder": "Cartella",
@@ -1128,7 +1136,11 @@
       "Profile name": "Profilname",
       "Reconnect": "Neu verbinden",
       "Tab {id}": "Tab {id}",
-      "Access is managed in the extension.": "Der Zugriff wird in der Erweiterung verwaltet."
+      "Access is managed in the extension.": "Der Zugriff wird in der Erweiterung verwaltet.",
+      "Update Antigravity Browser": "Antigravity Browser aktualisieren",
+      "Reload the extension to use the latest sharing controls.": "Lade die Erweiterung neu, um die aktuellen Freigabeoptionen zu nutzen.",
+      "Click Reload next to Antigravity Browser on the Extensions page.": "Klicke auf der Erweiterungsseite neben Antigravity Browser auf Neu laden.",
+      "If its folder is missing, choose Load unpacked and use the folder below.": "Falls der Ordner fehlt, wähle Entpackte Erweiterung laden und nutze den folgenden Ordner."
     },
     "icons": {
       "folder": "Ordner",
@@ -1522,7 +1534,11 @@
       "Profile name": "Nombre del perfil",
       "Reconnect": "Reconectar",
       "Tab {id}": "Pestaña {id}",
-      "Access is managed in the extension.": "El acceso se gestiona en la extensión."
+      "Access is managed in the extension.": "El acceso se gestiona en la extensión.",
+      "Update Antigravity Browser": "Actualiza Antigravity Browser",
+      "Reload the extension to use the latest sharing controls.": "Recarga la extensión para usar los nuevos controles de uso compartido.",
+      "Click Reload next to Antigravity Browser on the Extensions page.": "Pulsa Recargar junto a Antigravity Browser en la página de extensiones.",
+      "If its folder is missing, choose Load unpacked and use the folder below.": "Si falta la carpeta, elige Cargar descomprimida y usa la carpeta inferior."
     },
     "icons": {
       "folder": "Carpeta",
@@ -1916,7 +1932,11 @@
       "Profile name": "Nom du profil",
       "Reconnect": "Reconnecter",
       "Tab {id}": "Onglet {id}",
-      "Access is managed in the extension.": "L’accès est géré dans l’extension."
+      "Access is managed in the extension.": "L’accès est géré dans l’extension.",
+      "Update Antigravity Browser": "Mettez à jour Antigravity Browser",
+      "Reload the extension to use the latest sharing controls.": "Rechargez l’extension pour utiliser les nouveaux contrôles de partage.",
+      "Click Reload next to Antigravity Browser on the Extensions page.": "Cliquez sur Recharger à côté d’Antigravity Browser sur la page des extensions.",
+      "If its folder is missing, choose Load unpacked and use the folder below.": "Si le dossier manque, choisissez Charger l’extension non empaquetée et utilisez le dossier ci-dessous."
     },
     "icons": {
       "folder": "Dossier",
@@ -2310,7 +2330,11 @@
       "Profile name": "配置名称",
       "Reconnect": "重新连接",
       "Tab {id}": "标签页 {id}",
-      "Access is managed in the extension.": "在扩展程序中管理访问范围。"
+      "Access is managed in the extension.": "在扩展程序中管理访问范围。",
+      "Update Antigravity Browser": "更新 Antigravity Browser",
+      "Reload the extension to use the latest sharing controls.": "重新加载扩展以使用最新的共享控件。",
+      "Click Reload next to Antigravity Browser on the Extensions page.": "在扩展页面中点击 Antigravity Browser 旁的重新加载。",
+      "If its folder is missing, choose Load unpacked and use the folder below.": "如果文件夹缺失，请选择加载已解压的扩展程序并使用下方文件夹。"
     },
     "icons": {
       "folder": "文件夹",
@@ -2704,7 +2728,11 @@
       "Profile name": "プロファイル名",
       "Reconnect": "再接続",
       "Tab {id}": "タブ {id}",
-      "Access is managed in the extension.": "アクセス範囲は拡張機能で管理します。"
+      "Access is managed in the extension.": "アクセス範囲は拡張機能で管理します。",
+      "Update Antigravity Browser": "Antigravity Browser を更新",
+      "Reload the extension to use the latest sharing controls.": "最新の共有コントロールを使うには拡張機能を再読み込みしてください。",
+      "Click Reload next to Antigravity Browser on the Extensions page.": "拡張機能ページで Antigravity Browser の横にある再読み込みをクリックしてください。",
+      "If its folder is missing, choose Load unpacked and use the folder below.": "フォルダーが見つからない場合は、パッケージ化されていない拡張機能を読み込むを選び、下のフォルダーを使ってください。"
     },
     "icons": {
       "folder": "フォルダー",

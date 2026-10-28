@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1
+
+- Detect older connected extensions and keep their browser-setup step visible, with reload or missing-folder recovery instructions after migration.
+
 ## 1.5.0
 
 - Consolidate code, extension, settings and runtime under the canonical antigravity-plugin roots, with hash-verified migration, conflict detection and rollback. Remove the previous roots and Linux service after success.

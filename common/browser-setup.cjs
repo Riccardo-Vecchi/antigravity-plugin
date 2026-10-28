@@ -9,6 +9,6 @@ const BROWSERS=Object.freeze([
 ]);
 function setupState(browser){
  const prepared=browser.enabled&&browser.registered,connected=browser.connections?.length>0,shared=browser.connections?.some(c=>c.tabs>0);
- return !prepared?'prepare':!connected?'install':!shared?'share':'ready';
+ return !prepared?'prepare':(!connected||browser.needsReload)?'install':!shared?'share':'ready';
 }
 module.exports={BROWSERS,setupState};

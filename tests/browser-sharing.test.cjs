@@ -67,3 +67,6 @@ test('opening browser setup allows only known browser IDs and a fixed Extensions
  let value;for(let n=0;n<30;n++){value=await fs.readFile(output,'utf8').catch(()=>null);if(value)break;await new Promise(r=>setTimeout(r,10));}
  assert.equal(value,'brave://extensions');
 });
+test('an older connected extension is sent to reload recovery instead of an unusable sharing step',()=>{
+ const {setupState}=require('../common/browser-setup.cjs');assert.equal(setupState({enabled:true,registered:true,connections:[{tabs:0}],needsReload:true}),'install');assert.equal(setupState({enabled:true,registered:true,connections:[{tabs:4}],needsReload:true}),'install');
+});

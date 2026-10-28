@@ -1,7 +1,7 @@
 /* Optional browser connections. No access from the Gemini guest. */
 (() => {
   "use strict";
-  const VERSION = "1.3.0";
+  const VERSION = "1.3.1";
   if (globalThis.__AGCompanion?.version === VERSION) return;
   globalThis.__AGCompanion?.destroy();
   const i18n = globalThis.__AGPAI18n,
@@ -148,7 +148,7 @@
     const hero=node("div",{class:"agpa-comp-hero","data-ready":String(phase==="ready")});
     const titles={prepare:"Connect your browser",install:"Add Antigravity Browser",share:"Choose what to share",ready:"Ready for your next task"};
     const descriptions={prepare:"Use the tabs and logins already open in your browser.",install:"A one-time browser step. Your tabs and logins stay open.",share:"Open Antigravity Browser from your browser toolbar and choose your access.",ready:"Ask the Antigravity agent to work with your shared tabs."};
-    hero.append(node("h3",{text:titles[phase]}),node("p",{text:descriptions[phase]}));content.push(hero);
+    hero.append(node("h3",{text:b.needsReload?"Update Antigravity Browser":titles[phase]}),node("p",{text:b.needsReload?"Reload the extension to use the latest sharing controls.":descriptions[phase]}));content.push(hero);
     const actions=node("div",{class:"agpa-comp-actions"});
     if(phase==="prepare"||phase==="install"){
       const picker=node("select",{"aria-label":"Your browser"});
@@ -160,7 +160,7 @@
       actions.append(button(busy?"Connecting…":"Connect browser",()=>act("setupBrowser"),"primary"));content.push(actions);
       content.push(node("p",{class:"agpa-comp-muted",text:"Nothing is shared until you choose it in the extension."}));
     }else if(phase==="install"){
-      const instructions=node("ol",{class:"agpa-comp-steps"},node("li",{text:"Turn on Developer mode on the browser’s Extensions page."}),node("li",{text:"Choose Load unpacked, then paste the copied folder path."}));
+      const instructions=node("ol",{class:"agpa-comp-steps"},node("li",{text:b.needsReload?"Click Reload next to Antigravity Browser on the Extensions page.":"Turn on Developer mode on the browser’s Extensions page."}),node("li",{text:b.needsReload?"If its folder is missing, choose Load unpacked and use the folder below.":"Choose Load unpacked, then paste the copied folder path."}));
       content.push(instructions);
       actions.append(button(selectedBrowser==="other"?"Copy extension folder":"Copy folder and open Extensions",()=>copyFolder(true),"primary"));content.push(actions);
       const path=node("input",{type:"text",readonly:"","aria-label":"Extension folder"});path.value=b.extensionPath||"";content.push(node("div",{class:"agpa-comp-path"},path,button("Copy",()=>copyFolder())));
