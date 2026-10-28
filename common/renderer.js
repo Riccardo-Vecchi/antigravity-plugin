@@ -1,7 +1,7 @@
 /* Local project appearance. No conversation, project metadata, or tool mutations. */
 (() => {
   'use strict';
-  const VERSION = '1.8.0';
+  const VERSION = '1.8.1';
   const i18n=globalThis.__AGPAI18n;
   const initial = globalThis.__AGPA_CONFIG__ || { projects: {} };
   delete globalThis.__AGPA_CONFIG__;
@@ -41,8 +41,8 @@
     .agpa-project-icon {position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:17px;line-height:1}
     [data-agpa-inline-native] {display:none!important}
     .agpa-inline-icon {width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:none;font-size:16px;line-height:1}
-    .agpa-rail {box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:5px;width:52px;min-width:52px;height:100%;padding:48px 6px 8px;background:var(--sidebar,#171717);color:var(--muted-foreground,#aaa);flex-shrink:0;z-index:20}
-    .agpa-rail[hidden] {display:none!important}
+    .agpa-rail {box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:5px;width:52px;min-width:0;height:100%;padding:48px 0 8px;overflow:hidden;transition:width 240ms cubic-bezier(.22,1,.36,1),opacity 160ms ease;background:var(--sidebar,#171717);color:var(--muted-foreground,#aaa);flex-shrink:0;z-index:20}
+    .agpa-rail[hidden] {display:flex!important;width:0;opacity:0;visibility:hidden;pointer-events:none;transition:width 240ms cubic-bezier(.22,1,.36,1),opacity 120ms ease,visibility 0s linear 240ms}
     .agpa-rail-button {box-sizing:border-box;width:36px;height:36px;min-height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:transparent;border:0;border-radius:10px;color:inherit;cursor:pointer;font-size:19px;position:relative}
     .agpa-rail-button:hover,.agpa-rail-button[aria-current=page] {background:var(--sidebar-secondary,#303030);color:var(--foreground,#eee)}
     .agpa-rail-button[aria-current=page]::before {content:'';position:absolute;left:1px;width:2px;height:17px;border-radius:3px;background:currentColor}
@@ -155,14 +155,14 @@
     return button;
   }
   function applyRail() {
-    const toggle=document.querySelector('[data-testid="sidebar-toggle"]');
+    const toggle=globalThis.__AGPAPrimaryLayout(document).toggle;
     const sidebar=nativeSidebar();
     const panel=sidebar?.parentElement?.parentElement;
     if(!toggle||!panel?.parentElement){rail?.remove();rail=null;railSignature='';return;}
     if(!rail?.isConnected){rail=el('nav',{class:'agpa-rail','aria-label':'Compact sidebar','data-agpa-rail':''});panel.before(rail);railSignature='';}
     const collapsed=toggle.getAttribute('aria-expanded')==='false';
     if(rail.hidden===collapsed)rail.hidden=!collapsed;
-    if(!collapsed)return;
+
     const projects=[...sidebar.querySelectorAll('[data-testid="project-header"]')].map(projectFrom).filter(Boolean);
     const signature=JSON.stringify([i18n.language,!!nativeControl('[data-testid=agpa-library-button]'),projects.map(p=>[p.id,p.name,config.projects?.[p.id]])]);
     if(signature!==railSignature){

@@ -425,7 +425,8 @@
       "Allow online resources": "Allow online resources",
       "Online resources enabled for this preview.": "Online resources enabled for this preview.",
       "Previous page": "Previous page",
-      "Next page": "Next page"
+      "Next page": "Next page",
+      "Smooth sidebar transitions": "Smooth sidebar transitions"
     },
     "icons": {
       "folder": "Folder",
@@ -904,7 +905,8 @@
       "Allow online resources": "Consenti risorse online",
       "Online resources enabled for this preview.": "Risorse online abilitate per questa anteprima.",
       "Previous page": "Pagina precedente",
-      "Next page": "Pagina successiva"
+      "Next page": "Pagina successiva",
+      "Smooth sidebar transitions": "Transizioni morbide della barra laterale"
     },
     "icons": {
       "folder": "Cartella",
@@ -1383,7 +1385,8 @@
       "Allow online resources": "Online-Ressourcen zulassen",
       "Online resources enabled for this preview.": "Online-Ressourcen für diese Vorschau aktiviert.",
       "Previous page": "Vorherige Seite",
-      "Next page": "Nächste Seite"
+      "Next page": "Nächste Seite",
+      "Smooth sidebar transitions": "Sanfte Seitenleistenübergänge"
     },
     "icons": {
       "folder": "Ordner",
@@ -1862,7 +1865,8 @@
       "Allow online resources": "Permitir recursos en línea",
       "Online resources enabled for this preview.": "Recursos en línea activados para esta vista previa.",
       "Previous page": "Página anterior",
-      "Next page": "Página siguiente"
+      "Next page": "Página siguiente",
+      "Smooth sidebar transitions": "Transiciones suaves de la barra lateral"
     },
     "icons": {
       "folder": "Carpeta",
@@ -2341,7 +2345,8 @@
       "Allow online resources": "Autoriser les ressources en ligne",
       "Online resources enabled for this preview.": "Ressources en ligne activées pour cet aperçu.",
       "Previous page": "Page précédente",
-      "Next page": "Page suivante"
+      "Next page": "Page suivante",
+      "Smooth sidebar transitions": "Transitions fluides de la barre latérale"
     },
     "icons": {
       "folder": "Dossier",
@@ -2820,7 +2825,8 @@
       "Allow online resources": "允许在线资源",
       "Online resources enabled for this preview.": "此预览已启用在线资源。",
       "Previous page": "上一页",
-      "Next page": "下一页"
+      "Next page": "下一页",
+      "Smooth sidebar transitions": "平滑侧边栏过渡"
     },
     "icons": {
       "folder": "文件夹",
@@ -3299,7 +3305,8 @@
       "Allow online resources": "オンラインリソースを許可",
       "Online resources enabled for this preview.": "このプレビューでオンラインリソースが有効です。",
       "Previous page": "前のページ",
-      "Next page": "次のページ"
+      "Next page": "次のページ",
+      "Smooth sidebar transitions": "サイドバーを滑らかに開閉"
     },
     "icons": {
       "folder": "フォルダー",

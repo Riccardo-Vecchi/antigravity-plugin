@@ -34,6 +34,7 @@ const modelPreferences=modelRules.createStore(path.join(CONFIG_DIR,'models.json'
 const LAB_ICONS=Object.fromEntries(['anthropic','google','openai'].map(id=>[id,'data:image/png;base64,'+fs.readFileSync(path.join(BASE,'..','assets','labs',id+'.png')).toString('base64')]));
 const COMPANION_UI=fs.readFileSync(path.join(BASE,'companion-ui.js'),'utf8');
 const {createBrowserPicker}=require('./browser-picker.cjs');
+const {primaryLayout,createHoverIntent,startSidebarMotion}=require('./sidebar-layout.cjs');
 const BROWSER_ICONS=Object.fromEntries(require('./browser-setup.cjs').BROWSERS.map(({id})=>[id,'data:image/png;base64,'+fs.readFileSync(path.join(BASE,'..','assets','browsers',id+'.png')).toString('base64')]));
 let companion;let companionBroadcast;
 const COMPUTER_USE_SETTINGS=fs.readFileSync(path.join(BASE,'computer-use-settings.js'),'utf8');
@@ -57,6 +58,7 @@ const BRAND_ICON='data:image/svg+xml;base64,'+Buffer.from(fs.readFileSync(path.j
 const APP_ICON_ASSETS={antigravity:'data:image/png;base64,'+fs.readFileSync(iconPath('antigravity.png')).toString('base64'),gemini:SWITCH_ASSETS.gemini};
 const versions=require('./versions.cjs');
 const VERSION=versions.suite;
+const SIDEBAR_LAYOUT_VERSION=versions.sidebarLayout+':'+require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(BASE,'sidebar-layout.cjs'))).digest('hex').slice(0,16);
 const I18N_VERSION=versions.i18n;
 const APP_SETTINGS_VERSION=versions.settings;
 const APPEARANCE_VERSION=versions.appearance;
@@ -182,6 +184,7 @@ class Client{
    if(!pluginControl.enabled){if(this.featureState!==false){await this.pauseFeatures();this.featureState=false;}return;}
    if(this.featureState===false||this.featureState===undefined)await this.evaluate(`document.body.removeAttribute('data-agpa-plugin-disabled')`);
    this.featureState=true;
+   if(await this.evaluate('globalThis.__AGPASidebarLayoutVersion')!==SIDEBAR_LAYOUT_VERSION)await this.evaluate(`globalThis.__AGPASidebarLayoutVersion=${JSON.stringify(SIDEBAR_LAYOUT_VERSION)};globalThis.__AGPAPrimaryLayout=${primaryLayout.toString()};globalThis.__AGPAStartSidebarMotion=${startSidebarMotion.toString()};globalThis.__AGPACreateHoverIntent=${createHoverIntent.toString()};`);
    if(!await this.evaluate('!!globalThis.__AGProjectPresentation'))await this.evaluate(PROJECT_PRESENTATION);
    if(data.version!==APPEARANCE_VERSION){
     await this.evaluate(`globalThis.__AGPA_CONFIG__=${JSON.stringify(config)};\n${RENDERER}`);
@@ -210,7 +213,7 @@ class Client{
    if(await this.evaluate('globalThis.__AGModelUI?.version')!==versions.models)await this.evaluate(`globalThis.__AGPAProviderFor=${modelRules.providerFor.toString()};globalThis.__AGPAPermissionFor=${modelRules.permissionFor.toString()};globalThis.__AGPA_LAB_ICONS__=${JSON.stringify(LAB_ICONS)};globalThis.__AGPA_MODEL_PREFERENCES__=${JSON.stringify(modelPreferences.current())};\n${MODEL_UI}`);
    if(await this.evaluate('globalThis.__AGCompanion?.version')!==versions.companion)await this.evaluate(`globalThis.__AGPABrowserSetupState=${require('./browser-setup.cjs').setupState.toString()};globalThis.__AGPABrowserPicker=${createBrowserPicker.toString()};globalThis.__AGPA_BROWSER_ICONS__=${JSON.stringify(BROWSER_ICONS)};\n${COMPANION_UI}`);
    if(await this.evaluate('globalThis.__AGWorkspace?.version')!==versions.workspace)await this.evaluate(`globalThis.__AGPA_BRAND_ICON__=${JSON.stringify(BRAND_ICON)};globalThis.__AGPA_WORKSPACE__=${JSON.stringify(workspacePreferences.current())};\n${WORKSPACE_UI}`);
-   if(await this.evaluate('globalThis.__AGLibrary?.version')!==versions.library)await this.evaluate(`globalThis.__AGPA_VIEWER_BUNDLE__=${JSON.stringify(VIEWER_BUNDLE)};\n${LIBRARY_UI}`);
+   if(await this.evaluate('globalThis.__AGLibrary?.version')!==versions.library)await this.evaluate(`globalThis.__AGPA_LIBRARY_PICKER__=${createBrowserPicker.toString()};globalThis.__AGPA_VIEWER_BUNDLE__=${JSON.stringify(VIEWER_BUNDLE)};\n${LIBRARY_UI}`);
    await this.evaluate(`(()=>{let style=document.getElementById('agpa-window-chrome-styles');if(style?.getAttribute('data-version')===${JSON.stringify(VERSION)})return;if(!style){style=document.createElement('style');style.id='agpa-window-chrome-styles';document.head.append(style);}style.textContent=${JSON.stringify(WINDOW_CHROME)};style.setAttribute('data-version',${JSON.stringify(VERSION)});})()`);
    const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=pane-titlebar-toolbar]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
    if(signature!==this.healthSignature){this.healthSignature=signature;await this.checkCompatibility();}
@@ -304,18 +307,18 @@ class Client{
   let payload;
   try{
    if(params.payload.length>32768)throw Error('unavailable');payload=JSON.parse(params.payload);
-   if(!UUID.test(payload.requestId)||!['list','refresh','preview','thumbnail','favorite','add','remove','sidebar'].includes(payload.action))throw Error('unavailable');
+   if(!UUID.test(payload.requestId)||!['list','refresh','preview','thumbnail','favorite','add','remove','sidebar','sidebarMotion'].includes(payload.action))throw Error('unavailable');
    let result;
-   if(payload.action==='sidebar'){
-    const job=writeChain.then(()=>workspacePreferences.update(payload.value));writeChain=job.catch(()=>{});result=await job;
+   if(['sidebar','sidebarMotion'].includes(payload.action)){
+    const job=writeChain.then(()=>payload.action==='sidebar'?workspacePreferences.update(payload.value):workspacePreferences.updateMotion(payload.value));writeChain=job.catch(()=>{});result=await job;
     for(const c of clients.values())await c.evaluate(`globalThis.__AGWorkspace?.setPreferences(${JSON.stringify(result)})`).catch(()=>{});
    }else if(payload.action==='list'||payload.action==='refresh'){if(payload.value!==true)throw Error('unavailable');result=await library.list(payload.action==='refresh');}
    else if(payload.action==='preview'||payload.action==='thumbnail')result=await library.preview(payload.value,{thumbnail:payload.action==='thumbnail'});
    else if(['favorite','add','remove'].includes(payload.action)){
     const job=writeChain.then(()=>payload.action==='favorite'?library.favorite(payload.value?.id,payload.value?.value):payload.action==='remove'?library.remove(payload.value):library.add(payload.value));writeChain=job.catch(()=>{});result=await job;
    }
-   await this.evaluate(`globalThis.${payload.action==='sidebar'?'__AGWorkspace':'__AGLibrary'}?.onResult(${JSON.stringify(payload.requestId)},true,${JSON.stringify(result)})`,params.executionContextId);
-  }catch(error){if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.${payload.action==='sidebar'?'__AGWorkspace':'__AGLibrary'}?.onResult(${JSON.stringify(payload.requestId)},false,{error:${JSON.stringify(['tooLarge','unsupported'].includes(error.message)?error.message:'unavailable')}})`,params.executionContextId).catch(()=>{});}
+   await this.evaluate(`globalThis.${['sidebar','sidebarMotion'].includes(payload.action)?'__AGWorkspace':'__AGLibrary'}?.onResult(${JSON.stringify(payload.requestId)},true,${JSON.stringify(result)})`,params.executionContextId);
+  }catch(error){if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.${['sidebar','sidebarMotion'].includes(payload.action)?'__AGWorkspace':'__AGLibrary'}?.onResult(${JSON.stringify(payload.requestId)},false,{error:${JSON.stringify(['tooLarge','unsupported'].includes(error.message)?error.message:'unavailable')}})`,params.executionContextId).catch(()=>{});}
  }
  async onCompanion(params){
   if(!pluginControl.enabled||pluginControl.busy)return;

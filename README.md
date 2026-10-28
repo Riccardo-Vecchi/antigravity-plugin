@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.9.0](https://img.shields.io/badge/version-1.9.0-blue)](CHANGELOG.md)
+[![Version 1.9.1](https://img.shields.io/badge/version-1.9.1-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -87,7 +87,7 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Plugin updates → Plugin customizations** contains status and recovery.
 
-**Appearance → Sidebar** selects Expanded, Compact or Expand on hover. **Library** collects saved local artifacts without moving them or changing the official conversation databases.
+**Appearance → Sidebar** selects Expanded, Compact or Expand on hover. **Smooth sidebar transitions** enables the short synchronized animation; when off, reduced-motion system preferences are honored. **Library** collects saved local artifacts without moving them or changing the official conversation databases.
 
 **Enable/disable:** use **Application → Plugin updates → Enable plugin**. Disabling pauses customizations, restores native icons and disconnects desktop/browser access while keeping preferences and Gemini sessions. Re-enable from the same place; tool access is enabled separately. The small management helper and desktop startup choices remain available.
 

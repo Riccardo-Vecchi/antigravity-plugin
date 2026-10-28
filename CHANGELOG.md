@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.1
+
+- Fix main sidebar targeting when a file viewer exposes its own sidebar button. Keep its state independent and remove the extra blank space in Library.
+- Synchronize compact-rail and sidebar transitions, use a sliding overlay for hover mode, fix hover re-entry timers, and keep Library aligned throughout a transition. Add a local Smooth sidebar transitions choice while honoring system reduced motion when it is off.
+- Replace Library’s native file-type menu with a themed, keyboard-accessible popover. Keep its selected label and icon synchronized.
+- Show Google Gemini in the top-left menu bar while Gemini is open and restore native Antigravity menus on return.
+
 ## 1.9.0
 
 - Add Library below Automations and in the compact rail, with local artifact discovery, search, file-type filters, favorites and explicit file additions. Keep originals and official profiles unchanged.

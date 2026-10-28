@@ -1,5 +1,10 @@
-/* Keep the draggable title bar and native window controls, hide app menus in Gemini. */
-body:has([data-agpa-gemini][open]) [data-testid="title-menu-bar"] > * {
-  visibility: hidden !important;
-  pointer-events: none !important;
+/* Keep the draggable title bar and native window controls in both views. */
+[data-testid="title-menu-bar"] {position:relative}
+[data-agpa-gemini-menu-title] {display:none}
+body:has([data-agpa-gemini][open]) [data-testid="title-menu-bar"] > :not([data-agpa-gemini-menu-title]) {
+  visibility:hidden!important;pointer-events:none!important;
+}
+body:has([data-agpa-gemini][open]) [data-agpa-gemini-menu-title] {
+  position:absolute;inset:0 auto 0 18px;display:flex;align-items:center;
+  color:var(--muted-foreground,#aaa);font:13px system-ui,sans-serif;white-space:nowrap;
 }

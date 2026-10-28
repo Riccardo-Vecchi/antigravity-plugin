@@ -11,6 +11,7 @@ function fixture() {
     removeAttribute(k){this.attributes.delete(k);}
     toggleAttribute(k,v){v?this.setAttribute(k,""):this.removeAttribute(k);}
     append(...children){this.children.push(...children);}
+    replaceChildren(...children){this.children=[...children];}
     addEventListener(k,fn){this.events[k]=fn;}
     matches(){return this.open;}
     showPopover(){this.open=true;this.events.toggle?.({newState:"open"});}
@@ -33,6 +34,8 @@ test("official icons accompany the selected browser and each detected option; ot
   assert.deepEqual(f.list.children.map(row=>row.children[0].tagName),["img","img","span"]);
   f.trigger.disabled=true;f.list.children[1].events.click();assert.deepEqual(f.changes,[]);
   f.trigger.disabled=false;f.list.children[1].events.click();assert.deepEqual(f.changes,["chrome"]);assert.equal(f.trigger.focused,true);
+  assert.equal(f.trigger.children[0].src,"data:image/png;base64,chrome");assert.equal(f.trigger.children[1].textContent,"Chrome");
+  assert.equal(f.list.children[1].getAttribute('aria-selected'),'true');assert.equal(f.list.children[0].getAttribute('aria-selected'),'false');
 });
 test("keyboard navigation commits only on selection, closes on Escape/Tab and keeps focus on the combobox",()=>{
   const f=fixture();f.key("ArrowDown");assert.equal(f.list.open,true);

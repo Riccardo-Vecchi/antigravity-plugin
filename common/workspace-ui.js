@@ -1,7 +1,7 @@
 /* Branding, title and optional hover sidebar. Native documents stay mounted. */
 (() => {
   "use strict";
-  const VERSION = "1.0.0";
+  const VERSION = "1.0.1";
   globalThis.__AGWorkspace?.destroy();
   const i18n = globalThis.__AGPAI18n,
     icon = globalThis.__AGPA_BRAND_ICON__,
@@ -13,9 +13,9 @@
     queued = false,
     section = null,
     peek = false,
-    openTimer,
-    closeTimer,
     panel = null,
+    menuTitle = null,
+    lastExpanded = null,
     nativeTitle = document.title;
   const listeners = [],
     marks = new Set(),
@@ -24,8 +24,14 @@
   style.id = "agpa-workspace-styles";
   style.textContent = `
  [data-agpa-brand]>svg{display:none!important}[data-agpa-brand]>img{width:24px;height:24px;object-fit:contain;pointer-events:none}
- [data-agpa-peek]{position:fixed!important;left:0!important;top:var(--agpa-peek-top)!important;height:var(--agpa-peek-height)!important;width:256px!important;visibility:visible!important;overflow:visible!important;z-index:90!important;box-shadow:12px 0 32px #0005;background:var(--sidebar,#171717);transition:none!important}
- [data-agpa-peek]>div{width:256px!important;visibility:visible!important}
+ @property --agpa-navigation-width{syntax:'<length>';inherits:true;initial-value:52px}
+ @property --agpa-rail-width{syntax:'<length>';inherits:true;initial-value:52px}
+ body[data-agpa-layout-ready]{transition:--agpa-navigation-width 240ms cubic-bezier(.22,1,.36,1),--agpa-rail-width 240ms cubic-bezier(.22,1,.36,1)}
+ body[data-agpa-layout-ready] [data-agpa-sidebar-panel]:not([data-agpa-hover-pane]){width:calc(var(--agpa-navigation-width) - var(--agpa-rail-width))!important;transition:visibility 0s linear 240ms!important}
+ body[data-agpa-layout-ready] .agpa-rail{width:var(--agpa-rail-width)!important;transition:opacity 160ms ease,visibility 0s linear 160ms!important}
+ [data-agpa-sidebar-panel][data-agpa-hover-pane]{position:absolute!important;left:0!important;top:0!important;height:100%!important;width:var(--agpa-expanded-width,256px)!important;visibility:hidden!important;overflow:hidden!important;z-index:60!important;box-shadow:12px 0 32px #0005;background:var(--sidebar,#171717);transform:translateX(-100%);opacity:0;pointer-events:none;will-change:transform;transition:transform 240ms cubic-bezier(.22,1,.36,1),opacity 140ms ease,visibility 0s linear 240ms!important}
+ [data-agpa-sidebar-panel][data-agpa-hover-pane][data-agpa-peek]{transform:translateX(0);opacity:1;visibility:visible!important;pointer-events:auto;transition:transform 240ms cubic-bezier(.22,1,.36,1),opacity 140ms ease,visibility 0s!important}
+ @media(prefers-reduced-motion:reduce){body:not([data-agpa-smooth-sidebar])[data-agpa-layout-ready]{transition:none!important}body:not([data-agpa-smooth-sidebar]) [data-agpa-sidebar-panel],body:not([data-agpa-smooth-sidebar]) [data-agpa-sidebar-panel][data-agpa-hover-pane],body:not([data-agpa-smooth-sidebar]) .agpa-rail{transition:none!important}}
  .agpa-sidebar-setting{margin-top:18px;padding:16px;border:1px solid var(--border,#353535);border-radius:12px;color:var(--foreground,#eee)}
  .agpa-sidebar-setting h3{font-size:14px;font-weight:500;margin:0 0 8px}.agpa-sidebar-setting p{font-size:12px;color:var(--muted-foreground,#aaa);margin:0 0 12px}
  .agpa-sidebar-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.agpa-sidebar-choices button{font:inherit;font-size:13px;padding:10px 8px;border:1px solid var(--border,#444);border-radius:9px;color:inherit;background:transparent;cursor:pointer}.agpa-sidebar-choices button[aria-checked=true]{border-color:#398bdb;background:var(--secondary,#292929)}.agpa-sidebar-choices button:focus-visible{outline:2px solid #398bdb;outline-offset:2px}
@@ -40,11 +46,8 @@
     i18n.set(n, key);
     return n;
   };
-  const toggle = () => document.querySelector("[data-testid=sidebar-toggle]");
-  const currentPanel = () =>
-    document
-      .querySelector("[data-testid=settings-button]")
-      ?.closest("[role=navigation]")?.parentElement?.parentElement;
+  const toggle = () => globalThis.__AGPAPrimaryLayout(document).toggle;
+  const currentPanel = () => globalThis.__AGPAPrimaryLayout(document).panel;
   const gemini = () => !!document.querySelector("[data-agpa-gemini][open]");
   function title() {
     if (gemini()) {
@@ -56,13 +59,35 @@
       document.title = nativeTitle || "Antigravity";
     else nativeTitle = document.title;
   }
-  function hide() {
-    clearTimeout(openTimer);
-    clearTimeout(closeTimer);
-    openTimer = null;
-    closeTimer = null;
-    panel?.removeAttribute("data-agpa-peek");
+  function commitMotion() {
+    queueMicrotask(() => {
+      if (!stopped)
+        globalThis.__AGPAStartSidebarMotion(
+          [document.body, panel, document.querySelector("[data-agpa-rail]")],
+          document.timeline,
+        );
+    });
+  }
+  function removePeek() {
+    if (panel?.hasAttribute("data-agpa-peek")) {
+      panel.removeAttribute("data-agpa-peek");
+      commitMotion();
+    }
     peek = false;
+  }
+  const intent = globalThis.__AGPACreateHoverIntent({
+    open: show,
+    close: removePeek,
+    canClose: () =>
+      !document.querySelector(
+        "[role=menu][data-open], [popover]:popover-open",
+      ) &&
+      !panel?.querySelector(
+        "input:focus, textarea:focus, [contenteditable=true]:focus",
+      ),
+  });
+  function hide() {
+    intent.hide();
   }
   function show() {
     if (
@@ -72,50 +97,62 @@
       document.querySelector("dialog[open],[role=dialog]") ||
       toggle()?.getAttribute("aria-expanded") !== "false"
     )
-      return;
+      return false;
     panel = currentPanel();
-    if (!panel) return;
-    const r = panel.getBoundingClientRect();
-    panel.style.setProperty("--agpa-peek-top", r.top + "px");
-    panel.style.setProperty("--agpa-peek-height", r.height + "px");
+    if (!panel?.hasAttribute("data-agpa-hover-pane")) return false;
     panel.setAttribute("data-agpa-peek", "");
+    commitMotion();
     peek = true;
+    return true;
   }
-  function move(e) {
+  function move(event) {
     if (preferences.sidebarMode !== "hover" || gemini()) {
       hide();
       return;
     }
-    const rail = document.querySelector("[data-agpa-rail]");
-    const r = rail?.getBoundingClientRect();
-    if (!r || !r.height) return;
-    const inside =
-      e.clientY >= r.top &&
-      e.clientY <= r.bottom &&
-      e.clientX <= (peek ? 256 : Math.max(14, r.right));
-    if (inside) {
-      clearTimeout(closeTimer);
-      if (!peek && !openTimer)
-        openTimer = setTimeout(() => {
-          openTimer = null;
-          show();
-        }, 160);
-    } else {
-      clearTimeout(openTimer);
-      openTimer = null;
-      if (peek && !closeTimer)
-        closeTimer = setTimeout(() => {
-          closeTimer = null;
-          if (
-            panel?.contains(document.activeElement) ||
-            document.querySelector("[role=menu][data-open]")
-          )
-            return;
-          hide();
-        }, 350);
+    const rail = document.querySelector("[data-agpa-rail]"),
+      rect = rail?.getBoundingClientRect();
+    if (!rect || !rect.height) return;
+    const width = peek
+      ? panel?.getBoundingClientRect().right || 256
+      : Math.max(14, rect.right);
+    if (
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom &&
+      event.clientX <= width
+    )
+      intent.enter();
+    else intent.leave();
+  }
+  function preparePanel() {
+    const next = toggle() ? currentPanel() : null;
+    if (next !== panel) {
+      hide();
+      if (panel) {
+        panel.removeAttribute("data-agpa-sidebar-panel");
+        panel.removeAttribute("data-agpa-hover-pane");
+        panel.style.removeProperty("--agpa-expanded-width");
+      }
+      panel = next;
+    }
+    if (!panel) return;
+    panel.setAttribute("data-agpa-sidebar-panel", "");
+    const hover = preferences.sidebarMode === "hover";
+    if (panel.hasAttribute("data-agpa-hover-pane") !== hover) {
+      hide();
+      panel.toggleAttribute("data-agpa-hover-pane", hover);
+    }
+    if (hover) {
+      const width =
+        panel.firstElementChild?.getBoundingClientRect().width || 256;
+      const value = Math.min(456, Math.max(256, width)) + "px";
+      if (panel.style.getPropertyValue("--agpa-expanded-width") !== value)
+        panel.style.setProperty("--agpa-expanded-width", value);
     }
   }
   function paint() {
+    const motion = section?.querySelector("[data-agpa-sidebar-motion]");
+    if (motion) motion.checked = preferences.sidebarMotion === "smooth";
     const mode =
       preferences.sidebarMode ||
       (toggle()?.getAttribute("aria-expanded") === "false"
@@ -127,7 +164,7 @@
         String(b.dataset.agpaSidebarMode === mode),
       );
   }
-  async function choose(mode) {
+  async function choose(mode, action = "sidebar") {
     hide();
     try {
       await new Promise((resolve, reject) => {
@@ -138,7 +175,7 @@
           }, 8000);
         pending.set(requestId, { resolve, reject, timer });
         globalThis.__agpaLibrary(
-          JSON.stringify({ requestId, action: "sidebar", value: mode }),
+          JSON.stringify({ requestId, action, value: mode }),
         );
       });
     } catch {
@@ -163,7 +200,41 @@
       image.dataset.agpaBrandImage = "";
       brand.append(image);
     }
-    if (panel && panel !== currentPanel()) hide();
+    preparePanel();
+    const expanded = toggle()?.getAttribute("aria-expanded");
+    if (panel && typeof expanded === "string") {
+      const width =
+        panel.firstElementChild?.getBoundingClientRect().width || 256;
+      const navigation =
+          expanded === "true"
+            ? Math.max(256, Math.min(456, width)) + "px"
+            : "52px",
+        rail = expanded === "true" ? "0px" : "52px";
+      const changed =
+        document.body.style.getPropertyValue("--agpa-navigation-width") !==
+          navigation ||
+        document.body.style.getPropertyValue("--agpa-rail-width") !== rail;
+      if (changed) {
+        document.body.style.setProperty("--agpa-navigation-width", navigation);
+        document.body.style.setProperty("--agpa-rail-width", rail);
+      }
+      if (!document.body.hasAttribute("data-agpa-layout-ready")) {
+        panel.getBoundingClientRect();
+        document.body.setAttribute("data-agpa-layout-ready", "");
+      }
+      if (changed || expanded !== lastExpanded) {
+        lastExpanded = expanded;
+        commitMotion();
+      }
+    }
+    const bar = document.querySelector("[data-testid=title-menu-bar]");
+    if (bar) {
+      if (!menuTitle) {
+        menuTitle = text("span", "Google Gemini");
+        menuTitle.setAttribute("data-agpa-gemini-menu-title", "");
+      }
+      if (menuTitle.parentElement !== bar) bar.append(menuTitle);
+    }
     const nav = document.querySelector(
         "[data-testid=settings-nav-item-Appearance]",
       ),
@@ -230,6 +301,18 @@
           text("p", ""),
         );
         section.lastChild.setAttribute("role", "status");
+        const label = document.createElement("label");
+        label.style.cssText =
+          "display:flex;gap:9px;align-items:center;margin-top:14px;font-size:13px;cursor:pointer";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.setAttribute("data-agpa-sidebar-motion", "");
+        input.style.accentColor = "#398bdb";
+        on(input, "change", () =>
+          choose(input.checked ? "smooth" : "system", "sidebarMotion"),
+        );
+        label.append(input, text("span", "Smooth sidebar transitions"));
+        section.insertBefore(label, section.lastChild);
       }
       if (section.parentElement !== host) host.append(section);
       paint();
@@ -237,7 +320,12 @@
   }
   function setPreferences(next) {
     preferences = next;
+    document.body.toggleAttribute(
+      "data-agpa-smooth-sidebar",
+      next.sidebarMotion === "smooth",
+    );
     hide();
+    preparePanel();
     const t = toggle(),
       wanted = next.sidebarMode === "open";
     if (
@@ -280,15 +368,16 @@
       hide();
   });
   on(document, "click", (e) => {
-    if (e.target.closest("[data-testid=sidebar-toggle]") && e.isTrusted)
-      setTimeout(
-        () =>
-          choose(
-            toggle()?.getAttribute("aria-expanded") === "true"
-              ? "open"
-              : "compact",
-          ),
-        80,
+    if (
+      e.target.closest("[data-testid=sidebar-toggle]") === toggle() &&
+      e.isTrusted
+    )
+      queueMicrotask(() =>
+        choose(
+          toggle()?.getAttribute("aria-expanded") === "true"
+            ? "open"
+            : "compact",
+        ),
       );
   });
   const unsub = i18n.subscribe(paint);
@@ -309,10 +398,19 @@
       sidebarMode: preferences.sidebarMode,
       peek,
       title: document.title,
+      sidebarMotion: preferences.sidebarMotion || "system",
     }),
     destroy() {
       stopped = true;
-      hide();
+      intent.destroy();
+      document.body.removeAttribute("data-agpa-smooth-sidebar");
+      document.body.removeAttribute("data-agpa-layout-ready");
+      document.body.style.removeProperty("--agpa-navigation-width");
+      document.body.style.removeProperty("--agpa-rail-width");
+      panel?.removeAttribute("data-agpa-sidebar-panel");
+      panel?.removeAttribute("data-agpa-hover-pane");
+      panel?.style.removeProperty("--agpa-expanded-width");
+      menuTitle?.remove();
       unsub();
       observer.disconnect();
       titleObserver.disconnect();

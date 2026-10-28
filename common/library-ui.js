@@ -1,9 +1,11 @@
 /* Artifact library layered over the native pane, preserving its conversation. */
 (() => {
   "use strict";
-  const VERSION = "1.0.0";
+  const VERSION = "1.0.1";
   globalThis.__AGLibrary?.destroy();
   const i18n = globalThis.__AGPAI18n;
+  const createPicker = globalThis.__AGPA_LIBRARY_PICKER__;
+  delete globalThis.__AGPA_LIBRARY_PICKER__;
   let bundle = globalThis.__AGPA_VIEWER_BUNDLE__;
   delete globalThis.__AGPA_VIEWER_BUNDLE__;
   let stopped = false,
@@ -24,6 +26,8 @@
     count,
     search,
     filterControl,
+    observedPanel = null,
+    observedRail = null,
     notice,
     thumbs = 0,
     thumbnailQueue = [],
@@ -86,6 +90,7 @@
  .agpa-library{position:fixed;inset:80px 0 0 256px;z-index:35;display:flex;flex-direction:column;background:var(--background,#111);color:var(--foreground,#eee);font:13px/1.5 system-ui,sans-serif;min-width:0}.agpa-library[hidden]{display:none!important}
  .agpa-library *{box-sizing:border-box}.agpa-library button,.agpa-library select,.agpa-library input{font:inherit}.agpa-library button{cursor:pointer}.agpa-library button:disabled{opacity:.5;cursor:wait}.agpa-library button:focus-visible,.agpa-library input:focus-visible,.agpa-library select:focus-visible{outline:2px solid #398bdb;outline-offset:2px}
  .agpa-library-header{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:22px 28px 12px}.agpa-library-header h1{font-size:23px;font-weight:500;margin:0;flex:1}.agpa-library-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.agpa-library-tools input{width:210px;max-width:40vw;background:var(--secondary,#242424);color:inherit;border:1px solid var(--border,#393939);border-radius:20px;padding:7px 12px}.agpa-library button.agpa-lib-tool,.agpa-library select{border:1px solid var(--border,#3c3c3c);border-radius:8px;color:inherit;background:transparent;padding:7px 10px}.agpa-library .agpa-lib-icon{display:flex;align-items:center;justify-content:center;padding:7px!important;border:0!important}.agpa-lib-icon:hover,.agpa-library .agpa-lib-tool:hover{background:var(--secondary,#282828)}
+ .agpa-library .agpa-browser-picker{margin-left:0}.agpa-library .agpa-browser-trigger{display:flex;align-items:center;gap:9px;min-width:170px;border:1px solid var(--border,#393939);border-radius:9px;padding:6px 10px;background:var(--background,#171717);color:var(--foreground,#ddd);text-align:left;cursor:pointer}.agpa-library .agpa-browser-icon{width:16px;height:16px;object-fit:contain;flex-shrink:0}.agpa-library .agpa-browser-arrow{margin-left:auto}.agpa-library .agpa-browser-popup{box-sizing:border-box;position:fixed;inset:auto;margin:0;padding:5px;overflow:auto;border:1px solid var(--border,#444);border-radius:10px;background:var(--background,#171717);color:var(--foreground,#ddd);font:13px/1.5 system-ui,sans-serif;box-shadow:0 10px 30px #0007}.agpa-library .agpa-browser-option{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:6px;cursor:pointer}.agpa-library .agpa-browser-option:hover,.agpa-library .agpa-browser-option[data-active]{background:var(--secondary,#303030);color:var(--foreground,#eee)}.agpa-library .agpa-browser-check{margin-left:auto}.agpa-library .agpa-browser-trigger:focus-visible{outline:2px solid #398bdb;outline-offset:2px}
  .agpa-library-filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:0 28px 16px}.agpa-library-filters button{border:0;border-radius:20px;padding:6px 13px;color:var(--muted-foreground,#aaa);background:transparent}.agpa-library-filters button[aria-pressed=true]{color:var(--foreground,#eee);background:var(--secondary,#292929)}.agpa-library-count{margin-left:auto;color:var(--muted-foreground,#999);font-size:12px}
  .agpa-library-scroll{overflow:auto;flex:1;min-height:0;padding:4px 28px 25px}.agpa-library-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px}.agpa-library-card{position:relative;min-width:0;border:1px solid var(--border,#303030);border-radius:13px;overflow:hidden;background:var(--card,#1c1c1c)}.agpa-library-open{width:100%;text-align:left;border:0;color:inherit;background:transparent;padding:0;display:flex;flex-direction:column;height:100%}.agpa-library-thumbnail{height:145px;background:var(--secondary,#202226);display:flex;align-items:center;justify-content:center;color:var(--muted-foreground,#a6b4c9);overflow:hidden;width:100%}.agpa-library-thumbnail>svg{width:44px;height:44px;opacity:.85}.agpa-library-thumbnail img{width:100%;height:100%;object-fit:contain}.agpa-library-caption{padding:11px 12px;min-width:0;width:100%}.agpa-library-caption strong{font-weight:500;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.agpa-library-caption small{color:var(--muted-foreground,#999);display:block;margin-top:4px}.agpa-library-favorite{position:absolute;right:7px;top:7px;border:0;border-radius:50%;width:29px;height:29px;display:flex;align-items:center;justify-content:center;color:#bbb;background:#171717d9}.agpa-library-favorite[aria-pressed=true]{color:#ffd35b}.agpa-library-favorite[aria-pressed=true] svg{fill:#ffd35b}
  .agpa-library-empty{padding:60px 20px;text-align:center;color:var(--muted-foreground,#aaa)}.agpa-library-empty h2{color:var(--foreground,#eee);font-size:17px;font-weight:500}.agpa-library-notice{margin:0 28px 12px;color:var(--muted-foreground,#aaa);font-size:12px}.agpa-library-notice:empty{display:none}.agpa-library-more{display:block;margin:20px auto 0}.agpa-library-preview{position:absolute;inset:0;background:var(--background,#111);display:flex;flex-direction:column;z-index:2}.agpa-library-preview header{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--border,#333)}.agpa-library-preview header strong{font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.agpa-library-preview iframe{width:100%;flex:1;border:0;background:#17191d}.agpa-library-preview-status{padding:12px 22px;color:var(--muted-foreground,#aaa)}.agpa-lib-spinner{display:inline-block;width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:agpa-library-spin .8s linear infinite;margin-right:8px;vertical-align:middle}@keyframes agpa-library-spin{to{transform:rotate(360deg)}}
@@ -112,22 +117,22 @@
   }
   function bounds() {
     if (!panel || panel.hidden) return;
-    const toolbar = document.querySelector(
-        "[data-testid=pane-titlebar-toolbar]",
-      )?.parentElement,
-      sidebar = document
-        .querySelector("[data-testid=settings-button]")
-        ?.closest("[role=navigation]")?.parentElement?.parentElement,
+    const { brand, panel: sidebar } = globalThis.__AGPAPrimaryLayout(document),
       rail = document.querySelector("[data-agpa-rail]");
-    const top = toolbar?.getBoundingClientRect().bottom || 72,
-      left = Math.max(
-        sidebar?.hasAttribute("data-agpa-peek")
-          ? 0
-          : sidebar?.getBoundingClientRect().right || 0,
-        rail && !rail.hidden ? rail.getBoundingClientRect().right : 0,
-      );
+    const top = Math.max(
+      brand?.parentElement?.getBoundingClientRect().bottom || 0,
+      document
+        .querySelector("[data-testid=pane-titlebar-toolbar]")
+        ?.parentElement?.getBoundingClientRect().bottom || 75,
+    );
+    const railRight = rail?.getBoundingClientRect().right || 0;
+    const left = sidebar?.hasAttribute("data-agpa-hover-pane")
+      ? railRight
+      : Math.max(sidebar?.getBoundingClientRect().right || 0, railRight);
     panel.style.top = top + "px";
-    panel.style.left = left + "px";
+    panel.style.left = document.body.hasAttribute("data-agpa-layout-ready")
+      ? "var(--agpa-navigation-width)"
+      : left + "px";
   }
   function closePreview() {
     previewGeneration++;
@@ -141,6 +146,7 @@
   function close() {
     requestGeneration++;
     thumbnailQueue = [];
+    filterControl?.close();
     if (panel) panel.hidden = true;
     closePreview();
     button?.removeAttribute("aria-current");
@@ -523,9 +529,9 @@
         "aria-pressed",
         String(b.dataset.agpaLibraryFilter === filter),
       );
-    filterControl.value = ["all", "favorites"].includes(filter)
-      ? "all"
-      : filter;
+    filterControl.setValue(
+      ["all", "favorites"].includes(filter) ? "all" : filter,
+    );
   }
   async function refresh(force = false) {
     if (loading) return;
@@ -550,6 +556,59 @@
       loading = false;
       refreshButton.disabled = false;
       paint();
+    }
+  }
+  const fileTypes = [
+    ["all", "All file types"],
+    ["images", "Images"],
+    ["documents", "Documents"],
+    ["spreadsheets", "Spreadsheets"],
+    ["presentations", "Presentations"],
+    ["pdf", "PDFs"],
+    ["models", "3D models"],
+    ["interactive", "Interactive"],
+    ["media", "Audio and video"],
+  ];
+  function makeFilter() {
+    const icons = Object.fromEntries(
+      fileTypes.map(([id]) => [
+        id,
+        "data:image/svg+xml," +
+          encodeURIComponent(
+            icon(id === "all" ? "library" : id, 16)
+              .outerHTML.replace(
+                "<svg",
+                '<svg xmlns="http://www.w3.org/2000/svg"',
+              )
+              .replace('stroke="currentColor"', 'stroke="#aaa"'),
+          ),
+      ]),
+    );
+    return createPicker({
+      items: fileTypes.map(([id, key]) => ({ id, label: i18n.t(key) })),
+      value: ["all", "favorites"].includes(filter) ? "all" : filter,
+      icons,
+      label: i18n.t("File type"),
+      onChange: (value) => {
+        filter = value;
+        limit = 60;
+        paint();
+      },
+    });
+  }
+  const resizeObserver = new ResizeObserver(bounds);
+  function observeLayout() {
+    const next = globalThis.__AGPAPrimaryLayout(document).panel,
+      rail = document.querySelector("[data-agpa-rail]");
+    if (next !== observedPanel) {
+      if (observedPanel) resizeObserver.unobserve(observedPanel);
+      observedPanel = next;
+      if (next) resizeObserver.observe(next);
+    }
+    if (rail !== observedRail) {
+      if (observedRail) resizeObserver.unobserve(observedRail);
+      observedRail = rail;
+      if (rail) resizeObserver.observe(rail);
     }
   }
   function create() {
@@ -633,24 +692,7 @@
       };
       filters.append(b);
     }
-    filterControl = el("select", { "aria-label": "File type" });
-    for (const [value, key] of [
-      ["all", "All file types"],
-      ["images", "Images"],
-      ["documents", "Documents"],
-      ["spreadsheets", "Spreadsheets"],
-      ["presentations", "Presentations"],
-      ["pdf", "PDFs"],
-      ["models", "3D models"],
-      ["interactive", "Interactive"],
-      ["media", "Audio and video"],
-    ])
-      filterControl.append(el("option", { value, text: key }));
-    filterControl.onchange = () => {
-      filter = filterControl.value;
-      limit = 60;
-      paint();
-    };
+    filterControl = makeFilter();
     count = el("span", { class: "agpa-library-count" });
     filters.append(filterControl, count);
     grid = el("div", { class: "agpa-library-grid" });
@@ -719,6 +761,7 @@
   }
   function apply() {
     if (stopped) return;
+    observeLayout();
     const source = document.querySelector("[data-testid=automations-button]");
     if (source) {
       if (!button) {
@@ -780,6 +823,13 @@
         !panel.hidden &&
         !document.querySelector("dialog[open],[role=dialog]")
       ) {
+        const popup = panel.querySelector("[popover]:popover-open");
+        if (popup) {
+          e.preventDefault();
+          e.stopPropagation();
+          filterControl.close();
+          return;
+        }
         e.preventDefault();
         e.stopPropagation();
         viewer ? closePreview() : close();
@@ -788,6 +838,12 @@
     true,
   );
   const unsubscribe = i18n.subscribe(() => {
+    if (filterControl) {
+      filterControl.close();
+      const next = makeFilter();
+      filterControl.replaceWith(next);
+      filterControl = next;
+    }
     if (panel && !panel.hidden) paint();
   });
   globalThis.__AGLibrary = {
@@ -810,6 +866,8 @@
       stopped = true;
       requestGeneration++;
       observer.disconnect();
+      resizeObserver.disconnect();
+      filterControl?.close();
       unsubscribe();
       for (const fn of listeners) fn();
       for (const p of pending.values()) {

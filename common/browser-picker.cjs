@@ -55,7 +55,7 @@ function createBrowserPicker({items, value, icons, label, onChange}) {
   }
   function choose(index) {
     if (trigger.disabled) return;
-    selected = index;
+    root.setValue(items[index].id);
     close();
     trigger.focus();
     onChange(items[index].id);
@@ -76,6 +76,14 @@ function createBrowserPicker({items, value, icons, label, onChange}) {
   const name = document.createElement("span");name.textContent = items[selected].label;
   const arrow = document.createElement("span");arrow.textContent = "⌄";arrow.className = "agpa-browser-arrow";arrow.setAttribute("aria-hidden", "true");
   trigger.append(icon(items[selected].id), name, arrow);
+  root.setValue = value => {
+    if(root.value===value)return;
+    const index=items.findIndex(item=>item.id===value);if(index<0)return;
+    selected=index;name.textContent=items[index].label;trigger.replaceChildren(icon(items[index].id),name,arrow);root.value=items[index].id;
+    rows.forEach((row,i)=>{row.setAttribute('aria-selected',String(i===selected));row.children[2].textContent=i===selected?'✓':'';});
+  };
+  root.value=items[selected].id;
+  root.close=close;
   trigger.addEventListener("click", () => list.matches(":popover-open") ? close() : open());
   list.addEventListener("toggle", event => {
     trigger.setAttribute("aria-expanded", String(event.newState === "open"));

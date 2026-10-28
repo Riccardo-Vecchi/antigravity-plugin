@@ -115,7 +115,8 @@
     "assets/viewers/LICENSES.txt",
     "docs/LIBRARY.md",
     "docs/images/library.png",
-    "docs/images/document-preview.png"
+    "docs/images/document-preview.png",
+    "common/sidebar-layout.cjs"
   ],
   "linux": [
     "linux/desktop.cjs",
