@@ -23,3 +23,7 @@ test('Windows path relocation handles escaped JSON, Unicode, case differences an
  const file=JSON.stringify({path:old.configDir+'\\companion\\browser-host.cmd',args:[old.installDir.toLowerCase()+'\\common\\browser-host.cjs'],unchanged:'keep'});
  const result=remapValue(JSON.parse(file),old,next);assert.equal(result.path,next.configDir+'\\companion\\browser-host.cmd');assert.equal(result.args[0],next.installDir+'\\common\\browser-host.cjs');assert.equal(result.unchanged,'keep');
 });
+test('desktop leases can be paused for Windows file moves without losing the original enabled choice',async t=>{
+ const f=await fixture(t),{pauseDesktop,resumeDesktop}=require('../common/migration.cjs'),file=path.join(f.old.configDir,'computer-use/state.json'),before=await fs.readFile(file);
+ const paused=await pauseDesktop(f.old,f.next);assert.equal(JSON.parse(await fs.readFile(file)).enabled,false);await fs.mkdir(path.join(f.next.configDir,'computer-use'),{recursive:true});await fs.rename(file,path.join(f.next.configDir,'computer-use/state.json'));await resumeDesktop(paused,f.old,f.next,true);assert.deepEqual(await fs.readFile(path.join(f.next.configDir,'computer-use/state.json')),before);
+});

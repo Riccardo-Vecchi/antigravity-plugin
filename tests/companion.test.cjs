@@ -122,6 +122,7 @@ test("private broker routes only shared tabs, revokes profiles and preserves unr
       .elements[0].name,
     "lab",
   );
+  assert.equal((await broker.snapshot()).browser.connections[0].scope,null);
   await broker.perform("disconnectProfile", id);
   assert.equal((await broker.snapshot()).browser.connections.length, 0);
   await broker.perform("disableBrowser", true);

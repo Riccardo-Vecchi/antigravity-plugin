@@ -179,7 +179,7 @@
     if(b.connections.length){
       content.push(node("h3",{text:"Connected browsers"}));
       for(const c of b.connections){
-        const profile=node("div",{class:"agpa-comp-profile"},text("✓","passed"),node("div",{},text(c.label),text(t("{count} shared tabs",{count:c.tabs}),"agpa-comp-muted"),node("span",{class:"agpa-comp-muted",text:c.scope==="profile"?"All tabs in this profile":"Selected tabs"})));
+        const profile=node("div",{class:"agpa-comp-profile"},text("✓","passed"),node("div",{},text(c.label),text(t("{count} shared tabs",{count:c.tabs}),"agpa-comp-muted"),node("span",{class:"agpa-comp-muted",text:c.scope==="profile"?"All tabs in this profile":c.scope==="tabs"?"Selected tabs":"Access is managed in the extension."})));
         const menu=node("details",{class:"agpa-comp-profile-menu"},node("summary",{text:"Manage"}),button("Disconnect",()=>act("disconnectProfile",c.id),"danger"));profile.append(menu);content.push(profile);
       }
     }

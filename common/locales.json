@@ -339,7 +339,8 @@
       "Not connected": "Not connected",
       "Profile name": "Profile name",
       "Reconnect": "Reconnect",
-      "Tab {id}": "Tab {id}"
+      "Tab {id}": "Tab {id}",
+      "Access is managed in the extension.": "Access is managed in the extension."
     },
     "icons": {
       "folder": "Folder",
@@ -732,7 +733,8 @@
       "Not connected": "Non connesso",
       "Profile name": "Nome del profilo",
       "Reconnect": "Riconnetti",
-      "Tab {id}": "Scheda {id}"
+      "Tab {id}": "Scheda {id}",
+      "Access is managed in the extension.": "L’accesso si gestisce nell’estensione."
     },
     "icons": {
       "folder": "Cartella",
@@ -1125,7 +1127,8 @@
       "Not connected": "Nicht verbunden",
       "Profile name": "Profilname",
       "Reconnect": "Neu verbinden",
-      "Tab {id}": "Tab {id}"
+      "Tab {id}": "Tab {id}",
+      "Access is managed in the extension.": "Der Zugriff wird in der Erweiterung verwaltet."
     },
     "icons": {
       "folder": "Ordner",
@@ -1518,7 +1521,8 @@
       "Not connected": "Sin conexión",
       "Profile name": "Nombre del perfil",
       "Reconnect": "Reconectar",
-      "Tab {id}": "Pestaña {id}"
+      "Tab {id}": "Pestaña {id}",
+      "Access is managed in the extension.": "El acceso se gestiona en la extensión."
     },
     "icons": {
       "folder": "Carpeta",
@@ -1911,7 +1915,8 @@
       "Not connected": "Non connecté",
       "Profile name": "Nom du profil",
       "Reconnect": "Reconnecter",
-      "Tab {id}": "Onglet {id}"
+      "Tab {id}": "Onglet {id}",
+      "Access is managed in the extension.": "L’accès est géré dans l’extension."
     },
     "icons": {
       "folder": "Dossier",
@@ -2304,7 +2309,8 @@
       "Not connected": "未连接",
       "Profile name": "配置名称",
       "Reconnect": "重新连接",
-      "Tab {id}": "标签页 {id}"
+      "Tab {id}": "标签页 {id}",
+      "Access is managed in the extension.": "在扩展程序中管理访问范围。"
     },
     "icons": {
       "folder": "文件夹",
@@ -2697,7 +2703,8 @@
       "Not connected": "未接続",
       "Profile name": "プロファイル名",
       "Reconnect": "再接続",
-      "Tab {id}": "タブ {id}"
+      "Tab {id}": "タブ {id}",
+      "Access is managed in the extension.": "アクセス範囲は拡張機能で管理します。"
     },
     "icons": {
       "folder": "フォルダー",

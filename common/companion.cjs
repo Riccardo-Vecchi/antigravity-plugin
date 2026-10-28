@@ -105,7 +105,7 @@ async function createCompanion({
           label: c.label,
           tabs: c.tabs.length,
           connectedAt: c.connectedAt,
-          scope:c.scope||"tabs",
+          scope:c.scope||null,
         })),
       },
     };
@@ -122,7 +122,7 @@ async function createCompanion({
         connection: id,
         label: c.label,
         tabs: c.tabs.length,
-        scope:c.scope||"tabs",
+        scope:c.scope||null,
       }));
     const c = connections.get(args.connection);
     if (!c) throw Error("Browser disconnected. Reconnect the extension.");
@@ -228,7 +228,7 @@ async function createCompanion({
                 m.value.length > 2000
               )
                 throw Error("Invalid shared tabs.");
-              c.scope=m.scope === "profile"?"profile":"tabs";
+              c.scope=["profile","tabs"].includes(m.scope)?m.scope:null;
               c.tabs = m.value.map((t) => {
                 const url = new URL(t.url);
                 if (

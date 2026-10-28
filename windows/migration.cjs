@@ -35,6 +35,7 @@ function lifecycle({old,next,env}){
    const root=action==='start'?next.installDir:old.installDir,environment=action==='start'?clean:oldEnv;startedAt=Date.now();
    const c=spawn(process.execPath,[path.join(root,'windows/launcher.cjs'),'--watch'],{env:environment,detached:true,stdio:'ignore',windowsHide:true});await new Promise((r,j)=>{c.once('spawn',r);c.once('error',j);});c.unref();
   }
+  if(action==='quiesce')return new Promise(r=>setTimeout(r,4000));
   if(action==='health'){for(let i=0;i<60;i++){try{const h=JSON.parse(await fs.readFile(path.join(next.configDir,'updates/runtime.json'),'utf8'));if(h.ready&&h.at>=startedAt&&h.version===VERSION)return;}catch{}await new Promise(r=>setTimeout(r,250));}throw Error('Migrated Windows helper did not become ready.');}
   if(action==='restore'){const root=await fs.stat(next.installDir).then(()=>next.installDir).catch(()=>old.installDir);return run(process.execPath,[path.join(root,'common/prepare-reload.cjs'),'--restore'],{env:clean,windowsHide:true,timeout:12000});}
  };

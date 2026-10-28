@@ -77,25 +77,35 @@ async function rewrite(old,next,tx,{home=os.homedir(),platform=process.platform,
  await adapter.rewrite({old,next,home,env,change,remap,plain});
  return change;
 }
+async function pauseDesktop(old,next){
+ const paused=new Map();
+ for(const root of [old.configDir,next.configDir]){const file=path.join(root,'computer-use/state.json'),bytes=await plain(file);if(!bytes)continue;const state=JSON.parse(bytes.toString().trim());if(state.enabled===true){paused.set(file,bytes);await write(file,JSON.stringify({...state,enabled:false})+'\n');}}
+ return paused;
+}
+async function resumeDesktop(paused,old,next,success){
+ if(success){const original=paused.get(path.join(old.configDir,'computer-use/state.json'));if(original)await write(path.join(next.configDir,'computer-use/state.json'),original);}
+ else for(const [file,bytes]of paused)await write(file,bytes);
+}
 async function migrateUnlocked({home=os.homedir(),platform=process.platform,env=process.env,lifecycle,prepareOnly=false}={}){
  const options={home,platform,env},old=getLegacyPaths(options),next=getCanonicalPaths(options);
  if(!await stat(old.installDir)&&!await stat(old.configDir))return {migrated:false,...next};
  // Preflight both trees before stopping the helper or changing any data.
  for(const key of ['installDir','configDir'])for(const item of await inventory(old[key])){await safeDestination(next[key],path.join(next[key],item.name));const dest=await stat(path.join(next[key],item.name));if(dest&&(!dest.isFile()||dest.isSymbolicLink()||hash(await fs.readFile(path.join(next[key],item.name)))!==item.hash))throw Error('Conflicting migration destination: '+item.name);}
- const tx={moves:[],changes:[]};let stopped=false;
+ const tx={moves:[],changes:[]};let stopped=false,pausedDesktop=new Map();
  const adapter=require(platform==='win32'?'../windows/migration.cjs':'../linux/migration.cjs');
  lifecycle ||= adapter.lifecycle({old,next,home,env});
  try{
   await lifecycle('preserve');await lifecycle('stop');stopped=true;
+  if(platform==='win32'){pausedDesktop=await pauseDesktop(old,next);if(pausedDesktop.size)await lifecycle('quiesce');}
   // All source files are hashed again after the old helper has stopped writing.
-  const moved=await moveTrees(old,next,tx);await rewrite(old,next,tx,options);
+  const moved=await moveTrees(old,next,tx);await rewrite(old,next,tx,options);await resumeDesktop(pausedDesktop,old,next,true);
   if(!prepareOnly){await lifecycle('start');await lifecycle('health');}
   await trim(old.installDir);await trim(old.configDir);
   const result={schema:1,migrated:true,at:Date.now(),verifiedFiles:moved.plans.length};
   await write(path.join(next.configDir,'migration.json'),JSON.stringify(result)+'\n');
   if(!prepareOnly){await lifecycle('finalize');await lifecycle('restore');}return {...result,...next};
  }catch(error){
-  if(stopped){await lifecycle('stopNew').catch(()=>{});await rollback(tx);await lifecycle('rollback').catch(()=>{});await lifecycle('restore').catch(()=>{});}
+  if(stopped){await lifecycle('stopNew').catch(()=>{});if(platform==='win32'&&pausedDesktop.size){await pauseDesktop(old,next);await lifecycle('quiesce');}await rollback(tx);await resumeDesktop(pausedDesktop,old,next,false);await lifecycle('rollback').catch(()=>{});await lifecycle('restore').catch(()=>{});}
   throw error;
  }
 }
@@ -112,7 +122,7 @@ async function migrate(options={}){
 async function defer(){
  const env={...process.env};delete env.AGPA_LEGACY_RUNTIME;
  if(process.platform==='linux')await run('systemd-run',['--user','--unit=antigravity-plugin-migration','--collect','--quiet','--property=Type=exec',...['AGPA_APP_PROFILE','AGPA_APPIMAGE','AGPA_DESKTOP_FILE'].filter(k=>env[k]).map(k=>'--setenv='+k+'='+env[k]),process.execPath,path.join(__dirname,'migration.cjs'),'--deferred'],{env,timeout:10000});
- else {const c=spawn(process.execPath,[path.join(__dirname,'migration.cjs'),'--deferred'],{env:{...env,ELECTRON_RUN_AS_NODE:'1'},detached:true,stdio:'ignore',windowsHide:true});await new Promise((r,j)=>{c.once('spawn',r);c.once('error',j);});c.unref();}
+ else {const c=spawn(process.execPath,[path.join(__dirname,'migration.cjs'),'--deferred'],{env:{...env,ELECTRON_RUN_AS_NODE:'1'},detached:true,stdio:'ignore',windowsHide:true,cwd:os.tmpdir()});await new Promise((r,j)=>{c.once('spawn',r);c.once('error',j);});c.unref();}
 }
 async function waitForUpdater({old=getLegacyPaths(),pause=ms=>new Promise(r=>setTimeout(r,ms)),attempts=120}={}){const dir=path.join(old.configDir,'updates');for(let n=0;n<attempts;n++){
  const locked=await stat(path.join(dir,'install.lock'));let running=false;
@@ -121,4 +131,4 @@ async function waitForUpdater({old=getLegacyPaths(),pause=ms=>new Promise(r=>set
  await pause(1000);
  }throw Error('Finish the active plugin update before migrating.');}
 if(require.main===module)(async()=>{delete process.env.AGPA_LEGACY_RUNTIME;if(process.argv.includes('--finish')){const old=getLegacyPaths(),next=getCanonicalPaths();const adapter=require(process.platform==='win32'?'../windows/migration.cjs':'../linux/migration.cjs');const lifecycle=adapter.lifecycle({old,next,home:os.homedir(),env:process.env});await lifecycle('health');await lifecycle('finalize');await lifecycle('restore');return;}if(process.argv.includes('--deferred'))await waitForUpdater();const result=await migrate({prepareOnly:process.argv.includes('--prepare')});console.log(JSON.stringify(result));})().catch(e=>{console.error('Plugin migration stopped safely: '+e.message);process.exitCode=1;});
-module.exports={migrate,inventory,moveTrees,rollback,remap,remapValue,rewrite,trim,defer,waitForUpdater};
+module.exports={migrate,inventory,moveTrees,rollback,remap,remapValue,rewrite,pauseDesktop,resumeDesktop,trim,defer,waitForUpdater};
