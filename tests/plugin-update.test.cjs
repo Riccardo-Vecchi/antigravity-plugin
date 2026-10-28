@@ -20,12 +20,22 @@ async function fixture(t) {
     const output = await fs.mkdtemp(
       path.join(os.tmpdir(), "agpa-update-build-"),
     );
-    await build(root, output);
+    let sourceRoot=root;
+    const current=require('../common/versions.cjs').suite;
+    if(core.version(current).preview){
+      sourceRoot=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-update-source-'));
+      test.after(()=>fs.rm(sourceRoot,{recursive:true,force:true}));
+      const manifest=require('../common/distribution.json');
+      for(const name of new Set([...manifest.common,...manifest.linux,...manifest.windows])){const target=path.join(sourceRoot,name);await fs.mkdir(path.dirname(target),{recursive:true});await fs.copyFile(path.join(root,name),target);}
+      const versions=await fs.readFile(path.join(sourceRoot,'common/versions.cjs'),'utf8');
+      await fs.writeFile(path.join(sourceRoot,'common/versions.cjs'),versions.replace(/suite\s*:\s*['"][^'"]+['"]/,'suite:'+JSON.stringify(current.split('-')[0])));
+    }
+    await build(sourceRoot, output);
     const metadata = JSON.parse(
       await fs.readFile(path.join(output, "plugin-update.json")),
     );
     packages = {
-      metadata,
+      metadata,sourceRoot,
       compressed: await fs.readFile(
         path.join(output, metadata.packages.linux.name),
       ),
@@ -92,7 +102,7 @@ test("semantic versions never downgrade or accept arbitrary tag syntax", () => {
 test("packaging is deterministic, platform-specific and contains no local state", async (t) => {
   const f = await fixture(t),
     dir = await folder(t);
-  await build(root, dir);
+  await build(f.sourceRoot, dir);
   assert.deepEqual(
     await fs.readFile(path.join(dir, f.metadata.packages.linux.name)),
     f.compressed,
