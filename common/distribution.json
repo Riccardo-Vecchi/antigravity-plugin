@@ -92,7 +92,15 @@
     "common/header-placement.js",
     "common/browser-extension.cjs",
     "common/migration.cjs",
-    "common/browser-setup.cjs"
+    "common/browser-setup.cjs",
+    "common/browser-picker.cjs",
+    "assets/browsers/brave.png",
+    "assets/browsers/chrome.png",
+    "assets/browsers/chromium.png",
+    "assets/browsers/edge.png",
+    "assets/browsers/opera.png",
+    "assets/browsers/vivaldi.png",
+    "assets/browsers/CHROMIUM-LICENSE.txt"
   ],
   "linux": [
     "linux/desktop.cjs",

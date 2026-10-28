@@ -13,3 +13,20 @@ Downloaded on 26 October 2026. The Antigravity SVG used in the README has only i
 `assets/logos/windows.svg` is a minimal four-pane platform indicator drawn for this repository to identify Windows; the Windows name and platform mark belong to Microsoft.
 
 The extension assets in `common/browser-extension/assets/` use the official Antigravity favicon SVG above with its background circle removed, as in the README. The PNG sizes are rendered from this SVG; these are Google brand assets, not original plugin artwork.
+
+## Browser picker icons
+
+Bundled on 28 October 2026 under `assets/browsers/`, without visual modifications. They identify installed browsers and are loaded locally; the picker makes no requests to these hosts. Browser marks remain the property of their respective owners and are excluded from the plugin's 0BSD license.
+
+| Browser | Official asset source |
+| --- | --- |
+| Brave | https://brave.com/static-assets/images/cropped-brave_appicon_release-192x192.png |
+| Chrome | https://www.google.com/chrome/static/images/favicons/android-icon-192x192.png |
+| Chromium | https://raw.githubusercontent.com/chromium/chromium/main/chrome/app/theme/chromium/product_logo_64.png |
+| Edge | https://edgestatic.azureedge.net/welcome/static/favicon.png |
+| Opera | https://cdn-production-opera-website.operacdn.com/staticfiles/assets/images/favicon/opera/apple-touch-icon-180x180.91bbceaeaa8a.png |
+| Vivaldi | https://vivaldi.com/wp-content/uploads/cropped-favicon-192x192.png |
+
+Vivaldi image credit: **Vivaldi Technologies**, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), as stated on its [Press & Media page](https://vivaldi.com/press/). Logos remain subject to trademark restrictions.
+
+The Chromium source-tree license is retained in `assets/browsers/CHROMIUM-LICENSE.txt` from https://raw.githubusercontent.com/chromium/chromium/main/LICENSE.

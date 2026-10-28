@@ -4,7 +4,7 @@ Browser use connects **the native Antigravity agent** to tabs you share individu
 
 ## ⚙️ Three-step setup
 
-Open **Settings → Browser use**. The guide detects supported installed browsers and advances as the connection becomes ready:
+Open **Settings → Browser use**. The guide detects supported installed browsers and advances as the connection becomes ready. The browser picker shows official browser icons beside each name and the selected value; it supports arrow keys, Home/End, typing, Enter and Escape. Icons are bundled locally:
 
 1. **Connect:** choose your browser and click **Connect browser**. No tabs are shared at this stage.
 2. **Add extension:** click **Copy folder and open Extensions**. On the browser page, enable **Developer mode**, choose **Load unpacked**, then paste the folder path already copied for you. This is a one-time browser requirement for unpacked extensions; the plugin does not change browser policies or restart an existing profile.

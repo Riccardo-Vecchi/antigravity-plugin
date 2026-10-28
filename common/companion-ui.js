@@ -1,13 +1,15 @@
 /* Optional browser connections. No access from the Gemini guest. */
 (() => {
   "use strict";
-  const VERSION = "1.3.2";
+  const VERSION = "1.3.3";
   if (globalThis.__AGCompanion?.version === VERSION) return;
   globalThis.__AGCompanion?.destroy();
   const i18n = globalThis.__AGPAI18n,
     pending = new Map();
   const phaseFor=globalThis.__AGPABrowserSetupState;
   delete globalThis.__AGPABrowserSetupState;
+  const createBrowserPicker=globalThis.__AGPABrowserPicker, browserIcons=globalThis.__AGPA_BROWSER_ICONS__;
+  delete globalThis.__AGPABrowserPicker;delete globalThis.__AGPA_BROWSER_ICONS__;
   let browserSignature = "",selectedBrowser="",notice="",loaded=false;
   try{selectedBrowser=localStorage.getItem("agpa.browser.setupTarget")||"";}catch{}
   let state = {browser: {connections: []}}, destroyed = false, busy = false,
@@ -151,10 +153,10 @@
     hero.append(node("h3",{text:b.needsReload?"Update Antigravity Browser":titles[phase]}),node("p",{text:b.needsReload?"Reload the extension to use the latest sharing controls.":descriptions[phase]}));content.push(hero);
     const actions=node("div",{class:"agpa-comp-actions"});
     if(phase==="prepare"||phase==="install"){
-      const picker=node("select",{"aria-label":"Your browser"});
-      for(const item of [...available,{id:"other",label:t("Other Chromium browser")}]){const option=document.createElement("option");option.value=item.id;option.textContent=item.label;option.selected=item.id===selectedBrowser;picker.append(option);}
-      picker.onchange=()=>{selectedBrowser=picker.value;notice="";try{localStorage.setItem("agpa.browser.setupTarget",selectedBrowser);}catch{}render();};
-      content.push(node("label",{class:"agpa-comp-browser-choice"},node("span",{text:"Your browser"}),picker));
+      const picker=createBrowserPicker({items:[...available,{id:"other",label:t("Other Chromium browser")}],value:selectedBrowser,icons:browserIcons,label:t("Your browser"),onChange(value){
+        selectedBrowser=value;notice="";try{localStorage.setItem("agpa.browser.setupTarget",selectedBrowser);}catch{}render();
+      }});
+      content.push(node("div",{class:"agpa-comp-browser-choice"},node("span",{text:"Your browser"}),picker));
     }
     if(phase==="prepare"){
       actions.append(button(busy?"Connecting…":"Connect browser",()=>act("setupBrowser"),"primary"));content.push(actions);
@@ -192,9 +194,9 @@
     advanced.append(checks,node("p",{class:"agpa-comp-muted",text:"Available to the native Antigravity agent. The embedded Gemini website does not receive these tools."}),node("p",{class:"agpa-comp-muted",text:"If the agent cannot see the tools, start a new conversation."}));
     const tools=node("div",{class:"agpa-comp-actions"},button("Refresh status",refresh));
     if(b.enabled)tools.append(button("Repair browser connection",()=>act("setupBrowser")),button("Turn off Browser use",()=>act("disableBrowser"),"danger"));advanced.append(tools);content.push(advanced);
-    const focus=document.activeElement,wasPath=focus===browserSection.querySelector("input"),wasPicker=focus===browserSection.querySelector("select");
+    const focus=document.activeElement,wasPath=focus===browserSection.querySelector("input"),wasPicker=focus===browserSection.querySelector("[data-agpa-browser-trigger]"),pickerOpen=browserSection.querySelector("[data-agpa-browser-trigger]")?.getAttribute("aria-expanded")==="true";
     const expanded=browserSection.querySelector('.agpa-comp-advanced')?.open;if(expanded)advanced.open=true;
-    browserSection.replaceChildren(...content);if(wasPath)browserSection.querySelector("input")?.focus();if(wasPicker)browserSection.querySelector("select")?.focus();
+    browserSection.replaceChildren(...content);if(wasPath)browserSection.querySelector("input")?.focus();if(wasPicker){const trigger=browserSection.querySelector("[data-agpa-browser-trigger]");trigger?.focus();if(pickerOpen)trigger?.click();}
   }
   function render() {
     if (destroyed) return;
@@ -216,6 +218,7 @@
           "button,select,input[type=checkbox]",
         ))
           b.disabled = busy;
+        if(busy)for(const popup of section.querySelectorAll(".agpa-browser-popup:popover-open"))popup.hidePopover();
         section.setAttribute("aria-busy", String(busy));
       }
   }
@@ -223,7 +226,7 @@
   style.textContent = `
  .agpa-comp-section{display:flex;flex-direction:column;gap:16px;font-size:13px;color:var(--foreground,#ddd)}.agpa-comp-section h3{font-size:14px;font-weight:500;margin:0}.agpa-comp-section p{margin:0;line-height:1.6}.agpa-comp-heading{display:grid;gap:9px}.agpa-comp-heading p,.agpa-comp-muted{color:var(--secondary-foreground,#999)}.agpa-comp-button,.agpa-comp-section select{font:inherit;color:inherit;border:1px solid #383838;background:transparent;border-radius:8px;padding:7px 11px;cursor:pointer}.agpa-comp-button.primary{color:#111;background:#eee;border-color:#eee}.agpa-comp-button.danger{color:#ff9696;border-color:#6b3434}.agpa-comp-button:disabled,.agpa-comp-section select:disabled{opacity:.45;cursor:default}.agpa-comp-button:focus-visible,.agpa-comp-section select:focus-visible{outline:2px solid #3a9cff;outline-offset:2px}.agpa-comp-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.agpa-comp-actions label{display:flex;align-items:center;gap:8px}.agpa-comp-guide{display:grid}.agpa-comp-guide summary{cursor:pointer;padding:5px 0 10px}.agpa-comp-guide[open]>.agpa-comp-path{margin-top:12px}.agpa-comp-steps{margin:0;padding-left:20px;line-height:1.7;list-style:decimal}.agpa-comp-path{display:flex;gap:8px}.agpa-comp-path input{font:12px monospace;min-width:0;flex:1;color:inherit;border:1px solid #363636;border-radius:7px;background:#191919;padding:8px}.agpa-comp-checks{list-style:none;margin:0;padding:0;border:1px solid #292929;border-radius:10px;padding:8px 13px}.agpa-comp-check{display:flex;gap:12px;padding:8px 0}.agpa-comp-check>:last-child{margin-left:auto;font-size:11px}.agpa-comp-section .passed{color:#45cb90}.agpa-comp-section .pending{color:#e8b457}.agpa-comp-profile{display:flex;align-items:center;gap:10px;border:1px solid #303030;border-radius:8px;padding:10px}.agpa-comp-profile>div{display:grid;gap:5px;flex:1}.agpa-comp-profile>div>span{display:block}.agpa-comp-profile-menu{margin-left:auto}.agpa-comp-profile-menu summary{cursor:pointer;font-size:12px}.agpa-comp-notice{border:1px solid #303030;border-radius:9px;padding:12px;line-height:1.6;display:grid;gap:6px}.agpa-comp-error{color:#ff9696}`;
   style.textContent+=`
- .agpa-comp-progress{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.agpa-comp-progress li{display:flex;gap:7px;align-items:center;color:var(--secondary-foreground,#999);font-size:12px}.agpa-comp-progress li>span:first-child{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border:1px solid #444;border-radius:50%;flex-shrink:0}.agpa-comp-progress [data-state=done]{color:#59ca94}.agpa-comp-progress [data-state=current]{color:var(--foreground,#ddd)}.agpa-comp-progress [data-state=current]>span:first-child{border-color:#6eafff;background:#6eafff18}.agpa-comp-hero{display:grid;gap:8px;padding-top:8px}.agpa-comp-hero h3{font-size:17px}.agpa-comp-hero[data-ready=true] h3{color:#59ca94}.agpa-comp-hero p{color:var(--secondary-foreground,#999)}.agpa-comp-browser-choice{display:flex;align-items:center;gap:18px}.agpa-comp-browser-choice select{margin-left:auto;min-width:170px;background:var(--background,#171717)}.agpa-comp-access{display:grid;grid-template-columns:1fr 1fr;gap:12px}.agpa-comp-access>div,.agpa-comp-example{border:1px solid var(--border,#333);border-radius:10px;padding:16px;display:grid;gap:10px}.agpa-comp-example button{justify-self:start}.agpa-comp-help,.agpa-comp-advanced{font-size:12px}.agpa-comp-help summary,.agpa-comp-advanced summary{cursor:pointer;color:var(--secondary-foreground,#999)}.agpa-comp-help[open]>p{margin-top:12px}.agpa-comp-advanced{border-top:1px solid var(--border,#333);padding-top:16px}.agpa-comp-advanced[open]>*:not(summary){margin-top:14px}@media(max-width:600px){.agpa-comp-access{grid-template-columns:1fr}.agpa-comp-progress li{flex-direction:column;text-align:center}}
+ .agpa-comp-progress{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.agpa-comp-progress li{display:flex;gap:7px;align-items:center;color:var(--secondary-foreground,#999);font-size:12px}.agpa-comp-progress li>span:first-child{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border:1px solid #444;border-radius:50%;flex-shrink:0}.agpa-comp-progress [data-state=done]{color:#59ca94}.agpa-comp-progress [data-state=current]{color:var(--foreground,#ddd)}.agpa-comp-progress [data-state=current]>span:first-child{border-color:#6eafff;background:#6eafff18}.agpa-comp-hero{display:grid;gap:8px;padding-top:8px}.agpa-comp-hero h3{font-size:17px}.agpa-comp-hero[data-ready=true] h3{color:#59ca94}.agpa-comp-hero p{color:var(--secondary-foreground,#999)}.agpa-comp-browser-choice{display:flex;align-items:center;gap:18px}.agpa-browser-picker{margin-left:auto}.agpa-browser-trigger{display:flex;align-items:center;gap:10px;min-width:210px;text-align:left;background:var(--background,#171717)}.agpa-browser-arrow{margin-left:auto}.agpa-browser-icon{display:inline-block;width:20px;height:20px;object-fit:contain;flex-shrink:0;text-align:center;line-height:20px}.agpa-browser-popup{box-sizing:border-box;position:fixed;inset:auto;margin:0;padding:5px;overflow:auto;border:1px solid var(--border,#444);border-radius:9px;background:var(--background,#171717);color:var(--foreground,#ddd);font-family:inherit;font-size:13px;box-shadow:0 8px 24px #0006}.agpa-browser-option{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 9px;border-radius:5px;cursor:pointer;font:inherit}.agpa-browser-option:hover,.agpa-browser-option[data-active]{background:var(--secondary,#303030)}.agpa-browser-check{margin-left:auto;font-size:12px}.agpa-browser-trigger:focus-visible{outline:2px solid #3a9cff;outline-offset:2px}.agpa-comp-access{display:grid;grid-template-columns:1fr 1fr;gap:12px}.agpa-comp-access>div,.agpa-comp-example{border:1px solid var(--border,#333);border-radius:10px;padding:16px;display:grid;gap:10px}.agpa-comp-example button{justify-self:start}.agpa-comp-help,.agpa-comp-advanced{font-size:12px}.agpa-comp-help summary,.agpa-comp-advanced summary{cursor:pointer;color:var(--secondary-foreground,#999)}.agpa-comp-help[open]>p{margin-top:12px}.agpa-comp-advanced{border-top:1px solid var(--border,#333);padding-top:16px}.agpa-comp-advanced[open]>*:not(summary){margin-top:14px}@media(max-width:600px){.agpa-comp-access{grid-template-columns:1fr}.agpa-comp-progress li{flex-direction:column;text-align:center}}
  `;
   document.head.append(style);
   function onPage() {

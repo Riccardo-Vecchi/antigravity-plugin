@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.1
+
+- Show official Brave, Chrome, Edge, Vivaldi, Opera and Chromium icons next to detected browser names, including the selected value and open menu.
+- Use an accessible keyboard-operable browser picker with offline bundled icons and a neutral fallback for other Chromium browsers.
+
 ## 1.6.0
 
 - Hide all Computer use configuration and diagnostics while disabled, keeping its activation switch, summary and actionable errors. Preserve saved access when re-enabled.
