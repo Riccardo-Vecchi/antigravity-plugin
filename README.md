@@ -28,8 +28,8 @@
 ## ✨ Features
 
 - Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
-- Guided **Browser use** setup with browser detection, one-click folder copy/open, selected tabs or whole-profile web-tab sharing and existing logins. [Setup](docs/BROWSER_USE.md).
-- Optional **computer use** with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
+- Optional **Computer Use** with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
+- **Browser use** with browser detection, one-click folder copy/open, selected tabs or whole-profile web-tab sharing and existing logins. [Setup](docs/BROWSER_USE.md).
 - Model favorites and visibility controls, with Anthropic/Google/OpenAI logos in the menu and selected model. Native model availability and selection stay in Antigravity.
 - Color-coded approval presets, including the selected mode.
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
