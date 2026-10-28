@@ -24,6 +24,11 @@ const UPDATE_SETTINGS=fs.readFileSync(path.join(BASE,'plugin-update-settings.js'
 let pluginUpdate;
 const APP_SETTINGS=fs.readFileSync(path.join(BASE,'app-settings.js'),'utf8');
 const MODEL_UI=fs.readFileSync(path.join(BASE,'model-ui.js'),'utf8');
+const LIBRARY_UI=fs.readFileSync(path.join(BASE,'library-ui.js'),'utf8');
+const WORKSPACE_UI=fs.readFileSync(path.join(BASE,'workspace-ui.js'),'utf8');
+const VIEWER_BUNDLE=fs.readFileSync(path.join(BASE,'..','assets','viewers','viewers.js'),'utf8');
+const library=require('./library.cjs').createLibrary();
+const workspacePreferences=require('./workspace-preferences.cjs').createStore(path.join(CONFIG_DIR,'workspace.json'));
 const modelRules=require('./model-preferences.cjs');
 const modelPreferences=modelRules.createStore(path.join(CONFIG_DIR,'models.json'));
 const LAB_ICONS=Object.fromEntries(['anthropic','google','openai'].map(id=>[id,'data:image/png;base64,'+fs.readFileSync(path.join(BASE,'..','assets','labs',id+'.png')).toString('base64')]));
@@ -48,6 +53,7 @@ const TRANSLATIONS=JSON.parse(fs.readFileSync(path.join(BASE,'locales.json'),'ut
 const WINDOW_CHROME=fs.readFileSync(path.join(BASE,'window-chrome.css'),'utf8');
 const desktopIcon=require('./desktop-icon.cjs');
 const SWITCH_ASSETS=JSON.parse(fs.readFileSync(path.join(BASE,'switch-assets.json'),'utf8'));
+const BRAND_ICON='data:image/svg+xml;base64,'+Buffer.from(fs.readFileSync(path.join(BASE,'..','assets','logos','antigravity.svg'),'utf8').replace('viewBox="0 0 136 136"','viewBox="20 24 96 88"').replace('width="120" height="120"','width="24" height="24"'),'utf8').toString('base64');
 const APP_ICON_ASSETS={antigravity:'data:image/png;base64,'+fs.readFileSync(iconPath('antigravity.png')).toString('base64'),gemini:SWITCH_ASSETS.gemini};
 const versions=require('./versions.cjs');
 const VERSION=versions.suite;
@@ -117,6 +123,7 @@ class Client{
    if(m.method==='Runtime.executionContextDestroyed')this.contexts.delete(m.params.executionContextId);
    if(m.method==='Runtime.executionContextsCleared')this.contexts.clear();
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaModelPreferences')this.onModels(m.params).catch(()=>log('Model preference rejected.'));
+   if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaLibrary')this.onLibrary(m.params).catch(()=>log('Library request rejected.'));
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaPersist')this.onBinding(m.params).catch(e=>log(`Save request rejected: ${e.message}`));
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaPluginUpdate')this.onPluginUpdate(m.params).catch(()=>log('Plugin update request rejected.'));
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaAppSettings')this.onAppSettings(m.params).catch(e=>log(`Application preference rejected: ${e.message}`));
@@ -129,6 +136,7 @@ class Client{
   await this.call('Runtime.enable');
   await this.call('Runtime.addBinding',{name:'__agpaPersist'});
   await this.call('Runtime.addBinding',{name:'__agpaModelPreferences'});
+  await this.call('Runtime.addBinding',{name:'__agpaLibrary'});
   await this.call('Runtime.addBinding',{name:'__agpaAppSettings'});
   await this.call('Runtime.addBinding',{name:'__agpaPluginUpdate'});
   await this.call('Runtime.addBinding',{name:'__agpaComputerUse'});
@@ -201,6 +209,8 @@ class Client{
    if(await this.evaluate('globalThis.__AGComputerUse?.version')!==versions.computerUse)await this.evaluate(`globalThis.__AGPAComputerUseChecks=${connectionChecks.toString()};globalThis.__AGPAComputerUseAccessChanged=${accessChanged.toString()};globalThis.__AGPAComputerUseControlState=${controlState.toString()};\n${COMPUTER_USE_SETTINGS}`);
    if(await this.evaluate('globalThis.__AGModelUI?.version')!==versions.models)await this.evaluate(`globalThis.__AGPAProviderFor=${modelRules.providerFor.toString()};globalThis.__AGPAPermissionFor=${modelRules.permissionFor.toString()};globalThis.__AGPA_LAB_ICONS__=${JSON.stringify(LAB_ICONS)};globalThis.__AGPA_MODEL_PREFERENCES__=${JSON.stringify(modelPreferences.current())};\n${MODEL_UI}`);
    if(await this.evaluate('globalThis.__AGCompanion?.version')!==versions.companion)await this.evaluate(`globalThis.__AGPABrowserSetupState=${require('./browser-setup.cjs').setupState.toString()};globalThis.__AGPABrowserPicker=${createBrowserPicker.toString()};globalThis.__AGPA_BROWSER_ICONS__=${JSON.stringify(BROWSER_ICONS)};\n${COMPANION_UI}`);
+   if(await this.evaluate('globalThis.__AGWorkspace?.version')!==versions.workspace)await this.evaluate(`globalThis.__AGPA_BRAND_ICON__=${JSON.stringify(BRAND_ICON)};globalThis.__AGPA_WORKSPACE__=${JSON.stringify(workspacePreferences.current())};\n${WORKSPACE_UI}`);
+   if(await this.evaluate('globalThis.__AGLibrary?.version')!==versions.library)await this.evaluate(`globalThis.__AGPA_VIEWER_BUNDLE__=${JSON.stringify(VIEWER_BUNDLE)};\n${LIBRARY_UI}`);
    await this.evaluate(`(()=>{let style=document.getElementById('agpa-window-chrome-styles');if(style?.getAttribute('data-version')===${JSON.stringify(VERSION)})return;if(!style){style=document.createElement('style');style.id='agpa-window-chrome-styles';document.head.append(style);}style.textContent=${JSON.stringify(WINDOW_CHROME)};style.setAttribute('data-version',${JSON.stringify(VERSION)});})()`);
    const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=pane-titlebar-toolbar]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
    if(signature!==this.healthSignature){this.healthSignature=signature;await this.checkCompatibility();}
@@ -212,6 +222,7 @@ class Client{
    document.body.setAttribute('data-agpa-plugin-disabled','');
    document.querySelector('[data-agpa-gemini][open]')?.close();
    globalThis.__AGHeaderPlacement?.destroy();
+   globalThis.__AGLibrary?.destroy();globalThis.__AGWorkspace?.destroy();
    globalThis.__AGCompanion?.destroy();globalThis.__AGModelUI?.destroy();globalThis.__AGComputerUse?.destroy();
    globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();
    await globalThis.__AGGeminiInline?.destroy();
@@ -286,6 +297,26 @@ class Client{
    await this.evaluate(`globalThis.__AGModelUI?.onResult(${JSON.stringify(payload.requestId)},true,${JSON.stringify(next)})`,params.executionContextId);
   }catch{if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGModelUI?.onResult(${JSON.stringify(payload.requestId)},false)`,params.executionContextId).catch(()=>{});}
  }
+ async onLibrary(params){
+  if(!pluginControl.enabled||pluginControl.busy)return;
+  const context=this.contexts.get(params.executionContextId);
+  if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin)return;
+  let payload;
+  try{
+   if(params.payload.length>32768)throw Error('unavailable');payload=JSON.parse(params.payload);
+   if(!UUID.test(payload.requestId)||!['list','refresh','preview','thumbnail','favorite','add','remove','sidebar'].includes(payload.action))throw Error('unavailable');
+   let result;
+   if(payload.action==='sidebar'){
+    const job=writeChain.then(()=>workspacePreferences.update(payload.value));writeChain=job.catch(()=>{});result=await job;
+    for(const c of clients.values())await c.evaluate(`globalThis.__AGWorkspace?.setPreferences(${JSON.stringify(result)})`).catch(()=>{});
+   }else if(payload.action==='list'||payload.action==='refresh'){if(payload.value!==true)throw Error('unavailable');result=await library.list(payload.action==='refresh');}
+   else if(payload.action==='preview'||payload.action==='thumbnail')result=await library.preview(payload.value,{thumbnail:payload.action==='thumbnail'});
+   else if(['favorite','add','remove'].includes(payload.action)){
+    const job=writeChain.then(()=>payload.action==='favorite'?library.favorite(payload.value?.id,payload.value?.value):payload.action==='remove'?library.remove(payload.value):library.add(payload.value));writeChain=job.catch(()=>{});result=await job;
+   }
+   await this.evaluate(`globalThis.${payload.action==='sidebar'?'__AGWorkspace':'__AGLibrary'}?.onResult(${JSON.stringify(payload.requestId)},true,${JSON.stringify(result)})`,params.executionContextId);
+  }catch(error){if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.${payload.action==='sidebar'?'__AGWorkspace':'__AGLibrary'}?.onResult(${JSON.stringify(payload.requestId)},false,{error:${JSON.stringify(['tooLarge','unsupported'].includes(error.message)?error.message:'unavailable')}})`,params.executionContextId).catch(()=>{});}
+ }
  async onCompanion(params){
   if(!pluginControl.enabled||pluginControl.busy)return;
   const context=this.contexts.get(params.executionContextId);
@@ -352,7 +383,7 @@ class Client{
    else throw error;
   }
  }
- async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGModelUI?.destroy();globalThis.__AGCompanion?.destroy();globalThis.__AGPluginUpdates?.destroy();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGHeaderPlacement?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
+ async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGLibrary?.destroy();globalThis.__AGWorkspace?.destroy();globalThis.__AGModelUI?.destroy();globalThis.__AGCompanion?.destroy();globalThis.__AGPluginUpdates?.destroy();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGHeaderPlacement?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
 }
 async function companionState(){return companion.snapshot();}
 async function discover(){
@@ -393,6 +424,7 @@ let interval;
  if(typeof WebSocket!=='function')throw Error('Node.js 22 or newer is required.');
  config=await readConfig();
  await modelPreferences.load().catch(e=>log(e.message));
+ await workspacePreferences.load();
  await pluginControl.load();
  await desktopIcon.initialize({suspended:!pluginControl.enabled});
  if(process.argv.includes('--check-config')){console.log(JSON.stringify({version:VERSION,configPath:CONFIG_PATH,configuredProjects:Object.keys(config.projects).length}));return;}
@@ -400,7 +432,7 @@ let interval;
  pluginUpdate=require('./plugin-update.cjs').createUpdater({canApply:async manual=>{
   if(!pluginControl.enabled||pluginControl.busy||(await computerUse.status()).operation)return false;
   for(const c of clients.values()){
-   const selector='[data-agpa-editor],.agpa-overlay,dialog[open]'+(manual?'':',[data-testid=settings-nav-item-App]');
+   const selector='[data-agpa-editor],.agpa-overlay,dialog[open],[data-agpa-library]:not([hidden])'+(manual?'':',[data-testid=settings-nav-item-App]');
    if(await c.evaluate(`!!document.querySelector(${JSON.stringify(selector)})`).catch(()=>true))return false;
   }
   return true;

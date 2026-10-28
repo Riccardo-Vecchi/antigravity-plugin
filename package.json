@@ -1,0 +1,17 @@
+{
+  "name": "antigravity-plugin",
+  "private": true,
+  "scripts": {
+    "build:viewers": "node scripts/build-viewers.cjs",
+    "test": "node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "docx-preview": "0.4.1",
+    "dompurify": "3.4.17",
+    "esbuild": "0.28.2",
+    "fflate": "0.8.3",
+    "marked": "18.1.2",
+    "pdfjs-dist": "6.4.299",
+    "three": "0.186.1"
+  }
+}

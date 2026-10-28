@@ -1,7 +1,7 @@
 /* Local project appearance. No conversation, project metadata, or tool mutations. */
 (() => {
   'use strict';
-  const VERSION = '1.7.0';
+  const VERSION = '1.8.0';
   const i18n=globalThis.__AGPAI18n;
   const initial = globalThis.__AGPA_CONFIG__ || { projects: {} };
   delete globalThis.__AGPA_CONFIG__;
@@ -164,7 +164,7 @@
     if(rail.hidden===collapsed)rail.hidden=!collapsed;
     if(!collapsed)return;
     const projects=[...sidebar.querySelectorAll('[data-testid="project-header"]')].map(projectFrom).filter(Boolean);
-    const signature=JSON.stringify([i18n.language,projects.map(p=>[p.id,p.name,config.projects?.[p.id]])]);
+    const signature=JSON.stringify([i18n.language,!!nativeControl('[data-testid=agpa-library-button]'),projects.map(p=>[p.id,p.name,config.projects?.[p.id]])]);
     if(signature!==railSignature){
       railSignature=signature;
       const focused=document.activeElement?.getAttribute('data-agpa-project');
@@ -173,6 +173,7 @@
         ['New Conversation','[data-testid="new-conversation-button"]','pencil'],
         ['Conversation History','[data-testid="history-button"]','book'],
         ['Automations','[data-testid="automations-button"]','settings'],
+        ['Library','[data-testid=agpa-library-button]','book'],
         ['Customizations','a[href="/customizations"]','briefcase']
       ])rail.append(railButton(label,selector,fallback)||document.createTextNode(''));
       rail.append(el('div',{class:'agpa-rail-divider',role:'separator'}));

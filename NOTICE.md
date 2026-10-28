@@ -8,6 +8,8 @@ The repository does not distribute Antigravity's AppImage, Windows installer/exe
 
 The original integration code is licensed under the BSD Zero Clause License (0BSD); see `LICENSE`. That license does not apply to Google logos, trademarks, the proprietary application, or other third-party assets.
 
+The offline document and 3D preview bundle contains third-party open-source libraries under their respective licenses. Full notices are retained in [assets/viewers/LICENSES.txt](assets/viewers/LICENSES.txt); these libraries are not relicensed under 0BSD. Sources and pinned versions are documented in `assets/SOURCES.md` and `package-lock.json`.
+
 Windows is a Microsoft trademark. The Windows platform indicator is used only to identify the supported operating system; no Microsoft trademark rights are granted.
 
 The optional Cua Driver is a separate MIT-licensed dependency from [Cua AI](https://github.com/trycua/cua). Driver binaries are downloaded from upstream at the user’s request and are not included or relicensed under this repository’s 0BSD license. No deprecated cua-agent or optional perception/model package is bundled.

@@ -106,7 +106,16 @@
     "assets/labs/anthropic.png",
     "assets/labs/google.png",
     "assets/labs/openai.png",
-    "common/plugin-control.cjs"
+    "common/plugin-control.cjs",
+    "common/library.cjs",
+    "common/library-ui.js",
+    "common/workspace-preferences.cjs",
+    "common/workspace-ui.js",
+    "assets/viewers/viewers.js",
+    "assets/viewers/LICENSES.txt",
+    "docs/LIBRARY.md",
+    "docs/images/library.png",
+    "docs/images/document-preview.png"
   ],
   "linux": [
     "linux/desktop.cjs",

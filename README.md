@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.8.0](https://img.shields.io/badge/version-1.8.0-blue)](CHANGELOG.md)
+[![Version 1.9.0](https://img.shields.io/badge/version-1.9.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -28,12 +28,14 @@
 ## ✨ Features
 
 - Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
+- **Library**, below Automations: search saved artifacts, filter by type, keep favorites and add other local files. Preview Word documents, spreadsheets, slide content, images, PDFs and self-contained 3D models. Select a passage and use **Discuss selection** to prepare a chat draft. [Formats and limits](docs/LIBRARY.md).
 - Optional **Computer Use** with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - **Browser use** with browser detection, one-click folder copy/open, selected tabs or whole-profile web-tab sharing and existing logins. [Setup](docs/BROWSER_USE.md).
 - Model favorites and visibility controls, with Anthropic/Google/OpenAI logos in the menu and selected model. Native model availability and selection stay in Antigravity.
 - Color-coded approval presets, including the selected mode.
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
-- Compact sidebar that keeps navigation and project icons visible.
+- Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.
+- A colored Antigravity header logo and the **Google Gemini** window title while using Gemini.
 - Settings navigation with icons, dedicated Computer use and Browser use pages and a collapsible Projects group that uses your configured project icons and colors.
 - Fixed Antigravity/Gemini icons or a Dynamic mode, including supported tray integrations.
 - Startup view, Remember last view, desktop autostart, and patch status/recovery controls.
@@ -48,6 +50,10 @@
 | Settings → Appearance: application and tray icons | Settings → Application: startup view and autostart |
 | --- | --- |
 | ![Plugin settings for fixed Antigravity or Gemini icons and Dynamic mode](docs/images/preferences.png) | ![Plugin settings for the startup view, remembering the last view and desktop autostart](docs/images/startup.png?v=1.6.0) |
+
+| Library | Word document preview |
+| --- | --- |
+| ![Library with demonstration artifacts](docs/images/library.png) | ![Local Word document preview](docs/images/document-preview.png) |
 
 ## 🐧 Install on Linux
 
@@ -81,6 +87,8 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Plugin updates → Plugin customizations** contains status and recovery.
 
+**Appearance → Sidebar** selects Expanded, Compact or Expand on hover. **Library** collects saved local artifacts without moving them or changing the official conversation databases.
+
 **Enable/disable:** use **Application → Plugin updates → Enable plugin**. Disabling pauses customizations, restores native icons and disconnects desktop/browser access while keeping preferences and Gemini sessions. Re-enable from the same place; tool access is enabled separately. The small management helper and desktop startup choices remain available.
 
 **Plugin updates:** after installing this version once, the plugin checks stable GitHub releases every six hours and installs verified updates automatically when its settings/editors are closed. **Antigravity → Check Plugin Updates** or **Application → Plugin updates → Check Plugin Updates** forces an immediate check; you can disable automatic installation or install an available release manually. Local previews and modified plugin files are protected from automatic replacement. See the [update reference](docs/UPDATES.md).
@@ -94,7 +102,7 @@ The official application and conversation databases are not patched. Gemini sign
 
 ## 🛠️ Development
 
-`common/` contains the shared runtime and UI; `linux/` and `windows/` contain platform adapters and scripts. `common/distribution.json` defines deployment files; stable installed icon paths and older Windows shortcuts remain compatible. Run `node --test tests/*.test.cjs`; CI also checks script syntax. Python 3 is used only to build/test the standalone extension ZIP (`python3 -m unittest discover -s tests -p 'test_*.py'`). See [privacy notes](docs/PRIVACY.md) for published-data boundaries.
+`common/` contains the shared runtime and UI; `linux/` and `windows/` contain platform adapters and scripts. `common/distribution.json` defines deployment files; stable installed icon paths and older Windows shortcuts remain compatible. Run `node --test tests/*.test.cjs`; CI also checks script syntax. Preview libraries are bundled offline: maintainers use `npm ci --ignore-scripts` and `npm run build:viewers` to reproduce them; users do not need npm. Python 3 is used only to build/test the standalone extension ZIP (`python3 -m unittest discover -s tests -p 'test_*.py'`). See [privacy notes](docs/PRIVACY.md) for published-data boundaries.
 
 ## 📜 License
 

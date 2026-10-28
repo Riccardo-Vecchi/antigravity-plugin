@@ -63,3 +63,7 @@ models.json
 
 # Persistent plugin enable/disable choice.
 plugin.json
+
+# Private Library and sidebar preferences.
+library.json
+workspace.json

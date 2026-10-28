@@ -18,6 +18,9 @@ jobs:
           node-version: '22'
       - name: Unit and distribution tests
         run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:viewers
+          git diff --exit-code -- assets/viewers
           node --test tests/*.test.cjs
           python3 -m unittest discover -s tests -p 'test_*.py'
       - name: JavaScript and shell syntax

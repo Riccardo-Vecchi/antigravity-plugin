@@ -20,6 +20,9 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           node -e 'if (process.env.RELEASE_TAG !== "v" + require("./common/versions.cjs").suite) throw Error("Release tag does not match source version")'
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:viewers
+          git diff --exit-code -- assets/viewers
           node --test tests/*.test.cjs
           python3 -m unittest discover -s tests -p 'test_*.py'
           for file in common/*.cjs common/*.js common/browser-extension/*.js linux/*.cjs windows/*.cjs scripts/*.cjs; do node --check "$file"; done

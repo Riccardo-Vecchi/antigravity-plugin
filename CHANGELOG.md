@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.0
+
+- Add Library below Automations and in the compact rail, with local artifact discovery, search, file-type filters, favorites and explicit file additions. Keep originals and official profiles unchanged.
+- Bundle offline DOCX, XLSX, PPTX content, Markdown, image/media and 3D previews in isolated viewers. Add selected-text discussion drafts without sending messages; preserve existing draft content.
+- Add Expanded, Compact and Expand on hover sidebar modes under Appearance. Keep native sidebar controls and keyboard access.
+- Use a transparent colored Antigravity logo in the header and set the window title to Google Gemini while its view is open, restoring the latest native title on return.
+- Translate new controls into all seven supported languages and retain third-party licenses with reproducible, locked viewer builds.
+
 ## 1.8.0
 
 - Distinguish Check Antigravity Updates from Check Plugin Updates in the Antigravity menu; keep the official updater action intact and route plugin checks to its own settings/status.

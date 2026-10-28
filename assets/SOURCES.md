@@ -40,3 +40,16 @@ Unmodified official favicons, bundled on 28 October 2026 for local model-provide
 - OpenAI: https://developers.openai.com/favicon.png
 
 These marks belong to their respective owners and are excluded from the plugin's 0BSD license.
+
+## Offline artifact preview engines
+
+The reproducible bundle is built from pinned npm packages in `package-lock.json`; users do not download scripts at runtime. Original licenses and dependency notices are retained in `assets/viewers/LICENSES.txt`.
+
+- PDF.js 6.4.299: https://github.com/mozilla/pdf.js (Apache-2.0).
+- Three.js 0.186.1, including GLTFLoader, OBJLoader, STLLoader, PLYLoader and OrbitControls: https://github.com/mrdoob/three (MIT).
+- docx-preview 0.4.1: https://github.com/VolodymyrBaydalka/docxjs (MIT), using JSZip 3.10.2 under its MIT license option.
+- fflate 0.8.3: https://github.com/101arrowz/fflate (MIT).
+- marked 18.1.2: https://github.com/markedjs/marked (MIT).
+- DOMPurify 3.4.17: https://github.com/cure53/DOMPurify (Apache-2.0 or MPL-2.0).
+
+The colored header logo reuses the existing official Antigravity vector with a tighter SVG view box; no new logo is synthesized.
