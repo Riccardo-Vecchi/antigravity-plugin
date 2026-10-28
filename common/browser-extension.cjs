@@ -1,5 +1,5 @@
 "use strict";
-// Publish a stable, branded unpacked-extension location without relocating legacy settings/services.
+// Publish a stable, branded unpacked-extension location inside the canonical installation root.
 const fs=require("node:fs/promises"),path=require("node:path"),crypto=require("node:crypto");
 async function deploy(directory) {
   const source=path.join(__dirname,"browser-extension"), manifest=JSON.parse(await fs.readFile(path.join(source,"manifest.json")));

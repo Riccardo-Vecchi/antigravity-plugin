@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+- Consolidate code, extension, settings and runtime under the canonical antigravity-plugin roots, with hash-verified migration, conflict detection and rollback. Remove the previous roots and Linux service after success.
+- Preserve existing updater health checks before migrating older installations; update owned MCP, Native Messaging, launcher and autostart paths.
+- Replace Browser use’s combined setup/diagnostics screen with a three-step guide, installed/default-browser detection and an explicit copy-folder/open-Extensions action.
+- Simplify the extension popup to sharing controls, with collapsible profile settings and shared tabs; reuse translated catalogs for all seven languages.
+- Surface real sharing scope per connected profile and add wizard, migration and browser-opening regressions. Windows runtime remains experimental and was not VM-tested.
+
 ## 1.4.0
 
 - Place the Gemini return button within the signed-out header instead of covering Get App/Sign in; compact it on narrow screens.

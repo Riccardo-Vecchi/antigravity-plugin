@@ -12,7 +12,7 @@ if len(sys.argv) != 2 or sys.argv[1] not in ('antigravity', 'gemini', '--restore
 choice = sys.argv[1]
 base = Path(__file__).resolve().parent.parent
 icons = base / 'assets' / 'icons' if (base / 'assets' / 'icons').is_dir() else base / 'icons'
-storage = Path.home() / '.config/antigravity-project-appearance'
+storage = Path.home() / ('.config/antigravity-project-appearance' if os.environ.get('AGPA_LEGACY_RUNTIME') == '1' else '.config/antigravity-plugin')
 receipt = storage / 'tray-settings-original.json'
 source = Gio.SettingsSchemaSource.get_default()
 schema = next((name for name in ('org.gnome.shell.extensions.zorin-appindicator',

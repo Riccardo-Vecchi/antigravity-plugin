@@ -1,5 +1,87 @@
 {
   "description": {
     "message": "Partagez les onglets choisis avec votre agent Antigravity local."
+  },
+  "connected": {
+    "message": "Connecté à Antigravity"
+  },
+  "notConnected": {
+    "message": "Non connecté"
+  },
+  "connectHelp": {
+    "message": "Ouvrez Antigravity → Paramètres → Utilisation du navigateur pour vous connecter."
+  },
+  "reconnect": {
+    "message": "Reconnecter"
+  },
+  "sharingTitle": {
+    "message": "Partager avec Antigravity"
+  },
+  "selectedTabs": {
+    "message": "Onglets sélectionnés"
+  },
+  "selectedHelp": {
+    "message": "Uniquement les onglets de votre choix."
+  },
+  "allTabs": {
+    "message": "Tous les onglets de ce profil"
+  },
+  "profileHelp": {
+    "message": "Inclut les onglets web actuels et nouveaux jusqu’à l’arrêt ou la déconnexion."
+  },
+  "shareTab": {
+    "message": "Partager cet onglet"
+  },
+  "stopTab": {
+    "message": "Arrêter le partage de cet onglet"
+  },
+  "openPage": {
+    "message": "Ouvrez une page web puis cliquez sur cette extension pour la partager."
+  },
+  "stopAll": {
+    "message": "Arrêter tous les partages"
+  },
+  "privacy": {
+    "message": "Les onglets privés, paramètres du navigateur et champs de mot de passe sont exclus."
+  },
+  "profileSettings": {
+    "message": "Paramètres du profil"
+  },
+  "profileName": {
+    "message": "Nom du profil"
+  },
+  "save": {
+    "message": "Enregistrer"
+  },
+  "sharedTabs": {
+    "message": "$COUNT$ onglets partagés",
+    "placeholders": {
+      "COUNT": {
+        "content": "$1"
+      }
+    }
+  },
+  "tabNumber": {
+    "message": "Onglet $ID$",
+    "placeholders": {
+      "ID": {
+        "content": "$1"
+      }
+    }
+  },
+  "stop": {
+    "message": "Arrêter"
+  },
+  "privateExcluded": {
+    "message": "Les onglets privés sont exclus."
+  },
+  "chooseName": {
+    "message": "Choisissez un nom de profil."
+  },
+  "allowTabs": {
+    "message": "Autorisez d’abord l’accès à tous les onglets dans le navigateur."
+  },
+  "operationError": {
+    "message": "Connexion impossible. Ouvrez Antigravity et réessayez."
   }
 }

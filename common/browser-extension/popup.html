@@ -1,24 +1,24 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <link rel="stylesheet" href="popup.css" />
-    <title>Antigravity Browser</title>
-  </head>
-  <body>
-    <h1>Antigravity Browser</h1>
-    <p id="status" role="status"></p>
-    <label id="label" for="name"></label>
-    <div class="row">
-      <input id="name" maxlength="60" /><button id="save"></button>
-    </div>
-    <label id="scope-label" for="scope"></label>
-    <select id="scope"><option value="tabs"></option><option value="profile"></option></select>
-    <button id="connect"></button><button id="share" class="primary"></button>
-    <p id="explain"></p>
-    <ul id="tabs"></ul>
-    <button id="stop" class="danger"></button>
-    <p id="error" role="alert"></p>
-    <script src="popup.js"></script>
-  </body>
-</html>
+<head><meta charset="utf-8"><link rel="stylesheet" href="popup.css"><title>Antigravity Browser</title></head>
+<body>
+ <header><img src="assets/icon32.png" width="32" height="32" alt=""><h1>Antigravity Browser</h1></header>
+ <p id="status" role="status"></p>
+ <section id="disconnected"><p data-i18n="connectHelp"></p><button id="connect" class="primary" data-i18n="reconnect"></button></section>
+ <main id="access" hidden>
+  <h2 data-i18n="sharingTitle"></h2>
+  <fieldset id="scope"><legend class="sr-only" data-i18n="sharingTitle"></legend>
+   <label><input type="radio" name="scope" value="tabs"><span><strong data-i18n="selectedTabs"></strong><small data-i18n="selectedHelp"></small></span></label>
+   <label><input type="radio" name="scope" value="profile"><span><strong data-i18n="allTabs"></strong><small data-i18n="profileHelp"></small></span></label>
+  </fieldset>
+  <button id="share" class="primary"></button><p id="tabHint" data-i18n="openPage"></p>
+  <details id="shared"><summary id="sharedCount"></summary><ul id="tabs"></ul></details>
+  <button id="stop" class="danger" data-i18n="stopAll"></button>
+  <p class="privacy" data-i18n="privacy"></p>
+  <details class="preferences"><summary data-i18n="profileSettings"></summary>
+   <label for="name" data-i18n="profileName"></label><div class="row"><input id="name" maxlength="60"><button id="save" data-i18n="save"></button></div>
+  </details>
+ </main>
+ <p id="error" role="alert"></p>
+ <script src="popup.js"></script>
+</body></html>

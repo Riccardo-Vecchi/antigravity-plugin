@@ -2,15 +2,17 @@
 
 Browser use connects **the native Antigravity agent** to tabs you share individually or through **All tabs in this profile** in an existing Chromium browser profile. It uses a Manifest V3 extension and Native Messaging, rather than restarting your browser with a debugging port. Existing logins stay in that browser.
 
-## ⚙️ Setup
+## ⚙️ Three-step setup
 
-1. Open **Settings → Browser use → Set up browser use**.
-2. In your browser, open its Extensions page: `chrome://extensions`, `brave://extensions`, `edge://extensions`, `vivaldi://extensions` or `opera://extensions`.
-3. Enable **Developer mode**, choose **Load unpacked**, and select the extension folder displayed by the plugin. Keep the folder in place.
-4. Optionally pin **Antigravity Browser** to the toolbar. Open the extension, name this browser profile, then choose **Share this tab** on a normal web page. Alternatively, select **All tabs in this profile** and approve the optional browser permission.
-5. Ask Antigravity to work in that shared tab. If the native agent has not refreshed its tools, start a new conversation.
+Open **Settings → Browser use**. The guide detects supported installed browsers and advances as the connection becomes ready:
 
-Repeat extension installation for each profile you want to use. The extension popup uses the browser language; the app controls use the app language. Both support English, Italian, German, Spanish, French, Simplified Chinese and Japanese.
+1. **Connect:** choose your browser and click **Connect browser**. No tabs are shared at this stage.
+2. **Add extension:** click **Copy folder and open Extensions**. On the browser page, enable **Developer mode**, choose **Load unpacked**, then paste the folder path already copied for you. This is a one-time browser requirement for unpacked extensions; the plugin does not change browser policies or restart an existing profile.
+3. **Share tabs:** open **Antigravity Browser** from your browser toolbar. Choose selected tabs or all web tabs in this profile. The app confirms when shared tabs are ready and offers an example to copy into Antigravity.
+
+Each browser profile connects separately. The extension keeps sharing controls in its main view; profile naming and the shared-tab list are collapsible. The app keeps technical checks, refresh and repair under **Connection details and help**. The app follows its language setting; the extension follows the browser language. Both support English, Italian, German, Spanish, French, Simplified Chinese and Japanese.
+
+If you already loaded the extension from a folder removed by migration, use **Load unpacked** with the new folder shown in the guide; remove the broken old entry if the browser requires it. An extension already loaded from the branded folder can simply be reloaded on the Extensions page.
 
 ## 🧭 Working with tabs
 
@@ -22,7 +24,7 @@ Sharing ends when you stop it in the popup, close the tab/browser, disconnect it
 
 ## 🛠️ Connection and recovery
 
-The page shows separate checks for enabled access, native MCP registration, native server detection, profile connection and shared tabs. **Repair browser connection** registers the host again if you installed another supported browser after initial setup. **Reconnect** in the extension retries the local connection; after explicitly disconnecting a profile, use Reconnect before sharing again.
+The page shows separate checks for enabled access, native MCP registration, native server detection, profile connection and shared tabs. **Repair browser connection**, under Connection details and help, registers the host again if you installed another supported browser after initial setup. **Reconnect** in the extension retries the local connection; after explicitly disconnecting a profile, use Reconnect before sharing again.
 
 The initial Linux targets are native desktop installations of Chrome, Chromium, Brave, Edge, Vivaldi and Opera in their standard user-data locations. The extension protocol is shared across Chromium browsers. The Linux Native Messaging and semantic MCP path was exercised in isolated Chromium and Brave profiles; this is not a claim that every browser/channel/sandbox package has been tested. Custom user-data locations need manual host registration. Snap/Flatpak browser sandboxes and managed-extension policies may block Native Messaging or unpacked extensions.
 
@@ -38,6 +40,6 @@ The native integration uses the public [Chrome Native Messaging API](https://dev
 
 ## 📁 Extension folder and updates
 
-The extension is published under `~/.local/share/antigravity-plugin/browser-extension` on Linux and `%LOCALAPPDATA%\antigravity-plugin\browser-extension` on Windows. Internal helper/configuration paths retain their earlier name for compatibility with installed updates. The setup page shows the correct folder to load. If you already loaded the old folder, it remains valid; to use the new path, remove the old extension and load the displayed folder. Its extension ID remains unchanged. After a plugin update, click Reload for **Antigravity Browser** on your browser’s Extensions page to apply the new extension code and icon.
+The extension is published under `~/.local/share/antigravity-plugin/browser-extension` on Linux and `%LOCALAPPDATA%\antigravity-plugin\browser-extension` on Windows. Code and the extension share the `antigravity-plugin` installation root; preferences and the computer-use runtime use the standard `antigravity-plugin` configuration root. The setup page shows the correct folder to load. The previous `antigravity-project-appearance` roots are removed after verified migration; reload an old unpacked-extension entry from the new folder when needed. Its extension ID remains unchanged. After a plugin update, click Reload for **Antigravity Browser** on your browser’s Extensions page to apply the new extension code and icon.
 
 Other Chromium-based browsers can use the same extension if they support Native Messaging and the debugger API; nonstandard browser/profile locations may need manual Native Messaging host registration. Sandbox or managed policies can prevent this.

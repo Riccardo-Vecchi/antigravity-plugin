@@ -1,5 +1,87 @@
 {
   "description": {
     "message": "選択したブラウザーのタブをローカルの Antigravity エージェントと共有します。"
+  },
+  "connected": {
+    "message": "Antigravity に接続済み"
+  },
+  "notConnected": {
+    "message": "未接続"
+  },
+  "connectHelp": {
+    "message": "接続するには Antigravity → 設定 → ブラウザー操作を開いてください。"
+  },
+  "reconnect": {
+    "message": "再接続"
+  },
+  "sharingTitle": {
+    "message": "Antigravity と共有"
+  },
+  "selectedTabs": {
+    "message": "選択したタブ"
+  },
+  "selectedHelp": {
+    "message": "選択したタブだけを共有します。"
+  },
+  "allTabs": {
+    "message": "このプロファイルのすべてのタブ"
+  },
+  "profileHelp": {
+    "message": "共有を停止または切断するまで、既存および新しいウェブタブを含めます。"
+  },
+  "shareTab": {
+    "message": "このタブを共有"
+  },
+  "stopTab": {
+    "message": "このタブの共有を停止"
+  },
+  "openPage": {
+    "message": "ウェブページを開き、この拡張機能をクリックして共有してください。"
+  },
+  "stopAll": {
+    "message": "すべての共有を停止"
+  },
+  "privacy": {
+    "message": "プライベートタブ、ブラウザー設定、パスワード欄は対象外です。"
+  },
+  "profileSettings": {
+    "message": "プロファイル設定"
+  },
+  "profileName": {
+    "message": "プロファイル名"
+  },
+  "save": {
+    "message": "保存"
+  },
+  "sharedTabs": {
+    "message": "$COUNT$ 個の共有タブ",
+    "placeholders": {
+      "COUNT": {
+        "content": "$1"
+      }
+    }
+  },
+  "tabNumber": {
+    "message": "タブ $ID$",
+    "placeholders": {
+      "ID": {
+        "content": "$1"
+      }
+    }
+  },
+  "stop": {
+    "message": "停止"
+  },
+  "privateExcluded": {
+    "message": "プライベートブラウズのタブは共有できません。"
+  },
+  "chooseName": {
+    "message": "プロファイル名を入力してください。"
+  },
+  "allowTabs": {
+    "message": "先にブラウザーですべてのタブへのアクセスを許可してください。"
+  },
+  "operationError": {
+    "message": "接続できません。Antigravity を開いて再試行してください。"
   }
 }

@@ -1,5 +1,87 @@
 {
   "description": {
     "message": "Gib ausgewählte Browser-Tabs für deinen lokalen Antigravity-Agenten frei."
+  },
+  "connected": {
+    "message": "Mit Antigravity verbunden"
+  },
+  "notConnected": {
+    "message": "Nicht verbunden"
+  },
+  "connectHelp": {
+    "message": "Öffne Antigravity → Einstellungen → Browsernutzung zum Verbinden."
+  },
+  "reconnect": {
+    "message": "Neu verbinden"
+  },
+  "sharingTitle": {
+    "message": "Mit Antigravity teilen"
+  },
+  "selectedTabs": {
+    "message": "Ausgewählte Tabs"
+  },
+  "selectedHelp": {
+    "message": "Nur die ausgewählten Tabs."
+  },
+  "allTabs": {
+    "message": "Alle Tabs dieses Profils"
+  },
+  "profileHelp": {
+    "message": "Umfasst aktuelle und neue Web-Tabs bis zum Beenden der Freigabe oder Trennen."
+  },
+  "shareTab": {
+    "message": "Diesen Tab freigeben"
+  },
+  "stopTab": {
+    "message": "Freigabe dieses Tabs beenden"
+  },
+  "openPage": {
+    "message": "Öffne eine Webseite und klicke auf diese Erweiterung, um sie zu teilen."
+  },
+  "stopAll": {
+    "message": "Alle Freigaben beenden"
+  },
+  "privacy": {
+    "message": "Private Tabs, Browsereinstellungen und Passwortfelder sind ausgeschlossen."
+  },
+  "profileSettings": {
+    "message": "Profileinstellungen"
+  },
+  "profileName": {
+    "message": "Profilname"
+  },
+  "save": {
+    "message": "Speichern"
+  },
+  "sharedTabs": {
+    "message": "$COUNT$ freigegebene Tabs",
+    "placeholders": {
+      "COUNT": {
+        "content": "$1"
+      }
+    }
+  },
+  "tabNumber": {
+    "message": "Tab $ID$",
+    "placeholders": {
+      "ID": {
+        "content": "$1"
+      }
+    }
+  },
+  "stop": {
+    "message": "Beenden"
+  },
+  "privateExcluded": {
+    "message": "Private Tabs sind ausgeschlossen."
+  },
+  "chooseName": {
+    "message": "Wähle einen Profilnamen."
+  },
+  "allowTabs": {
+    "message": "Erlaube zuerst den Zugriff auf alle Tabs im Browser."
+  },
+  "operationError": {
+    "message": "Verbindung fehlgeschlagen. Öffne Antigravity und versuche es erneut."
   }
 }

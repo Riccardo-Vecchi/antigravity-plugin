@@ -9,7 +9,7 @@ import sys
 from gi.repository import Gio
 
 ALIAS='AntigravityLocalIconRefresh'
-BASE=Path.home()/'.config/antigravity-project-appearance'
+BASE=Path.home()/('.config/antigravity-project-appearance' if os.environ.get('AGPA_LEGACY_RUNTIME') == '1' else '.config/antigravity-plugin')
 RECEIPT=BASE/'icon-refresh.json'
 THEME=Path.home()/'.local/share/icons'/ALIAS
 settings=Gio.Settings.new('org.gnome.desktop.interface')

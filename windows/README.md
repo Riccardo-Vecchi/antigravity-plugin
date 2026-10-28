@@ -62,15 +62,15 @@ The app's **Launch at desktop sign-in** checkbox independently creates/removes i
 ## Local files
 
 ```text
-%LOCALAPPDATA%\antigravity-project-appearance\          companion code and icons
-%APPDATA%\antigravity-project-appearance\app.json       preferences
-%APPDATA%\antigravity-project-appearance\projects.json  project styles
-%APPDATA%\antigravity-project-appearance\session.json   last view only
-%APPDATA%\antigravity-project-appearance\installation.json
-%APPDATA%\antigravity-project-appearance\windows-icon-request.json
-%APPDATA%\antigravity-project-appearance\windows-native-status.json
-%APPDATA%\antigravity-project-appearance\helper.log
-%APPDATA%\antigravity-project-appearance\launcher.log
+%LOCALAPPDATA%\antigravity-plugin\          companion code and icons
+%APPDATA%\antigravity-plugin\app.json       preferences
+%APPDATA%\antigravity-plugin\projects.json  project styles
+%APPDATA%\antigravity-plugin\session.json   last view only
+%APPDATA%\antigravity-plugin\installation.json
+%APPDATA%\antigravity-plugin\windows-icon-request.json
+%APPDATA%\antigravity-plugin\windows-native-status.json
+%APPDATA%\antigravity-plugin\helper.log
+%APPDATA%\antigravity-plugin\launcher.log
 ```
 
 The official app profile remains `%APPDATA%\Antigravity`. The embedded Gemini web session is separate from the native app's login and from browser profiles. Sign in inside the website when needed; credentials and browser cookies are not imported.
@@ -82,7 +82,7 @@ To update, run `windows\install.ps1` again from the updated repository. Finish a
 To disable:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\antigravity-project-appearance\windows\disable.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\antigravity-plugin\windows\disable.ps1"
 ```
 
 This restores the native icon choice, removes the companion's owned Start-menu shortcut, app-autostart shortcut, and idle-helper Run entry, and stops the helper. Reopen Antigravity normally to remove the injected UI. Preferences and Google's session stay on disk; the current guest is left mounted until the app closes so an unsent draft is not discarded by disabling the helper.

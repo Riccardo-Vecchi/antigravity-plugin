@@ -1,5 +1,87 @@
 {
   "description": {
     "message": "Comparte las pestañas elegidas con tu agente local de Antigravity."
+  },
+  "connected": {
+    "message": "Conectado a Antigravity"
+  },
+  "notConnected": {
+    "message": "Sin conexión"
+  },
+  "connectHelp": {
+    "message": "Abre Antigravity → Ajustes → Uso del navegador para conectar."
+  },
+  "reconnect": {
+    "message": "Reconectar"
+  },
+  "sharingTitle": {
+    "message": "Compartir con Antigravity"
+  },
+  "selectedTabs": {
+    "message": "Pestañas seleccionadas"
+  },
+  "selectedHelp": {
+    "message": "Solo las pestañas que elijas."
+  },
+  "allTabs": {
+    "message": "Todas las pestañas de este perfil"
+  },
+  "profileHelp": {
+    "message": "Incluye pestañas web actuales y nuevas hasta dejar de compartir o desconectar."
+  },
+  "shareTab": {
+    "message": "Compartir esta pestaña"
+  },
+  "stopTab": {
+    "message": "Dejar de compartir esta pestaña"
+  },
+  "openPage": {
+    "message": "Abre una página web y pulsa esta extensión para compartirla."
+  },
+  "stopAll": {
+    "message": "Dejar de compartir todo"
+  },
+  "privacy": {
+    "message": "Se excluyen pestañas privadas, ajustes del navegador y campos de contraseña."
+  },
+  "profileSettings": {
+    "message": "Ajustes del perfil"
+  },
+  "profileName": {
+    "message": "Nombre del perfil"
+  },
+  "save": {
+    "message": "Guardar"
+  },
+  "sharedTabs": {
+    "message": "$COUNT$ pestañas compartidas",
+    "placeholders": {
+      "COUNT": {
+        "content": "$1"
+      }
+    }
+  },
+  "tabNumber": {
+    "message": "Pestaña $ID$",
+    "placeholders": {
+      "ID": {
+        "content": "$1"
+      }
+    }
+  },
+  "stop": {
+    "message": "Detener"
+  },
+  "privateExcluded": {
+    "message": "Se excluyen las pestañas privadas."
+  },
+  "chooseName": {
+    "message": "Elige un nombre para el perfil."
+  },
+  "allowTabs": {
+    "message": "Permite primero el acceso a todas las pestañas en el navegador."
+  },
+  "operationError": {
+    "message": "No se pudo conectar. Abre Antigravity e inténtalo de nuevo."
   }
 }

@@ -24,3 +24,11 @@ Configuration and status live in the plugin configuration directory under `updat
 ## 🛠️ Maintainers
 
 `scripts/build-update.cjs` creates both platform payloads and `plugin-update.json` from `common/distribution.json`. The release workflow checks the version against its `vX.Y.Z` tag, runs the regression suite, builds the payloads and uploads them to that release. No build tools or Git are needed on installed clients.
+
+## One-time folder migration
+
+Version 1.5 moves older `antigravity-project-appearance` installations and settings to `antigravity-plugin`. Linux uses `~/.local/share/antigravity-plugin` and `~/.config/antigravity-plugin`; Windows uses `%LOCALAPPDATA%\antigravity-plugin` and `%APPDATA%\antigravity-plugin`. The extension stays inside the installation root. There are no permanent compatibility-directory aliases.
+
+A client updating from an older release first completes the existing updater’s health check. An independent migration worker then stops the owned helper, verifies and moves its files, updates owned MCP/launcher/Native Messaging references and starts the canonical helper. Conflicting destination files stop migration; failures retain recoverable data rather than replacing conflicting user settings. Native Antigravity profiles and conversations are not relocated. Source installers perform the same migration.
+
+An unpacked extension that still points into the removed folder needs to be loaded from the new folder through the guided setup. Existing native icon watchers on Windows are stopped before moving their paths; the running Antigravity app stays open. Native Windows icon switching becomes available again after the next customized app launch. Windows source/adapter checks do not replace a target-machine runtime test.

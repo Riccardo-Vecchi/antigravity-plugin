@@ -11,7 +11,7 @@ async function main(
   id,
   {
     paths = defaultPaths,
-    service = "antigravity-project-appearance.service",
+    service = "antigravity-plugin.service",
     environment = process.env,
     healthAttempts = 60,
   } = {},

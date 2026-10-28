@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Antigravity Browser",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "minimum_chrome_version": "125",
   "description": "__MSG_description__",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl37R0kAFjo+PBYNjVZvDRzen6RqdeR7ZuArYEyemFWRrgVQc6w+r4hH/xbETlgot3XbH/eoVAuy0LOBR2xwmD2j8Ti5Gx5fkr1UKT1KjMxsbpqJ+enBOT7ytliJO+sv1WH7qfdL0mslCVjGOGvmSNr3pUEZ7xjohJ6a5Sa66f9WseAl8NUePp3vv22VAW0VjCRab/n5wRnv1cg/QIaTfucui8ImqwUxhVKM0Iw+CBdZc/xg/XT62twLY94jPb9nlnCQe38LjtVsuskQ1GFuQ15HscaTstqySfxXle1uDI4lrF1w4tF9SODecrfOWhLzxDKQMCX3U81wFxHHn3SjErQIDAQAB",

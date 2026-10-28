@@ -90,7 +90,9 @@
     "common/plugin-update-settings.js",
     "docs/UPDATES.md",
     "common/header-placement.js",
-    "common/browser-extension.cjs"
+    "common/browser-extension.cjs",
+    "common/migration.cjs",
+    "common/browser-setup.cjs"
   ],
   "linux": [
     "linux/desktop.cjs",
@@ -107,7 +109,8 @@
     "assets/icons/gemini-256.png",
     "linux/installation.cjs",
     "linux/computer-use.cjs",
-    "linux/browser.cjs"
+    "linux/browser.cjs",
+    "linux/migration.cjs"
   ],
   "windows": [
     "windows/desktop.cjs",
@@ -121,7 +124,9 @@
     "assets/icons/gemini.ico",
     "windows/computer-use.cjs",
     "windows/extract-driver.ps1",
-    "windows/browser.cjs"
+    "windows/browser.cjs",
+    "windows/migration.cjs",
+    "windows/migrate.ps1"
   ],
   "mappings": {
     "assets/icons/": "icons/"

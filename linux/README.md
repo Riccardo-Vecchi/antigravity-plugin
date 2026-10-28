@@ -19,7 +19,7 @@ Linux discovery first reads valid Antigravity `.desktop` entries in the XDG user
 
 If there is no matching launcher, discovery checks common AppImage locations (`~/.local/opt`, `~/.local/bin`, `~/Applications`, `~/AppImages`, and the configured download folder). A unique image gets a user launcher when desktop integration is applied. Multiple distinct images are not resolved by guessing a version.
 
-To choose an installation explicitly, run `systemctl --user edit antigravity-project-appearance.service` and add:
+To choose an installation explicitly, run `systemctl --user edit antigravity-plugin.service` and add:
 
 ```ini
 [Service]
@@ -27,7 +27,7 @@ Environment="AGPA_APPIMAGE=/absolute/path/Antigravity.AppImage"
 Environment="AGPA_DESKTOP_FILE=/absolute/path/antigravity.desktop"
 ```
 
-The launcher must point directly to that AppImage; quoted paths and arguments are preserved. After saving, restart the helper with `systemctl --user restart antigravity-project-appearance.service`. Explicit invalid selections are reported rather than replaced with another app. Missing/ambiguous desktop detection leaves the other plugin controls available.
+The launcher must point directly to that AppImage; quoted paths and arguments are preserved. After saving, restart the helper with `systemctl --user restart antigravity-plugin.service`. Explicit invalid selections are reported rather than replaced with another app. Missing/ambiguous desktop detection leaves the other plugin controls available.
 
 ```bash
 gh repo clone Riccardo-Vecchi/antigravity-plugin
@@ -38,8 +38,8 @@ cd antigravity-plugin
 The installer uses the current `node` executable and creates a user service. No root privileges or npm dependencies are required. Keep the selected Node.js runtime available.
 
 ```bash
-systemctl --user status antigravity-project-appearance.service
-journalctl --user -u antigravity-project-appearance.service -n 30 --no-pager
+systemctl --user status antigravity-plugin.service
+journalctl --user -u antigravity-plugin.service -n 30 --no-pager
 ```
 
 Open Antigravity normally. The helper waits when the app is closed and reapplies the UI additions to new windows.
@@ -55,14 +55,14 @@ Tray support uses the existing Zorin/GNOME AppIndicator `custom-icons` setting f
 ## Linux files and data
 
 ```text
-~/.local/share/antigravity-project-appearance/       installed code and icon assets
-~/.config/antigravity-project-appearance/projects.json
-~/.config/antigravity-project-appearance/app.json
-~/.config/antigravity-project-appearance/session.json  last view only
-~/.config/antigravity-project-appearance/icon-originals/
-~/.config/antigravity-project-appearance/asset-originals/
-~/.config/antigravity-project-appearance/tray-settings-original.json
-~/.config/systemd/user/antigravity-project-appearance.service
+~/.local/share/antigravity-plugin/       installed code and icon assets
+~/.config/antigravity-plugin/projects.json
+~/.config/antigravity-plugin/app.json
+~/.config/antigravity-plugin/session.json  last view only
+~/.config/antigravity-plugin/icon-originals/
+~/.config/antigravity-plugin/asset-originals/
+~/.config/antigravity-plugin/tray-settings-original.json
+~/.config/systemd/user/antigravity-plugin.service
 ~/.config/autostart/antigravity-linux-customizations.desktop  only while enabled
 ~/.config/Antigravity/Partitions/agpa-gemini/         Chromium-managed Gemini session
 ```

@@ -55,7 +55,7 @@ async function announceTabs() {
     }
   }
   try {
-    post({ action: "tabs", value: tabs });
+    post({ action: "tabs", value: tabs, scope });
   } catch {}
 }
 async function revoke(id) {
@@ -439,6 +439,7 @@ chrome.runtime.onMessage.addListener((m, sender, respond) => {
     if (m.action === "status") return uiState();
     if (m.action === "connect") {
       paused = false;
+      if(port&&!ready){const previous=port;port=null;previous.disconnect();await revokeAll();}
       await connect();
       return uiState();
     }

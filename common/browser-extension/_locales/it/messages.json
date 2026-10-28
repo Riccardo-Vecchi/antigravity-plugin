@@ -1,5 +1,87 @@
 {
   "description": {
     "message": "Condividi le schede scelte con il tuo agente Antigravity locale."
+  },
+  "connected": {
+    "message": "Connesso ad Antigravity"
+  },
+  "notConnected": {
+    "message": "Non connesso"
+  },
+  "connectHelp": {
+    "message": "Apri Antigravity → Impostazioni → Browser use per collegarti."
+  },
+  "reconnect": {
+    "message": "Riconnetti"
+  },
+  "sharingTitle": {
+    "message": "Condividi con Antigravity"
+  },
+  "selectedTabs": {
+    "message": "Schede selezionate"
+  },
+  "selectedHelp": {
+    "message": "Solo le schede che scegli."
+  },
+  "allTabs": {
+    "message": "Tutte le schede di questo profilo"
+  },
+  "profileHelp": {
+    "message": "Include le schede web aperte e quelle nuove, finché interrompi la condivisione o ti disconnetti."
+  },
+  "shareTab": {
+    "message": "Condividi questa scheda"
+  },
+  "stopTab": {
+    "message": "Non condividere più questa scheda"
+  },
+  "openPage": {
+    "message": "Apri una pagina web, poi clicca questa estensione per condividerla."
+  },
+  "stopAll": {
+    "message": "Interrompi tutte le condivisioni"
+  },
+  "privacy": {
+    "message": "Schede private, impostazioni del browser e campi password sono esclusi."
+  },
+  "profileSettings": {
+    "message": "Impostazioni del profilo"
+  },
+  "profileName": {
+    "message": "Nome del profilo"
+  },
+  "save": {
+    "message": "Salva"
+  },
+  "sharedTabs": {
+    "message": "$COUNT$ schede condivise",
+    "placeholders": {
+      "COUNT": {
+        "content": "$1"
+      }
+    }
+  },
+  "tabNumber": {
+    "message": "Scheda $ID$",
+    "placeholders": {
+      "ID": {
+        "content": "$1"
+      }
+    }
+  },
+  "stop": {
+    "message": "Interrompi"
+  },
+  "privateExcluded": {
+    "message": "Le schede di navigazione privata sono escluse."
+  },
+  "chooseName": {
+    "message": "Scegli un nome per il profilo."
+  },
+  "allowTabs": {
+    "message": "Consenti prima l’accesso a tutte le schede nel browser."
+  },
+  "operationError": {
+    "message": "Collegamento non riuscito. Apri Antigravity e riprova."
   }
 }

@@ -16,8 +16,8 @@ $offset=[Text.Encoding]::ASCII.GetString($bytes).IndexOf($marker,[StringComparis
 if($offset -lt $marker.Length -or $bytes[$offset] -ne 1 -or $bytes[$offset+1] -lt 4 -or $bytes[$offset+2] -ne 49){throw 'This build does not provide the supported companion runtime.'}
 $nativeIcons=($bytes[$offset+5] -eq 49)
 if(!$nativeIcons){throw 'This app build does not expose the supported native icon integration. The executable and its security fuses will remain unchanged.'}
-$target=Join-Path $env:LOCALAPPDATA 'antigravity-project-appearance'
-$config=Join-Path $env:APPDATA 'antigravity-project-appearance'
+$target=Join-Path $env:LOCALAPPDATA 'antigravity-plugin'
+$config=Join-Path $env:APPDATA 'antigravity-plugin'
 foreach($directory in @($target,$config)){
  if(Test-Path -LiteralPath $directory){if((Get-Item -LiteralPath $directory).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Integration folders must not be junctions or symbolic links.'}}
  [void](New-Item -ItemType Directory -Force -Path $directory)
@@ -33,7 +33,26 @@ foreach($file in $files){
  $destinations[$relative]=$true
  if([IO.Path]::IsPathRooted($file) -or $file -match '(^|[\\/])\.\.([\\/]|$)' -or !(Test-Path -LiteralPath (Join-Path $root $file) -PathType Leaf)){throw 'Invalid distribution file.'}
 }
-if(Test-Path -LiteralPath (Join-Path $target 'windows\start.ps1')){& (Join-Path $target 'windows\start.ps1') -Stop}elseif(Test-Path -LiteralPath (Join-Path $target 'start-windows.ps1')){& (Join-Path $target 'start-windows.ps1') -Stop}
+function Invoke-PluginScript([string]$Script,[string]$Arguments=''){
+ $info=New-Object System.Diagnostics.ProcessStartInfo
+ $info.FileName=$AppExe;$info.Arguments='"'+$Script+'" '+$Arguments
+ $info.UseShellExecute=$false;$info.CreateNoWindow=$true;$info.EnvironmentVariables['ELECTRON_RUN_AS_NODE']='1'
+ $child=[System.Diagnostics.Process]::Start($info);$child.WaitForExit()
+ if($child.ExitCode -ne 0){throw ('Plugin operation failed: '+[IO.Path]::GetFileName($Script)+'. Existing data was retained.')}
+}
+Invoke-PluginScript (Join-Path $root 'common\migration.cjs') '--prepare'
+Invoke-PluginScript (Join-Path $root 'common\prepare-reload.cjs')
+$runtimeFile=Join-Path $config 'updates\runtime.json';$previousPid=$null
+if(Test-Path -LiteralPath $runtimeFile){try{$previousPid=(Get-Content -LiteralPath $runtimeFile -Raw -Encoding UTF8|ConvertFrom-Json).pid}catch{}}
+# Always stop through source code: moved old launch scripts still contain the old data path.
+Invoke-PluginScript (Join-Path $root 'windows\launcher.cjs') '--stop'
+if(($previousPid -is [int] -or $previousPid -is [long]) -and $previousPid -gt 0){
+ for($attempt=0;$attempt -lt 60;$attempt++){
+  if(!(Get-Process -Id $previousPid -ErrorAction SilentlyContinue)){break}
+  if($attempt -eq 59){throw 'The previous helper is still stopping. Retry the installer shortly.'}
+  Start-Sleep -Milliseconds 100
+ }
+}
 foreach($file in $files){
  $relative=$file
  foreach($mapping in $manifest.mappings.PSObject.Properties){if($file.StartsWith($mapping.Name)){$relative=$mapping.Value+$file.Substring($mapping.Name.Length);break}}
@@ -42,11 +61,7 @@ foreach($file in $files){
  Copy-Item -LiteralPath (Join-Path $root $file) -Destination $destination -Force
 }
 [IO.File]::WriteAllText((Join-Path $config 'installation.json'),(@{version=1;appExe=$AppExe;nativeIconsSupported=$nativeIcons}|ConvertTo-Json),(New-Object Text.UTF8Encoding($false)))
-$receiptInfo=New-Object System.Diagnostics.ProcessStartInfo
-$receiptInfo.FileName=$AppExe;$receiptInfo.Arguments='"'+(Join-Path $target 'common\plugin-update-cli.cjs')+'" receipt "'+$target+'"'
-$receiptInfo.UseShellExecute=$false;$receiptInfo.CreateNoWindow=$true;$receiptInfo.EnvironmentVariables['ELECTRON_RUN_AS_NODE']='1'
-$receiptProcess=[System.Diagnostics.Process]::Start($receiptInfo);$receiptProcess.WaitForExit()
-if($receiptProcess.ExitCode -ne 0){throw 'Could not register the update receipt.'}
+Invoke-PluginScript (Join-Path $target 'common\plugin-update-cli.cjs') ('receipt "'+$target+'"')
 $psExe=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $start=Join-Path $target 'windows\start.ps1'
 $legacyStart=Join-Path $target 'start-windows.ps1'
@@ -66,5 +81,6 @@ $link.WorkingDirectory=$target;$link.WindowStyle=7;$link.IconLocation=$AppExe;$l
 $auto=Join-Path $target 'windows\autostart.ps1'
 if((& $auto -Action Read|ConvertFrom-Json).enabled){& $auto -Action Enable|Out-Null}
 & $start -Watch
+Invoke-PluginScript (Join-Path $target 'common\migration.cjs') '--finish'
 if($Launch){& $start -Launch}
 Write-Output 'Installed for the current user. Open Antigravity (customized) from Start.'

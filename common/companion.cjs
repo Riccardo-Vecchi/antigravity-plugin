@@ -39,6 +39,8 @@ async function createCompanion({
     store = await core.createSettings(configDir),
     connections = new Map(),
     peers = new Set();
+  const adapter=require(platform === "win32" ? "../windows/browser.cjs" : "../linux/browser.cjs");
+  let discovery=adapter.detect().catch(()=>({available:[],defaultBrowser:"other"}));
   let mutations = Promise.resolve(),
     closed = false;
   const mcpFile = path.join(home, ".gemini/config/mcp_config.json"),
@@ -96,12 +98,14 @@ async function createCompanion({
         enabled: store.settings.browserEnabled,
         registered: owned(data.mcpServers?.[SERVER]),
         extensionPath: extensionDir,
+        ...await discovery,
         extensionId: require("./browser-identity.json").extensionId,
         connections: [...connections.entries()].map(([id, c]) => ({
           id,
           label: c.label,
           tabs: c.tabs.length,
           connectedAt: c.connectedAt,
+          scope:c.scope||"tabs",
         })),
       },
     };
@@ -118,6 +122,7 @@ async function createCompanion({
         connection: id,
         label: c.label,
         tabs: c.tabs.length,
+        scope:c.scope||"tabs",
       }));
     const c = connections.get(args.connection);
     if (!c) throw Error("Browser disconnected. Reconnect the extension.");
@@ -223,6 +228,7 @@ async function createCompanion({
                 m.value.length > 2000
               )
                 throw Error("Invalid shared tabs.");
+              c.scope=m.scope === "profile"?"profile":"tabs";
               c.tabs = m.value.map((t) => {
                 const url = new URL(t.url);
                 if (
@@ -274,6 +280,10 @@ async function createCompanion({
     browserCall,
     async perform(action, value) {
       if (action === "status") return snapshot();
+      if(action === "openExtensions"){
+        if(!store.settings.browserEnabled)throw Error("Browser access is disabled.");
+        await adapter.openExtensions(value);return snapshot();
+      }
       const job = mutations.then(async () => {
         if (action === "setupBrowser") {
           const adapter = require(
@@ -286,7 +296,9 @@ async function createCompanion({
             configDir,
             runtime,
             hostScript: path.join(__dirname, "browser-host.cjs"),
+            availableBrowsers:(await discovery).available,
           });
+          discovery=adapter.detect().catch(()=>({available:[],defaultBrowser:"other"}));
           await register(true);
           await store.configure({ browserEnabled: true });
           return { ...(await snapshot()), installedBrowsers: installed };

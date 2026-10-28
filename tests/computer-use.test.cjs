@@ -114,7 +114,7 @@ test('native MCP adapter refreshes only this server and reports an unrecognized 
 test('an open bridge exits when its lease is revoked, without a client reconnect', {timeout: 8000}, async t => {
   const {spawn} = require('node:child_process');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'agpa-cu-revoke-')); t.after(() => fs.rm(root, {recursive: true, force: true}));
-  const directory = path.join(root, '.config/antigravity-project-appearance/computer-use');
+  const directory = path.join(root, '.config/antigravity-plugin/computer-use');
   await fs.mkdir(path.join(directory, 'driver-' + VERSION), {recursive: true});
   const policy = '{}'; const state = {version: 1, enabled: true, revision: 'one', apps: [], manifestHash: require('node:crypto').createHash('sha256').update(policy).digest('hex')};
   await fs.writeFile(path.join(directory, 'state.json'), JSON.stringify(state)); await fs.writeFile(path.join(directory, 'capabilities.json'), policy);

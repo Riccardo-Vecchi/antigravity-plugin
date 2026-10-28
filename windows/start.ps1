@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param([switch]$Launch,[switch]$Watch,[switch]$Stop)
 $ErrorActionPreference='Stop'
-$record=Join-Path $env:APPDATA 'antigravity-project-appearance\installation.json'
+$folder=if($env:AGPA_LEGACY_RUNTIME -eq '1'){'antigravity-project-appearance'}else{'antigravity-plugin'}
+$record=Join-Path (Join-Path $env:APPDATA $folder) 'installation.json'
 $installation=Get-Content -LiteralPath $record -Raw -Encoding UTF8|ConvertFrom-Json
 if($installation.version -ne 1 -or !(Test-Path -LiteralPath $installation.appExe)){throw 'Run windows\install.ps1 first.'}
 $command=if($Stop){'--stop'}elseif($Watch){'--watch'}else{'--launch'}

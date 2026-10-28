@@ -45,3 +45,25 @@ test('branded deployment updates its own extension and preserves an unrelated fo
  await fs.writeFile(path.join(directory,'popup.css'),'old');await deploy(directory);assert.equal(await fs.readFile(path.join(directory,'popup.css'),'utf8'),await fs.readFile(path.join(__dirname,'../common/browser-extension/popup.css'),'utf8'));
  await fs.writeFile(path.join(directory,'manifest.json'),JSON.stringify({key:'foreign'}));await assert.rejects(deploy(directory),/another installation/);assert.deepEqual(JSON.parse(await fs.readFile(path.join(directory,'manifest.json'))),{key:'foreign'});
 });
+test('setup advances only when native registration, extension and shared tabs are actually ready',()=>{
+ const {setupState}=require('../common/browser-setup.cjs');
+ const base={enabled:false,registered:false,connections:[]};assert.equal(setupState(base),'prepare');
+ assert.equal(setupState({...base,enabled:true,registered:true}),'install');
+ assert.equal(setupState({...base,enabled:true,registered:true,connections:[{tabs:0}]}),'share');
+ assert.equal(setupState({...base,enabled:true,registered:true,connections:[{tabs:2}]}),'ready');
+ assert.equal(setupState({...base,connections:[{tabs:2}]}),'prepare');
+});
+test('all extension interface messages and substitutions are translated in each supported browser language',()=>{
+ const en=require('../common/browser-extension/_locales/en/messages.json');
+ for(const lang of ['it','de','es','fr','zh_CN','ja']){const locale=require('../common/browser-extension/_locales/'+lang+'/messages.json');assert.deepEqual(Object.keys(locale).sort(),Object.keys(en).sort());for(const [key,m]of Object.entries(locale)){assert.ok(m.message.trim());assert.deepEqual(Object.keys(m.placeholders||{}),Object.keys(en[key].placeholders||{}));}}
+});
+test('opening browser setup allows only known browser IDs and a fixed Extensions URL',async t=>{
+ if(process.platform!=='linux')return t.skip();
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-open-browser-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
+ const executable=path.join(root,'brave-browser'),output=path.join(root,'opened');
+ await fs.writeFile(executable,'#!/bin/sh\nprintf "%s" "$1" > "$HOME/opened"\n',{mode:0o700});
+ const adapter=require('../linux/browser.cjs');await assert.rejects(adapter.openExtensions('arbitrary',{env:{HOME:root,PATH:root}}),/Unsupported/);
+ await adapter.openExtensions('brave',{env:{HOME:root,PATH:root}});
+ let value;for(let n=0;n<30;n++){value=await fs.readFile(output,'utf8').catch(()=>null);if(value)break;await new Promise(r=>setTimeout(r,10));}
+ assert.equal(value,'brave://extensions');
+});

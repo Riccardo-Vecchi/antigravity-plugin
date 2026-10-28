@@ -2,7 +2,7 @@
 param()
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
-$config=Join-Path $env:APPDATA 'antigravity-project-appearance'
+$config=Join-Path $env:APPDATA 'antigravity-plugin'
 $installation=Get-Content -LiteralPath (Join-Path $config 'installation.json') -Raw -Encoding UTF8|ConvertFrom-Json
 $oldRuntime=$env:ELECTRON_RUN_AS_NODE
 try{

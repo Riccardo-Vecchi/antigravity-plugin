@@ -1,257 +1,46 @@
-"use strict";
-const dictionaries = {
-  en: [
-    "Connected to Antigravity",
-    "Not connected",
-    "Profile name",
-    "Save",
-    "Reconnect",
-    "Share this tab",
-    "Only shared tabs on the approved site are accessible. Changing site ends sharing. Password fields and private browsing are excluded.",
-    "Stop sharing all tabs",
-    "Tab {id}",
-    "Stop",
-  ],
-  it: [
-    "Connesso ad Antigravity",
-    "Non connesso",
-    "Nome del profilo",
-    "Salva",
-    "Riconnetti",
-    "Condividi questa scheda",
-    "Sono accessibili solo le schede condivise sul sito approvato. Cambiare sito termina la condivisione. Password e navigazione privata sono escluse.",
-    "Interrompi tutte le condivisioni",
-    "Scheda {id}",
-    "Interrompi",
-  ],
-  de: [
-    "Mit Antigravity verbunden",
-    "Nicht verbunden",
-    "Profilname",
-    "Speichern",
-    "Neu verbinden",
-    "Diesen Tab freigeben",
-    "Nur freigegebene Tabs auf der genehmigten Website sind zugänglich. Ein Websitewechsel beendet die Freigabe. Passwortfelder und private Tabs sind ausgeschlossen.",
-    "Alle Freigaben beenden",
-    "Tab {id}",
-    "Beenden",
-  ],
-  es: [
-    "Conectado a Antigravity",
-    "Sin conexión",
-    "Nombre del perfil",
-    "Guardar",
-    "Reconectar",
-    "Compartir esta pestaña",
-    "Solo se accede a pestañas compartidas del sitio autorizado. Cambiar de sitio termina el acceso. Se excluyen contraseñas y navegación privada.",
-    "Dejar de compartir todo",
-    "Pestaña {id}",
-    "Detener",
-  ],
-  fr: [
-    "Connecté à Antigravity",
-    "Non connecté",
-    "Nom du profil",
-    "Enregistrer",
-    "Reconnecter",
-    "Partager cet onglet",
-    "Seuls les onglets partagés du site autorisé sont accessibles. Changer de site arrête le partage. Mots de passe et navigation privée sont exclus.",
-    "Arrêter tous les partages",
-    "Onglet {id}",
-    "Arrêter",
-  ],
-  zh: [
-    "已连接 Antigravity",
-    "未连接",
-    "配置名称",
-    "保存",
-    "重新连接",
-    "共享此标签页",
-    "只能访问已授权网站的共享标签页。切换网站将停止共享。不包括密码字段和隐私浏览。",
-    "停止所有共享",
-    "标签页 {id}",
-    "停止",
-  ],
-  ja: [
-    "Antigravity に接続済み",
-    "未接続",
-    "プロファイル名",
-    "保存",
-    "再接続",
-    "このタブを共有",
-    "許可したサイトの共有タブだけにアクセスします。別のサイトに移動すると共有が終了します。パスワード欄とプライベートブラウズは対象外です。",
-    "すべての共有を停止",
-    "タブ {id}",
-    "停止",
-  ],
+'use strict';
+const $=id=>document.getElementById(id),t=(key,values)=>chrome.i18n.getMessage(key,values)||key;
+for(const e of document.querySelectorAll('[data-i18n]'))e.textContent=t(e.dataset.i18n);
+$('name').setAttribute('aria-label',t('profileName'));
+let busy=false,latest={},dirty=false,signature='',requestedScope=null;
+async function request(action,extra={}){const result=await chrome.runtime.sendMessage({action,...extra});if(!result?.ok)throw Error(result?.error||'Extension unavailable.');return result.result;}
+function controls(){
+ const locked=busy||requestedScope!==null;
+ for(const b of document.querySelectorAll('button,input[type=radio]'))b.disabled=locked;
+ for(const radio of document.querySelectorAll('[name=scope]')){radio.checked=radio.value===(requestedScope||latest.scope||'tabs');radio.disabled=locked||!latest.ready;}
+ $('share').hidden=latest.scope==='profile';$('share').textContent=t(latest.current?.shared?'stopTab':'shareTab');$('share').disabled=locked||!latest.ready||!latest.current;
+ $('tabHint').hidden=latest.scope==='profile'||!!latest.current;
+ $('save').disabled=locked||!dirty||!$('name').value.trim();
+ $('stop').hidden=!latest.shared?.length&&latest.scope!=='profile';
+ document.body.setAttribute('aria-busy',String(locked));
+}
+function render(state){
+ latest=state;$('status').textContent=t(state.ready?'connected':'notConnected');$('status').dataset.ready=String(!!state.ready);
+ $('disconnected').hidden=!!state.ready;$('access').hidden=!state.ready;
+ if(!dirty)$('name').value=state.profile?.label||'';
+ $('shared').hidden=!state.shared?.length;$('sharedCount').textContent=t('sharedTabs',[String(state.shared?.length||0)]);
+ const next=JSON.stringify(state.shared);
+ if(signature!==next){signature=next;$('tabs').replaceChildren();for(const tab of state.shared||[]){const row=document.createElement('li'),label=document.createElement('span'),stop=document.createElement('button');label.textContent=tab.title||t('tabNumber',[String(tab.id)]);label.title=label.textContent;stop.textContent=t('stop');stop.onclick=()=>act('revoke',{tab:tab.id});row.append(label,stop);$('tabs').append(row);}}
+ controls();
+}
+const errorKeys={'Open Antigravity and enable Browser use in Settings.':'connectHelp','Open a regular web page to share it.':'openPage','Private browsing tabs are excluded.':'privateExcluded','Choose a profile name.':'chooseName','Allow access to all tabs in your browser first.':'allowTabs'};
+async function act(action,extra){
+ if(busy)return;busy=true;$('error').textContent='';controls();
+ try{const result=await request(action,extra);if(action==='label')dirty=false;render(result);}
+ catch(e){$('error').textContent=errorKeys[e.message]?t(errorKeys[e.message]):t('operationError');try{render(await request('status'));}catch{}}
+ finally{busy=false;controls();}
+}
+$('share').onclick=()=>latest.current?.shared?act('revoke',{tab:latest.current.id}):act('share');
+for(const radio of document.querySelectorAll('[name=scope]'))radio.onchange=async()=>{
+ if(!radio.checked||busy||requestedScope!==null)return;
+ requestedScope=radio.value;controls();
+ try{
+  if(radio.value==='profile'&&!await chrome.permissions.request({permissions:['tabs']})){$('error').textContent=t('allowTabs');return;}
+  await act('scope',{scope:radio.value});
+ }catch{$('error').textContent=t('allowTabs');}
+ finally{requestedScope=null;controls();}
 };
-for (const [language, label] of Object.entries({
-  en: "Stop sharing this tab",
-  it: "Non condividere più questa scheda",
-  de: "Freigabe dieses Tabs beenden",
-  es: "Dejar de compartir esta pestaña",
-  fr: "Arrêter le partage de cet onglet",
-  zh: "停止共享此标签页",
-  ja: "このタブの共有を停止",
-}))
-  dictionaries[language].push(label);
-const scopeLabels = {"en": ["Browser access", "Selected tabs", "All tabs in this profile", "All current and new web tabs in this profile are shared until you stop sharing or disconnect. Password fields, private tabs and browser pages are excluded.", "Allow access to all tabs in your browser first."], "it": ["Accesso al browser", "Schede selezionate", "Tutte le schede di questo profilo", "Tutte le schede web aperte e nuove di questo profilo sono condivise fino all’interruzione o alla disconnessione. Password, schede private e pagine interne del browser sono escluse.", "Consenti prima l’accesso a tutte le schede nel browser."], "de": ["Browserzugriff", "Ausgewählte Tabs", "Alle Tabs dieses Profils", "Alle vorhandenen und neuen Web-Tabs dieses Profils werden bis zum Beenden oder Trennen freigegeben. Passwortfelder, private Tabs und Browserseiten sind ausgeschlossen.", "Erlaube zuerst den Zugriff auf alle Tabs im Browser."], "es": ["Acceso al navegador", "Pestañas seleccionadas", "Todas las pestañas de este perfil", "Se comparten las pestañas web actuales y nuevas de este perfil hasta detener o desconectar. Se excluyen contraseñas, pestañas privadas y páginas internas.", "Permite primero el acceso a todas las pestañas en el navegador."], "fr": ["Accès au navigateur", "Onglets sélectionnés", "Tous les onglets de ce profil", "Les onglets web actuels et nouveaux de ce profil sont partagés jusqu’à l’arrêt ou la déconnexion. Les mots de passe, onglets privés et pages internes sont exclus.", "Autorisez d’abord l’accès à tous les onglets dans le navigateur."], "zh": ["浏览器访问", "选定标签页", "此配置的所有标签页", "共享此配置中现有及新增的网页标签，直到停止共享或断开连接。不包括密码字段、隐私标签和浏览器内部页面。", "请先在浏览器中允许访问所有标签页。"], "ja": ["ブラウザーへのアクセス", "選択したタブ", "このプロファイルのすべてのタブ", "停止または切断するまで、このプロファイルの既存および新しいウェブタブを共有します。パスワード欄、プライベートタブ、ブラウザー内部ページは対象外です。", "先にブラウザーですべてのタブへのアクセスを許可してください。"]};
-const lang = (chrome.i18n.getUILanguage() || "en").split("-")[0],
-  t = dictionaries[lang] || dictionaries.en,
-  $ = (id) => document.getElementById(id);
-for (const [id, index] of Object.entries({
-  label: 2,
-  save: 3,
-  connect: 4,
-  share: 5,
-  explain: 6,
-  stop: 7,
-}))
-  $(id).textContent = t[index];
-const scopeText=scopeLabels[lang]||scopeLabels.en;
-$("scope-label").textContent=scopeText[0];
-$("scope").options[0].textContent=scopeText[1];
-$("scope").options[1].textContent=scopeText[2];
-const errors = {
-  "Open Antigravity and enable Browser use in Settings.": {
-    it: "Apri Antigravity e abilita Uso del browser nelle impostazioni.",
-    de: "Öffne Antigravity und aktiviere Browsernutzung in den Einstellungen.",
-    es: "Abre Antigravity y activa Uso del navegador en los ajustes.",
-    fr: "Ouvrez Antigravity et activez Utilisation du navigateur dans les paramètres.",
-    zh: "打开 Antigravity 并在设置中启用浏览器使用。",
-    ja: "Antigravity の設定でブラウザー操作を有効にしてください。",
-  },
-  "Open a regular web page to share it.": {
-    it: "Apri una normale pagina web per condividerla.",
-    de: "Öffne eine normale Webseite zum Freigeben.",
-    es: "Abre una página web normal para compartirla.",
-    fr: "Ouvrez une page web normale pour la partager.",
-    zh: "请打开普通网页后再共享。",
-    ja: "通常のウェブページを開いてから共有してください。",
-  },
-  "Private browsing tabs are excluded.": {
-    it: "Le schede di navigazione privata sono escluse.",
-    de: "Private Tabs sind ausgeschlossen.",
-    es: "Se excluyen las pestañas privadas.",
-    fr: "Les onglets privés sont exclus.",
-    zh: "隐私浏览标签页不在共享范围内。",
-    ja: "プライベートブラウズのタブは共有できません。",
-  },
-  "Choose a profile name.": {
-    it: "Scegli un nome per il profilo.",
-    de: "Wähle einen Profilnamen.",
-    es: "Elige un nombre para el perfil.",
-    fr: "Choisissez un nom de profil.",
-    zh: "请选择配置名称。",
-    ja: "プロファイル名を入力してください。",
-  },
-  "Extension unavailable.": {
-    it: "Estensione non disponibile.",
-    de: "Erweiterung nicht verfügbar.",
-    es: "Extensión no disponible.",
-    fr: "Extension indisponible.",
-    zh: "扩展程序不可用。",
-    ja: "拡張機能を利用できません。",
-  },
-};
-const message = (error) =>
-  errors[error?.message]?.[lang] ||
-  error?.message ||
-  errors["Extension unavailable."]?.[lang] ||
-  "Extension unavailable.";
-async function request(action, extra = {}) {
-  const result = await chrome.runtime.sendMessage({ action, ...extra });
-  if (!result?.ok) throw Error(result?.error || "Extension unavailable.");
-  return result.result;
-}
-let busy = false,
-  latest = {},
-  dirty = false,
-  signature = "";
-function controls() {
-  for (const b of $("tabs").querySelectorAll("button"))
-    b.disabled = busy || !latest.ready;
-  $("scope").disabled=busy||!latest.ready;
-  $("scope").value=latest.scope||"tabs";
-  $("share").hidden=latest.scope==="profile";
-  $("explain").textContent=latest.scope==="profile"?scopeText[3]:t[6];
-  $("share").textContent = t[latest.current?.shared ? 10 : 5];
-  $("share").disabled = busy || !latest.ready || !latest.current;
-  $("save").disabled = busy || !dirty || !$("name").value.trim();
-  $("connect").disabled = busy;
-  $("stop").disabled = busy || (!latest.shared?.length&&latest.scope!=="profile");
-}
-function render(state) {
-  latest = state;
-  $("status").textContent = t[state.ready ? 0 : 1];
-  $("connect").hidden = state.ready;
-  if (!dirty) $("name").value = state.profile?.label || "";
-  const next = JSON.stringify(state.shared);
-  if (signature !== next) {
-    signature = next;
-    $("tabs").replaceChildren();
-    for (const tab of state.shared || []) {
-      const li = document.createElement("li"),
-        label = document.createElement("span"),
-        button = document.createElement("button");
-      label.textContent = tab.title || t[8].replace("{id}", tab.id);
-      label.title = label.textContent;
-      button.textContent = t[9];
-      button.onclick = () => act("revoke", { tab: tab.id });
-      li.append(label, button);
-      $("tabs").append(li);
-    }
-  }
-  controls();
-}
-async function act(action, extra) {
-  if (busy) return;
-  busy = true;
-  $("error").textContent = "";
-  for (const b of document.querySelectorAll("button")) b.disabled = true;
-  try {
-    await request(action, extra);
-    if (action === "label") dirty = false;
-    render(await request("status"));
-  } catch (e) {
-    $("error").textContent = message(e);
-    try {
-      render(await request("status"));
-    } catch {}
-  } finally {
-    busy = false;
-    controls();
-  }
-}
-$("share").onclick = () =>
-  latest.current?.shared
-    ? act("revoke", { tab: latest.current.id })
-    : act("share");
-$("name").addEventListener("input", () => {
-  dirty = $("name").value !== (latest.profile?.label || "");
-  controls();
-});
-setInterval(() => {
-  if (!busy)
-    request("status")
-      .then(render)
-      .catch(() => {});
-}, 1500);
-$("connect").onclick = () => act("connect");
-$("stop").onclick = () => act("revokeAll");
-$("save").onclick = () => act("label", { label: $("name").value });
-request("status")
-  .then(render)
-  .catch((e) => ($("error").textContent = message(e)));
-
-$("scope").onchange=async()=>{
-  const scope=$("scope").value;
-  if(scope==="profile"){
-    try {
-      // Permission requests stay directly in the user's selection gesture.
-      const allowed=await chrome.permissions.request({permissions:["tabs"]});
-      if(!allowed){$("error").textContent=scopeText[4];controls();return;}
-    } catch {$("error").textContent=scopeText[4];controls();return;}
-  }
-  await act("scope",{scope});
-};
+$('connect').onclick=()=>act('connect');$('stop').onclick=()=>act('revokeAll');$('save').onclick=()=>act('label',{label:$('name').value});
+$('name').oninput=()=>{dirty=$('name').value!==(latest.profile?.label||'');controls();};
+setInterval(()=>{if(!busy)request('status').then(render).catch(()=>{});},1500);
+request('status').then(render).catch(()=>{$('error').textContent=t('operationError');});

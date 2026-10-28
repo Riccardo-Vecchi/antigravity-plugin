@@ -5,6 +5,8 @@ const fsp=require('node:fs/promises');
 const path=require('node:path');
 const os=require('node:os');
 const BASE=__dirname;
+const legacyBootstrap=path.resolve(BASE,'..')===require('./platform-paths.cjs').getLegacyPaths().installDir;
+if(legacyBootstrap)process.env.AGPA_LEGACY_RUNTIME='1';
 const {iconPath}=require('./icon-path.cjs');
 const platformPaths=require('./platform-paths.cjs').getPaths();
 const CONFIG_DIR=platformPaths.configDir;
@@ -172,7 +174,7 @@ class Client{
    if(!await this.evaluate('!!globalThis.__AGNativeMcp'))await this.evaluate(NATIVE_MCP);
    if(await this.evaluate('globalThis.__AGSettingsNavigation?.version')!==versions.settingsNavigation)await this.evaluate(`globalThis.__AGPA_SETTINGS_PROJECT_STYLES__=${JSON.stringify(config)};\n${SETTINGS_NAVIGATION}`);
    if(await this.evaluate('globalThis.__AGComputerUse?.version')!==versions.computerUse)await this.evaluate(`globalThis.__AGPAComputerUseChecks=${connectionChecks.toString()};globalThis.__AGPAComputerUseAccessChanged=${accessChanged.toString()};\n${COMPUTER_USE_SETTINGS}`);
-   if(await this.evaluate('globalThis.__AGCompanion?.version')!=='1.2.0')await this.evaluate(COMPANION_UI);
+   if(await this.evaluate('globalThis.__AGCompanion?.version')!=='1.3.0')await this.evaluate(`globalThis.__AGPABrowserSetupState=${require('./browser-setup.cjs').setupState.toString()};\n${COMPANION_UI}`);
    await this.evaluate(`(()=>{let style=document.getElementById('agpa-window-chrome-styles');if(style?.getAttribute('data-version')===${JSON.stringify(VERSION)})return;if(!style){style=document.createElement('style');style.id='agpa-window-chrome-styles';document.head.append(style);}style.textContent=${JSON.stringify(WINDOW_CHROME)};style.setAttribute('data-version',${JSON.stringify(VERSION)});})()`);
    const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=pane-titlebar-toolbar]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
    if(signature!==this.healthSignature){this.healthSignature=signature;await this.checkCompatibility();}
@@ -238,8 +240,9 @@ class Client{
   let payload;
   try{
    if(params.payload.length>2048)throw Error('Request too large.');payload=JSON.parse(params.payload);
-   if(!UUID.test(payload.requestId)||!['status','setupBrowser','disableBrowser','disconnectProfile'].includes(payload.action))throw Error('Invalid companion request.');
+   if(!UUID.test(payload.requestId)||!['status','setupBrowser','disableBrowser','disconnectProfile','openExtensions'].includes(payload.action))throw Error('Invalid companion request.');
    if(payload.action==='disconnectProfile'){if(!UUID.test(payload.value))throw Error('Invalid connection.');}
+   else if(payload.action==='openExtensions'){if(!require('./browser-setup.cjs').BROWSERS.some(b=>b.id===payload.value))throw Error('Invalid browser.');}
    else if(payload.value!==true)throw Error('Invalid value.');
    const result=await companion.perform(payload.action,payload.value);
    await this.evaluate(`globalThis.__AGCompanion?.onResult(${JSON.stringify(payload.requestId)},true,${JSON.stringify(result)})`,params.executionContextId);
@@ -346,4 +349,5 @@ let interval;
  process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
  log(`Project appearance ${VERSION}; preferences: ${CONFIG_PATH}`);
  await poll();await pluginUpdate.ready();pluginUpdate.start();interval=setInterval(poll,1500);
+ if(legacyBootstrap)require('./migration.cjs').defer().catch(e=>log('Folder migration pending: '+e.message));
 })().catch(error=>{console.error(error.message);process.exitCode=1;});

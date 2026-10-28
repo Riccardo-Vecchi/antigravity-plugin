@@ -1,5 +1,87 @@
 {
   "description": {
     "message": "与本地 Antigravity 智能体共享所选浏览器标签页。"
+  },
+  "connected": {
+    "message": "已连接 Antigravity"
+  },
+  "notConnected": {
+    "message": "未连接"
+  },
+  "connectHelp": {
+    "message": "打开 Antigravity → 设置 → 浏览器使用以连接。"
+  },
+  "reconnect": {
+    "message": "重新连接"
+  },
+  "sharingTitle": {
+    "message": "与 Antigravity 共享"
+  },
+  "selectedTabs": {
+    "message": "选定标签页"
+  },
+  "selectedHelp": {
+    "message": "仅共享你选择的标签页。"
+  },
+  "allTabs": {
+    "message": "此配置的所有标签页"
+  },
+  "profileHelp": {
+    "message": "包含当前及新增的网页标签，直到停止共享或断开连接。"
+  },
+  "shareTab": {
+    "message": "共享此标签页"
+  },
+  "stopTab": {
+    "message": "停止共享此标签页"
+  },
+  "openPage": {
+    "message": "打开网页，然后点击此扩展以共享。"
+  },
+  "stopAll": {
+    "message": "停止所有共享"
+  },
+  "privacy": {
+    "message": "不包括隐私标签、浏览器设置和密码字段。"
+  },
+  "profileSettings": {
+    "message": "配置设置"
+  },
+  "profileName": {
+    "message": "配置名称"
+  },
+  "save": {
+    "message": "保存"
+  },
+  "sharedTabs": {
+    "message": "已共享 $COUNT$ 个标签页",
+    "placeholders": {
+      "COUNT": {
+        "content": "$1"
+      }
+    }
+  },
+  "tabNumber": {
+    "message": "标签页 $ID$",
+    "placeholders": {
+      "ID": {
+        "content": "$1"
+      }
+    }
+  },
+  "stop": {
+    "message": "停止"
+  },
+  "privateExcluded": {
+    "message": "隐私浏览标签页不在共享范围内。"
+  },
+  "chooseName": {
+    "message": "请选择配置名称。"
+  },
+  "allowTabs": {
+    "message": "请先在浏览器中允许访问所有标签页。"
+  },
+  "operationError": {
+    "message": "连接失败，请打开 Antigravity 后重试。"
   }
 }

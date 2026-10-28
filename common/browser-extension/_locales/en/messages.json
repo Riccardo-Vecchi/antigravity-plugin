@@ -1,5 +1,87 @@
 {
   "description": {
     "message": "Share selected browser tabs with your local Antigravity agent."
+  },
+  "connected": {
+    "message": "Connected to Antigravity"
+  },
+  "notConnected": {
+    "message": "Not connected"
+  },
+  "connectHelp": {
+    "message": "Open Antigravity → Settings → Browser use to connect."
+  },
+  "reconnect": {
+    "message": "Reconnect"
+  },
+  "sharingTitle": {
+    "message": "Share with Antigravity"
+  },
+  "selectedTabs": {
+    "message": "Selected tabs"
+  },
+  "selectedHelp": {
+    "message": "Only the tabs you choose."
+  },
+  "allTabs": {
+    "message": "All tabs in this profile"
+  },
+  "profileHelp": {
+    "message": "Includes current and new web tabs until you stop sharing or disconnect."
+  },
+  "shareTab": {
+    "message": "Share this tab"
+  },
+  "stopTab": {
+    "message": "Stop sharing this tab"
+  },
+  "openPage": {
+    "message": "Open a web page, then click this extension to share it."
+  },
+  "stopAll": {
+    "message": "Stop sharing all tabs"
+  },
+  "privacy": {
+    "message": "Private tabs, browser settings and password fields are excluded."
+  },
+  "profileSettings": {
+    "message": "Profile settings"
+  },
+  "profileName": {
+    "message": "Profile name"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "sharedTabs": {
+    "message": "$COUNT$ shared tabs",
+    "placeholders": {
+      "COUNT": {
+        "content": "$1"
+      }
+    }
+  },
+  "tabNumber": {
+    "message": "Tab $ID$",
+    "placeholders": {
+      "ID": {
+        "content": "$1"
+      }
+    }
+  },
+  "stop": {
+    "message": "Stop"
+  },
+  "privateExcluded": {
+    "message": "Private browsing tabs are excluded."
+  },
+  "chooseName": {
+    "message": "Choose a profile name."
+  },
+  "allowTabs": {
+    "message": "Allow access to all tabs in your browser first."
+  },
+  "operationError": {
+    "message": "Could not connect. Open Antigravity and try again."
   }
 }

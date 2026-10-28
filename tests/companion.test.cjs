@@ -170,7 +170,7 @@ test("the removed event-reporting channel and Activity commands are no longer ac
 
 test("real browser MCP handles parallel calls and closes on EOF without recording history", async (t) => {
   const root = await directory(t),
-    configDir = path.join(root, ".config", "antigravity-project-appearance"),
+    configDir = path.join(root, ".config", "antigravity-plugin"),
     broker = await createCompanion({ configDir, home: root });
   t.after(() => broker.close());
   await broker.store.configure({ browserEnabled: true });
