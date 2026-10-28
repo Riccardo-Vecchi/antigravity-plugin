@@ -69,13 +69,19 @@ $run='"'+$psExe+'" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File 
 $runKey='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run';$valueName='AntigravityLocalCustomizations'
 $previous=(Get-ItemProperty -LiteralPath $runKey -Name $valueName -ErrorAction SilentlyContinue).$valueName
 $legacyRun='"'+$psExe+'" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$legacyStart+'" -Watch'
-if($previous -and $previous -notin @($run,$legacyRun)){throw 'An unrelated helper startup entry already exists.'}
+$oldTarget=Join-Path $env:LOCALAPPDATA 'antigravity-project-appearance'
+$oldStart=Join-Path $oldTarget 'windows\start.ps1';$oldLegacyStart=Join-Path $oldTarget 'start-windows.ps1'
+$oldRun='"'+$psExe+'" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$oldStart+'" -Watch'
+$oldLegacyRun='"'+$psExe+'" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$oldLegacyStart+'" -Watch'
+if($previous -and $previous -notin @($run,$legacyRun,$oldRun,$oldLegacyRun)){throw 'An unrelated helper startup entry already exists.'}
 [void](New-Item -Path $runKey -Force);[void](New-ItemProperty -LiteralPath $runKey -Name $valueName -Value $run -PropertyType String -Force)
 $shortcut=Join-Path ([Environment]::GetFolderPath('Programs')) 'Antigravity (customized).lnk'
 $shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut($shortcut)
 $expectedLaunch='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$start+'" -Launch'
 $legacyLaunch='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$legacyStart+'" -Launch'
-if((Test-Path -LiteralPath $shortcut) -and ($link.Description -ne 'AGPA local customization launcher' -or $link.TargetPath -ne $psExe -or $link.Arguments -notin @($expectedLaunch,$legacyLaunch))){throw 'An unrelated customized launcher already exists.'}
+$oldLaunch='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$oldStart+'" -Launch'
+$oldLegacyLaunch='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$oldLegacyStart+'" -Launch'
+if((Test-Path -LiteralPath $shortcut) -and ($link.Description -ne 'AGPA local customization launcher' -or $link.TargetPath -ne $psExe -or $link.Arguments -notin @($expectedLaunch,$legacyLaunch,$oldLaunch,$oldLegacyLaunch))){throw 'An unrelated customized launcher already exists.'}
 $link.TargetPath=$psExe;$link.Arguments='-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$start+'" -Launch'
 $link.WorkingDirectory=$target;$link.WindowStyle=7;$link.IconLocation=$AppExe;$link.Description='AGPA local customization launcher';$link.Save()
 $auto=Join-Path $target 'windows\autostart.ps1'

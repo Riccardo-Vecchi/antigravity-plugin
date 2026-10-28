@@ -5,7 +5,7 @@ $journal=Join-Path $NewConfig 'migration-windows-integrations.json'
 $shell=New-Object -ComObject WScript.Shell
 if($Undo){
  if(!(Test-Path -LiteralPath $journal)){return}
- $entries=@(Get-Content -LiteralPath $journal -Raw -Encoding UTF8|ConvertFrom-Json);[array]::Reverse($entries)
+ $entries=@( (Get-Content -LiteralPath $journal -Raw -Encoding UTF8|ConvertFrom-Json) );[array]::Reverse($entries)
  foreach($e in $entries){
   if($e.kind -eq 'registry'){
    $current=(Get-Item -LiteralPath $e.path).GetValue($e.name)
