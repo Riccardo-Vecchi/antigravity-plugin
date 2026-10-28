@@ -364,7 +364,16 @@
       "Open Extensions": "Open Extensions",
       "Extension missing or moved?": "Extension missing or moved?",
       "Choose Load unpacked and select this folder. Remove an old broken entry if necessary.": "Choose Load unpacked and select this folder. Remove an old broken entry if necessary.",
-      "Browser-use setup guide": "Browser-use setup guide"
+      "Browser-use setup guide": "Browser-use setup guide",
+      "Check Antigravity Updates": "Check Antigravity Updates",
+      "Check Plugin Updates": "Check Plugin Updates",
+      "Enable plugin": "Enable plugin",
+      "Disable plugin": "Disable plugin",
+      "Disable plugin?": "Disable plugin?",
+      "Pause all customizations without uninstalling. Your settings and sessions are kept.": "Pause all customizations without uninstalling. Your settings and sessions are kept.",
+      "Plugin disabled. Enable it here to restore customizations. Desktop and browser access must be enabled separately.": "Plugin disabled. Enable it here to restore customizations. Desktop and browser access must be enabled separately.",
+      "Customizations will be paused and Computer use and Browser use disconnected. Settings and Gemini sessions are kept. Enable the plugin again here; enable tool access separately.": "Customizations will be paused and Computer use and Browser use disconnected. Settings and Gemini sessions are kept. Enable the plugin again here; enable tool access separately.",
+      "Could not change plugin state. Try again.": "Could not change plugin state. Try again."
     },
     "icons": {
       "folder": "Folder",
@@ -782,7 +791,16 @@
       "Open Extensions": "Apri Estensioni",
       "Extension missing or moved?": "Estensione mancante o spostata?",
       "Choose Load unpacked and select this folder. Remove an old broken entry if necessary.": "Scegli Carica estensione non pacchettizzata e seleziona questa cartella. Se necessario, rimuovi la vecchia voce non funzionante.",
-      "Browser-use setup guide": "Guida a Browser use"
+      "Browser-use setup guide": "Guida a Browser use",
+      "Check Antigravity Updates": "Verifica aggiornamenti Antigravity",
+      "Check Plugin Updates": "Verifica aggiornamenti plugin",
+      "Enable plugin": "Abilita plugin",
+      "Disable plugin": "Disattiva plugin",
+      "Disable plugin?": "Disattivare il plugin?",
+      "Pause all customizations without uninstalling. Your settings and sessions are kept.": "Sospendi le personalizzazioni senza disinstallare. Impostazioni e sessioni vengono conservate.",
+      "Plugin disabled. Enable it here to restore customizations. Desktop and browser access must be enabled separately.": "Plugin disattivato. Riabilitalo qui per ripristinare le personalizzazioni. L’accesso a desktop e browser va riabilitato separatamente.",
+      "Customizations will be paused and Computer use and Browser use disconnected. Settings and Gemini sessions are kept. Enable the plugin again here; enable tool access separately.": "Le personalizzazioni saranno sospese e Computer use e Browser use scollegati. Impostazioni e sessioni Gemini vengono conservate. Puoi riabilitare il plugin qui e riattivare gli strumenti separatamente.",
+      "Could not change plugin state. Try again.": "Impossibile cambiare lo stato del plugin. Riprova."
     },
     "icons": {
       "folder": "Cartella",
@@ -1200,7 +1218,16 @@
       "Open Extensions": "Erweiterungen öffnen",
       "Extension missing or moved?": "Erweiterung fehlt oder wurde verschoben?",
       "Choose Load unpacked and select this folder. Remove an old broken entry if necessary.": "Wähle Entpackte Erweiterung laden und diesen Ordner. Entferne bei Bedarf den alten fehlerhaften Eintrag.",
-      "Browser-use setup guide": "Browser-use-Einrichtungsanleitung"
+      "Browser-use setup guide": "Browser-use-Einrichtungsanleitung",
+      "Check Antigravity Updates": "Antigravity-Updates suchen",
+      "Check Plugin Updates": "Plugin-Updates suchen",
+      "Enable plugin": "Plugin aktivieren",
+      "Disable plugin": "Plugin deaktivieren",
+      "Disable plugin?": "Plugin deaktivieren?",
+      "Pause all customizations without uninstalling. Your settings and sessions are kept.": "Pausiere alle Anpassungen ohne Deinstallation. Einstellungen und Sitzungen bleiben erhalten.",
+      "Plugin disabled. Enable it here to restore customizations. Desktop and browser access must be enabled separately.": "Plugin deaktiviert. Hier erneut aktivieren, um Anpassungen wiederherzustellen. Desktop- und Browserzugriff müssen separat aktiviert werden.",
+      "Customizations will be paused and Computer use and Browser use disconnected. Settings and Gemini sessions are kept. Enable the plugin again here; enable tool access separately.": "Anpassungen werden pausiert, Computer use und Browser use getrennt. Einstellungen und Gemini-Sitzungen bleiben erhalten. Plugin hier erneut aktivieren; Toolzugriff separat einschalten.",
+      "Could not change plugin state. Try again.": "Plugin-Status konnte nicht geändert werden. Erneut versuchen."
     },
     "icons": {
       "folder": "Ordner",
@@ -1618,7 +1645,16 @@
       "Open Extensions": "Abrir Extensiones",
       "Extension missing or moved?": "¿Falta la extensión o se ha movido?",
       "Choose Load unpacked and select this folder. Remove an old broken entry if necessary.": "Elige Cargar descomprimida y selecciona esta carpeta. Si hace falta, elimina la entrada antigua que falla.",
-      "Browser-use setup guide": "Guía de Browser use"
+      "Browser-use setup guide": "Guía de Browser use",
+      "Check Antigravity Updates": "Buscar actualizaciones de Antigravity",
+      "Check Plugin Updates": "Buscar actualizaciones del plugin",
+      "Enable plugin": "Activar plugin",
+      "Disable plugin": "Desactivar plugin",
+      "Disable plugin?": "¿Desactivar el plugin?",
+      "Pause all customizations without uninstalling. Your settings and sessions are kept.": "Pausa las personalizaciones sin desinstalar. Se conservan los ajustes y las sesiones.",
+      "Plugin disabled. Enable it here to restore customizations. Desktop and browser access must be enabled separately.": "Plugin desactivado. Actívalo aquí para restaurar las personalizaciones. El acceso al escritorio y al navegador debe activarse por separado.",
+      "Customizations will be paused and Computer use and Browser use disconnected. Settings and Gemini sessions are kept. Enable the plugin again here; enable tool access separately.": "Se pausarán las personalizaciones y se desconectarán Computer use y Browser use. Se conservan los ajustes y las sesiones Gemini. Reactiva el plugin aquí y los accesos por separado.",
+      "Could not change plugin state. Try again.": "No se pudo cambiar el estado del plugin. Inténtalo de nuevo."
     },
     "icons": {
       "folder": "Carpeta",
@@ -2036,7 +2072,16 @@
       "Open Extensions": "Ouvrir les extensions",
       "Extension missing or moved?": "Extension absente ou déplacée ?",
       "Choose Load unpacked and select this folder. Remove an old broken entry if necessary.": "Choisissez Charger l’extension non empaquetée et sélectionnez ce dossier. Supprimez l’ancienne entrée défectueuse si nécessaire.",
-      "Browser-use setup guide": "Guide de configuration de Browser use"
+      "Browser-use setup guide": "Guide de configuration de Browser use",
+      "Check Antigravity Updates": "Rechercher les mises à jour Antigravity",
+      "Check Plugin Updates": "Rechercher les mises à jour du plugin",
+      "Enable plugin": "Activer le plugin",
+      "Disable plugin": "Désactiver le plugin",
+      "Disable plugin?": "Désactiver le plugin ?",
+      "Pause all customizations without uninstalling. Your settings and sessions are kept.": "Suspendez les personnalisations sans désinstaller. Vos réglages et sessions sont conservés.",
+      "Plugin disabled. Enable it here to restore customizations. Desktop and browser access must be enabled separately.": "Plugin désactivé. Réactivez-le ici pour restaurer les personnalisations. Les accès au bureau et au navigateur doivent être réactivés séparément.",
+      "Customizations will be paused and Computer use and Browser use disconnected. Settings and Gemini sessions are kept. Enable the plugin again here; enable tool access separately.": "Les personnalisations seront suspendues et Computer use et Browser use déconnectés. Les réglages et sessions Gemini sont conservés. Réactivez le plugin ici et les accès séparément.",
+      "Could not change plugin state. Try again.": "Impossible de modifier l’état du plugin. Réessayez."
     },
     "icons": {
       "folder": "Dossier",
@@ -2454,7 +2499,16 @@
       "Open Extensions": "打开扩展程序",
       "Extension missing or moved?": "扩展程序丢失或已移动？",
       "Choose Load unpacked and select this folder. Remove an old broken entry if necessary.": "选择加载已解压的扩展程序并选取此文件夹，必要时移除旧的失效项。",
-      "Browser-use setup guide": "浏览器操作设置指南"
+      "Browser-use setup guide": "浏览器操作设置指南",
+      "Check Antigravity Updates": "检查 Antigravity 更新",
+      "Check Plugin Updates": "检查插件更新",
+      "Enable plugin": "启用插件",
+      "Disable plugin": "停用插件",
+      "Disable plugin?": "停用插件？",
+      "Pause all customizations without uninstalling. Your settings and sessions are kept.": "暂停所有自定义功能，无需卸载。设置和会话将保留。",
+      "Plugin disabled. Enable it here to restore customizations. Desktop and browser access must be enabled separately.": "插件已停用。可在此重新启用自定义功能。桌面和浏览器访问需单独开启。",
+      "Customizations will be paused and Computer use and Browser use disconnected. Settings and Gemini sessions are kept. Enable the plugin again here; enable tool access separately.": "自定义功能将暂停，电脑操作和浏览器操作将断开。设置及 Gemini 会话会保留。可在此重新启用插件，再单独启用工具访问。",
+      "Could not change plugin state. Try again.": "无法更改插件状态，请重试。"
     },
     "icons": {
       "folder": "文件夹",
@@ -2872,7 +2926,16 @@
       "Open Extensions": "拡張機能を開く",
       "Extension missing or moved?": "拡張機能が見つからない、または移動しましたか？",
       "Choose Load unpacked and select this folder. Remove an old broken entry if necessary.": "パッケージ化されていない拡張機能を読み込むを選び、このフォルダーを指定します。必要に応じて古い項目を削除してください。",
-      "Browser-use setup guide": "ブラウザー操作の設定ガイド"
+      "Browser-use setup guide": "ブラウザー操作の設定ガイド",
+      "Check Antigravity Updates": "Antigravity の更新を確認",
+      "Check Plugin Updates": "プラグインの更新を確認",
+      "Enable plugin": "プラグインを有効化",
+      "Disable plugin": "プラグインを無効化",
+      "Disable plugin?": "プラグインを無効にしますか？",
+      "Pause all customizations without uninstalling. Your settings and sessions are kept.": "アンインストールせずにカスタマイズを停止します。設定とセッションは保持されます。",
+      "Plugin disabled. Enable it here to restore customizations. Desktop and browser access must be enabled separately.": "プラグインは無効です。ここで再び有効にできます。デスクトップとブラウザーのアクセスは個別に有効化してください。",
+      "Customizations will be paused and Computer use and Browser use disconnected. Settings and Gemini sessions are kept. Enable the plugin again here; enable tool access separately.": "カスタマイズを停止し、コンピューター操作とブラウザー操作を切断します。設定と Gemini セッションは保持されます。ここでプラグインを再有効化し、ツールのアクセスを個別に有効化してください。",
+      "Could not change plugin state. Try again.": "プラグインの状態を変更できませんでした。再試行してください。"
     },
     "icons": {
       "folder": "フォルダー",

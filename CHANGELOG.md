@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.0
+
+- Distinguish Check Antigravity Updates from Check Plugin Updates in the Antigravity menu; keep the official updater action intact and route plugin checks to its own settings/status.
+- Add a persistent Enable plugin switch under Application → Plugin updates, with disable confirmation and reactivation in the same place.
+- Revoke Computer use and Browser use while paused, restore native icons, and keep preferences, desktop startup choices and existing Gemini web contents. Resuming customizations does not automatically regrant tool access.
+- Keep only management controls active while paused; stop automatic plugin-update timers until re-enabled. Translate the new controls into all seven supported languages.
+
 ## 1.7.0
 
 - Merge PR #2 by @FrancescoMin: fix legacy Windows upgrade paths, PowerShell 5.1 rollback and locked/empty migration directories.

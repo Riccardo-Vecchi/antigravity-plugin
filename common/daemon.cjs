@@ -36,6 +36,12 @@ const NATIVE_MCP=fs.readFileSync(path.join(BASE,'native-mcp.js'),'utf8');
 const SETTINGS_NAVIGATION=fs.readFileSync(path.join(BASE,'settings-navigation.js'),'utf8');
 const PROJECT_PRESENTATION=fs.readFileSync(path.join(BASE,'project-presentation.js'),'utf8');
 const computerUse=require('./computer-use.cjs').createManager();
+const pluginControl=require('./plugin-control.cjs').createControl({file:path.join(CONFIG_DIR,'plugin.json'),
+ disableAccess:async()=>{const state=await computerUse.perform('disconnect',true);if(state.enabled)throw Error('Desktop access could not be disconnected.');await companion?.perform('disableBrowser',true);},
+ pausePresentation:()=>desktopIcon.pause(),resumePresentation:()=>desktopIcon.resume(),
+ onChange:async enabled=>{if(enabled)pluginUpdate?.start();else pluginUpdate?.close();for(const c of clients.values()){c.featureState=undefined;await c.ensure().catch(()=>{});}}
+});
+
 const {connectionChecks,accessChanged,controlState}=require('./computer-use-checks.cjs');
 const I18N=fs.readFileSync(path.join(BASE,'i18n.js'),'utf8');
 const TRANSLATIONS=JSON.parse(fs.readFileSync(path.join(BASE,'locales.json'),'utf8'));
@@ -128,12 +134,14 @@ class Client{
   await this.call('Runtime.addBinding',{name:'__agpaComputerUse'});
   await this.call('Runtime.addBinding',{name:'__agpaCompanion'});
   await this.ensure();
+  if(pluginControl.enabled){
   await desktopIcon.ensureTray();
   await desktopIcon.setView(await this.evaluate('globalThis.__AGGeminiSwitch?.status().visible?"gemini":"antigravity"'));
   // A tray-created window has no launcher startup notification. Refresh its
   // desktop identity even when the selected icon did not change.
   if(desktopIcon.windowOpened)await desktopIcon.windowOpened().catch(e=>log('Window icon refresh: '+e.message));
   await this.updateAppState();
+  }
  }
  call(method,params={}){
   return new Promise((resolve,reject)=>{
@@ -154,13 +162,19 @@ class Client{
    const data=JSON.parse(state||'{}');
    if(!data.top||!/^https:\/\/127\.0\.0\.1:\d+$/.test(data.origin))return;
    this.origin=data.origin;
-   if(!await this.evaluate('!!globalThis.__AGProjectPresentation'))await this.evaluate(PROJECT_PRESENTATION);
+
    if(await this.evaluate('globalThis.__AGPAShortcutRules?.version')!==1)await this.evaluate(`globalThis.__AGPACreateShortcutRules=${shortcutRules.createShortcutRules.toString()};globalThis.__AGPAShortcutRules=globalThis.__AGPACreateShortcutRules();`);
    await this.evaluate(`globalThis.__AGPA_TOGGLE_SHORTCUT__=${JSON.stringify(desktopIcon.getState().toggleShortcut)};`);
    if(await this.evaluate('globalThis.__AGPAI18n?.version')!==I18N_VERSION){
     await this.evaluate(`globalThis.__AGPA_TRANSLATIONS__=${JSON.stringify(TRANSLATIONS)};\n${I18N}`);
     this.catalogUpdated=true;
    }else if(!this.catalogUpdated){await this.evaluate(`globalThis.__AGPAI18n.setCatalogs(${JSON.stringify(TRANSLATIONS)})`);this.catalogUpdated=true;}
+   if(await this.evaluate('globalThis.__AGPluginUpdates?.version')!==versions.updates)await this.evaluate(UPDATE_SETTINGS);
+   if(pluginControl.busy)return;
+   if(!pluginControl.enabled){if(this.featureState!==false){await this.pauseFeatures();this.featureState=false;}return;}
+   if(this.featureState===false||this.featureState===undefined)await this.evaluate(`document.body.removeAttribute('data-agpa-plugin-disabled')`);
+   this.featureState=true;
+   if(!await this.evaluate('!!globalThis.__AGProjectPresentation'))await this.evaluate(PROJECT_PRESENTATION);
    if(data.version!==APPEARANCE_VERSION){
     await this.evaluate(`globalThis.__AGPA_CONFIG__=${JSON.stringify(config)};\n${RENDERER}`);
     this.initialized=true;log('Applied project appearance to Antigravity window.');
@@ -180,7 +194,7 @@ class Client{
     await this.evaluate(`globalThis.__AGPA_APP_SETTINGS__=${JSON.stringify(desktopIcon.getState())};globalThis.__AGPA_PATCH_STATUS__=${JSON.stringify(this.patchStatus)};globalThis.__AGPA_APP_ICON_ASSETS__=${JSON.stringify(APP_ICON_ASSETS)};\n${APP_SETTINGS}`);
     log('Applied application icon setting.');
    }
-   if(await this.evaluate('globalThis.__AGPluginUpdates?.version')!==versions.updates)await this.evaluate(UPDATE_SETTINGS);
+
    if(await this.evaluate('globalThis.__AGShortcuts?.version')!==versions.shortcuts)await this.evaluate(SHORTCUTS);
    if(!await this.evaluate('!!globalThis.__AGNativeMcp'))await this.evaluate(NATIVE_MCP);
    if(await this.evaluate('globalThis.__AGSettingsNavigation?.version')!==versions.settingsNavigation)await this.evaluate(`globalThis.__AGPA_SETTINGS_PROJECT_STYLES__=${JSON.stringify(config)};\n${SETTINGS_NAVIGATION}`);
@@ -191,6 +205,19 @@ class Client{
    const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=pane-titlebar-toolbar]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
    if(signature!==this.healthSignature){this.healthSignature=signature;await this.checkCompatibility();}
   }finally{this.busy=false;}
+ }
+ async pauseFeatures(){
+  await this.evaluate(`(async()=>{
+   globalThis.__AGPA_STARTUP_APPLIED__=true;
+   document.body.setAttribute('data-agpa-plugin-disabled','');
+   document.querySelector('[data-agpa-gemini][open]')?.close();
+   globalThis.__AGHeaderPlacement?.destroy();
+   globalThis.__AGCompanion?.destroy();globalThis.__AGModelUI?.destroy();globalThis.__AGComputerUse?.destroy();
+   globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();
+   await globalThis.__AGGeminiInline?.destroy();
+   globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();
+   document.getElementById('agpa-window-chrome-styles')?.remove();
+  })()`);
  }
  async updateConfig(){if(this.initialized)await this.evaluate(`globalThis.__AGProjectAppearance?.setConfig(${JSON.stringify(config)});globalThis.__AGSettingsNavigation?.setProjectStyles(${JSON.stringify(config)})`);}
  async updateAppState(){const state=desktopIcon.getState();await this.evaluate(`globalThis.__AGAppSettings?.setState(${JSON.stringify(state)});globalThis.__AGShortcuts?.configure(${JSON.stringify(state.toggleShortcut)});globalThis.__AGGeminiInline?.setShortcut(${JSON.stringify(state.toggleShortcut)})`);}
@@ -219,6 +246,7 @@ class Client{
   return desktopIcon.getState();
  }
  async onAppSettings(params){
+  if(!pluginControl.enabled||pluginControl.busy)return;
   const context=this.contexts.get(params.executionContextId);
   if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin)return;
   let payload;
@@ -247,6 +275,7 @@ class Client{
   }catch(error){if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGAppSettings?.onSaved(${JSON.stringify(payload.requestId)},false,${JSON.stringify(error.message)})`,params.executionContextId).catch(()=>{});else throw error;}
  }
  async onModels(params){
+  if(!pluginControl.enabled||pluginControl.busy)return;
   const context=this.contexts.get(params.executionContextId);
   if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin)return;
   let payload;try{
@@ -258,6 +287,7 @@ class Client{
   }catch{if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGModelUI?.onResult(${JSON.stringify(payload.requestId)},false)`,params.executionContextId).catch(()=>{});}
  }
  async onCompanion(params){
+  if(!pluginControl.enabled||pluginControl.busy)return;
   const context=this.contexts.get(params.executionContextId);
   if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin||!companion)return;
   let payload;
@@ -276,12 +306,16 @@ class Client{
   if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin||!pluginUpdate)return;
   let payload;try{
    if(params.payload.length>1024)throw Error('Invalid update request.');payload=JSON.parse(params.payload);
-   if(!UUID.test(payload.requestId)||!['status','check','automatic','install'].includes(payload.action)||(payload.action==='automatic'?typeof payload.value!=='boolean':payload.value!==true))throw Error('Invalid update request.');
-   const result=await pluginUpdate.perform(payload.action,payload.value);
+   if(!UUID.test(payload.requestId)||!['status','check','automatic','install','enabled'].includes(payload.action)||(['automatic','enabled'].includes(payload.action)?typeof payload.value!=='boolean':payload.value!==true))throw Error('Invalid update request.');
+   if(payload.action==='enabled'){
+    const job=writeChain.then(()=>pluginControl.setEnabled(payload.value));writeChain=job.catch(()=>{});await job;
+   }
+   const result={...await pluginUpdate.perform(payload.action==='enabled'?'status':payload.action,payload.action==='enabled'?true:payload.value),pluginEnabled:pluginControl.enabled};
    await this.evaluate(`globalThis.__AGPluginUpdates?.onResult(${JSON.stringify(payload.requestId)},true,${JSON.stringify(result)})`,params.executionContextId);
   }catch{if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGPluginUpdates?.onResult(${JSON.stringify(payload.requestId)},false)`,params.executionContextId).catch(()=>{});}
  }
  async onComputerUse(params){
+  if(!pluginControl.enabled||pluginControl.busy)return;
   const context=this.contexts.get(params.executionContextId);
   if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin)return;
   let payload;
@@ -301,6 +335,7 @@ class Client{
   }
  }
  async onBinding(params){
+  if(!pluginControl.enabled||pluginControl.busy)return;
   const context=this.contexts.get(params.executionContextId);
   if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin)return;
   let payload;
@@ -336,7 +371,7 @@ async function poll(){
  try{
   const stat=await fsp.stat(CONFIG_PATH).catch(e=>e.code==='ENOENT'?null:Promise.reject(e));
   if(stat&&stat.mtimeMs!==configMtime){config=await readConfig();for(const c of clients.values())await c.updateConfig().catch(()=>{});}
-  if(platformPaths.platform==='win32'){const before=desktopIcon.getState();const after=await desktopIcon.ensureTray();if(before.desktopIconAvailable!==after.desktopIconAvailable||before.trayAvailable!==after.trayAvailable)for(const c of clients.values())await c.updateAppState().catch(()=>{});}
+  if(pluginControl.enabled&&platformPaths.platform==='win32'){const before=desktopIcon.getState();const after=await desktopIcon.ensureTray();if(before.desktopIconAvailable!==after.desktopIconAvailable||before.trayAvailable!==after.trayAvailable)for(const c of clients.values())await c.updateAppState().catch(()=>{});}
   const targets=await discover();
   for(const target of targets){let c=clients.get(target.key);if(!c){c=new Client(target,target.key);clients.set(target.key,c);try{await c.open();}catch(e){c.ws?.close();clients.delete(target.key);throw e;}}else await c.ensure();}
   const keys=new Set(targets.map(t=>t.key));for(const [key,c]of clients)if(!keys.has(key)){c.ws?.close();clients.delete(key);}
@@ -358,11 +393,12 @@ let interval;
  if(typeof WebSocket!=='function')throw Error('Node.js 22 or newer is required.');
  config=await readConfig();
  await modelPreferences.load().catch(e=>log(e.message));
- await desktopIcon.initialize();
+ await pluginControl.load();
+ await desktopIcon.initialize({suspended:!pluginControl.enabled});
  if(process.argv.includes('--check-config')){console.log(JSON.stringify({version:VERSION,configPath:CONFIG_PATH,configuredProjects:Object.keys(config.projects).length}));return;}
  companion=await require('./companion.cjs').createCompanion({onChange:()=>{if(companionBroadcast)return;companionBroadcast=setTimeout(async()=>{companionBroadcast=null;if(stopping)return;try{const next=await companionState();for(const c of clients.values())if(c.origin)c.evaluate(`globalThis.__AGCompanion?.receive(${JSON.stringify(next)})`).catch(()=>{});}catch{}},40);}});
  pluginUpdate=require('./plugin-update.cjs').createUpdater({canApply:async manual=>{
-  if((await computerUse.status()).operation)return false;
+  if(!pluginControl.enabled||pluginControl.busy||(await computerUse.status()).operation)return false;
   for(const c of clients.values()){
    const selector='[data-agpa-editor],.agpa-overlay,dialog[open]'+(manual?'':',[data-testid=settings-nav-item-App]');
    if(await c.evaluate(`!!document.querySelector(${JSON.stringify(selector)})`).catch(()=>true))return false;
@@ -372,6 +408,6 @@ let interval;
  await pluginUpdate.initialize();
  process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
  log(`Project appearance ${VERSION}; preferences: ${CONFIG_PATH}`);
- await poll();await pluginUpdate.ready();pluginUpdate.start();interval=setInterval(poll,1500);
+ await poll();await pluginUpdate.ready();if(pluginControl.enabled)pluginUpdate.start();interval=setInterval(poll,1500);
  if(legacyBootstrap)require('./migration.cjs').defer().catch(e=>log('Folder migration pending: '+e.message));
 })().catch(error=>{console.error(error.message);process.exitCode=1;});

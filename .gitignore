@@ -60,3 +60,6 @@ driver-*/
 
 # Per-user model visibility and favorites.
 models.json
+
+# Persistent plugin enable/disable choice.
+plugin.json

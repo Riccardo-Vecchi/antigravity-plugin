@@ -11,7 +11,7 @@ const preferences=path.join(paths.configDir,'app.json');
 const requestFile=path.join(paths.configDir,'windows-icon-request.json');
 const statusFile=path.join(paths.configDir,'windows-native-status.json');
 let state={version:2,taskbarIcon:'antigravity',startupView:'antigravity',autostart:false,toggleShortcut:'Ctrl+Alt+G'};
-let currentView='antigravity',lastView='antigravity',effectiveIcon=null,nativeAvailable=false,trayAvailable=false;
+let currentView='antigravity',lastView='antigravity',effectiveIcon=null,nativeAvailable=false,trayAvailable=false,paused=false;
 async function atomic(file,value){
  await fs.mkdir(path.dirname(file),{recursive:true});const temp=file+'.'+process.pid+'.tmp';
  try{await fs.writeFile(temp,JSON.stringify(value,null,2)+'\n',{mode:0o600});await fs.rename(temp,file);}
@@ -25,7 +25,7 @@ async function readNative(){
  catch{nativeAvailable=false;trayAvailable=false;return null;}
 }
 async function renderIcon(){
- const choice=desired();
+ const choice=paused?'antigravity':desired();
  if(effectiveIcon!==choice){await atomic(requestFile,{version:1,choice});effectiveIcon=choice;}
  await readNative();return getState();
 }
@@ -39,7 +39,8 @@ async function save(patch){
  try{await atomic(preferences,next);}catch(error){if(patch.autostart!==undefined)await autostart(before.autostart?'Enable':'Disable').catch(()=>{});throw error;}
  state=next;return renderIcon();
 }
-async function initialize(){
+async function initialize({suspended=false}={}){
+ paused=suspended;
  try{state=validate(await json(preferences,4096));}catch(error){if(error.code!=='ENOENT')throw error;}
  lastView=await session.read();currentView=state.startupView==='last'?lastView:state.startupView;
  state.autostart=!!(await autostart('Read')).enabled;
@@ -51,7 +52,9 @@ async function setToggleShortcut(value){return save({toggleShortcut:require('../
 async function setAutostart(value){if(typeof value!=='boolean')throw Error('Invalid autostart value.');return save({autostart:value});}
 async function setView(view){if(!['antigravity','gemini'].includes(view))throw Error('Unknown view.');lastView=await session.record(view);currentView=view;return renderIcon();}
 async function ensureTray(){await readNative();return getState();}
+async function pause(){paused=true;return renderIcon();}
+async function resume(){paused=false;return renderIcon();}
 async function restoreIntegration(){await initialize();await apply('antigravity');await setAutostart(false);await atomic(requestFile,{version:1,choice:'antigravity',restore:true});return getState();}
-return {initialize,apply,setStartupView,setAutostart,setToggleShortcut,setView,ensureTray,getState,validate,restoreIntegration};
+return {pause,resume,initialize,apply,setStartupView,setAutostart,setToggleShortcut,setView,ensureTray,getState,validate,restoreIntegration};
 }
 module.exports={...createController(),createController};

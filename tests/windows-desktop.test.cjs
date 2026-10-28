@@ -28,3 +28,8 @@ test('custom and disabled shortcuts survive a fresh preference store',async t=>{
  const f=await fixture(t),c=f.make();await c.initialize();await c.setToggleShortcut('Ctrl+Shift+K');const next=f.make();await next.initialize();assert.equal(next.getState().toggleShortcut,'Ctrl+Shift+K');
  await next.setToggleShortcut(null);const disabled=f.make();await disabled.initialize();assert.equal(disabled.getState().toggleShortcut,null);await assert.rejects(disabled.setToggleShortcut('K'));
 });
+test('pausing Windows icons keeps saved preferences and resuming reapplies their choice',async t=>{
+ const f=await fixture(t),c=f.make();await c.initialize();await c.apply('gemini');await c.setStartupView('last');await c.setAutostart(true);const before=await fs.readFile(path.join(f.dir,'app.json'));
+ await c.pause();assert.equal(JSON.parse(await fs.readFile(path.join(f.dir,'windows-icon-request.json'))).choice,'antigravity');assert.deepEqual(await fs.readFile(path.join(f.dir,'app.json')),before);
+ await c.resume();assert.equal(JSON.parse(await fs.readFile(path.join(f.dir,'windows-icon-request.json'))).choice,'gemini');assert.equal(c.getState().autostart,true);
+});

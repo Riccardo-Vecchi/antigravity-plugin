@@ -33,6 +33,14 @@ Open the native model menu and use the star beside a model to pin it. **Manage m
 
 Anthropic, Google and OpenAI icons identify recognized providers in the menu and selected-model button. Unknown providers keep their native presentation. Approval colors indicate Request Review (blue), Default (green), Auto (amber) and Turbo (red); they do not change native approval rules.
 
+## Enable or pause the plugin
+
+Use **Settings → Application → Plugin updates → Enable plugin**. Turning it off asks for confirmation, disconnects Computer use and Browser use, removes added controls and restores native icons. Preferences, conversation data, desktop startup choices and existing Gemini web contents are kept. A hidden Gemini view is parked without reloading or deleting its session/draft. A small management layer remains so the same switch can turn customizations back on, including after restarting the app. Desktop/browser access must be enabled separately; it is never silently regranted. The choice is stored in the private `plugin.json` file.
+
+**Antigravity → Check Antigravity Updates** retains the official app's action. **Check Plugin Updates** opens the plugin's settings and checks GitHub releases immediately, even when customizations are paused. Manual plugin installation is available after re-enabling; automatic update timers stop while paused.
+
+The platform disable scripts stop the helper entirely and have their existing platform-specific behavior. Use the GUI switch for reversible suspension with preferences retained.
+
 ## Patch status and recovery
 
 Open **Settings → Application → Plugin updates → Plugin customizations**:

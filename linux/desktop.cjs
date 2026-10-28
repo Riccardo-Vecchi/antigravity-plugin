@@ -22,7 +22,7 @@ const SIZES=[16,24,32,48,64,128,256,512];
 const AUTOSTART=path.join(os.homedir(),'.config','autostart','antigravity-plugin.desktop');
 const ICON_ROOT=path.join(os.homedir(),'.local','share','icons','hicolor');
 let state={version:2,taskbarIcon:'antigravity',startupView:'antigravity',autostart:false,toggleShortcut:'Ctrl+Alt+G'};
-let currentView='antigravity',effectiveIcon=null,trayAvailable=false;
+let currentView='antigravity',effectiveIcon=null,trayAvailable=false,paused=false;
 const {validate}=require('../common/app-preferences.cjs');
 
 function desiredIcon(){return state.taskbarIcon==='dynamic'?currentView:state.taskbarIcon;}
@@ -90,7 +90,7 @@ async function refresh({live=true}={}){
 }
 async function renderIcon({live=true,force=false}={}){
  const choice=desiredIcon();
- if(!installation)return getState();
+ if(!installation||paused)return getState();
  if(!force&&effectiveIcon===choice)return getState();
  const desktop=await desktopWithIcon(choice);
  const undoIcons=await themeIcons(choice);
@@ -138,9 +138,10 @@ async function setView(view){
  if(!['antigravity','gemini'].includes(view))throw Error('Unknown view.');
  currentView=view;lastView=await session.record(view);return renderIcon();
 }
-async function ensureTray(){await syncTray(effectiveIcon||desiredIcon());return getState();}
+async function ensureTray(){if(paused)return getState();await syncTray(effectiveIcon||desiredIcon());return getState();}
 async function windowOpened(){return renderIcon({force:true});}
-async function initialize(){
+async function initialize({suspended=false}={}){
+ paused=suspended;
  let saved=false;
  try{const stat=await fs.stat(PREFERENCES);if(stat.size>4096)throw Error('Application preferences are too large.');state=validate(JSON.parse(await fs.readFile(PREFERENCES,'utf8')));saved=true;}
  catch(error){if(error.code!=='ENOENT')throw error;}
@@ -148,9 +149,19 @@ async function initialize(){
  lastView=await session.read();
  currentView=state.startupView==='last'?lastView:state.startupView;
  try{await resolveInstallation();}catch(error){installation=null;console.warn(error.message);}
- if(saved&&installation)await renderIcon({live:false,force:true});
+ if(paused)await pause();else if(saved&&installation)await renderIcon({live:false,force:true});
  return getState();
 }
+async function pause(){
+ paused=true;
+ if(!installation)return getState();
+ await themeIcons('antigravity');
+ const d=await desktopWithIcon('restore');if(d.after!==d.before)await atomic(DESKTOP,d.after,d.mode);
+ await windowIdentity.remove(DESKTOP);
+ await run('/usr/bin/python3',[path.join(__dirname,'sync-tray-icon.py'),'--restore'],{timeout:8000});
+ await refresh();effectiveIcon='antigravity';return getState();
+}
+async function resume(){paused=false;return renderIcon({force:true});}
 async function restoreIntegration(){
  await initialize();await apply('antigravity');await setAutostart(false);
  const d=await desktopWithIcon('restore');if(d.after!==d.before)await atomic(DESKTOP,d.after,d.mode);
@@ -158,4 +169,4 @@ async function restoreIntegration(){
  await run('/usr/bin/python3',[path.join(__dirname,'sync-tray-icon.py'),'--restore'],{timeout:8000});
  await refresh();return getState();
 }
-module.exports={initialize,apply,setStartupView,setAutostart,setToggleShortcut,setView,ensureTray,windowOpened,getState,validate,restoreIntegration};
+module.exports={pause,resume,initialize,apply,setStartupView,setAutostart,setToggleShortcut,setView,ensureTray,windowOpened,getState,validate,restoreIntegration};
