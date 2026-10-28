@@ -4,6 +4,14 @@ const fs=require('node:fs/promises'),path=require('node:path'),{execFile}=requir
 const run=promisify(execFile),browsers=require('./browser.cjs').browsers,identity=require('../common/browser-identity.json');
 const service='antigravity-plugin.service',legacyService='antigravity-project-appearance.service';
 async function optional(file){try{return await fs.readFile(file,'utf8');}catch(e){if(e.code!=='ENOENT')throw e;return null;}}
+async function preflight({old,next,home}){
+ const root=path.join(home,'.config/systemd/user');
+ for(const [name,base]of [[legacyService,old.installDir],[service,next.installDir]]){
+  const file=path.join(root,name);let stat;try{stat=await fs.lstat(file);}catch(e){if(e.code==='ENOENT')continue;throw e;}
+  if(!stat.isFile()||stat.isSymbolicLink())throw Error('Service file requires manual review.');
+  if(!(await fs.readFile(file,'utf8')).includes(path.join(base,'common/daemon.cjs')))throw Error('Service belongs to another program.');
+ }
+}
 async function rewrite({old,next,home,env,change,remap,plain}){
  const configHome=env.XDG_CONFIG_HOME||path.join(home,'.config');
  for(const [,folder]of browsers){const file=path.join(configHome,folder,'NativeMessagingHosts',identity.host+'.json'),data=await plain(file);if(!data)continue;const entry=JSON.parse(data.toString().trim());if(entry.name===identity.host&&entry.path===path.join(old.configDir,'companion/browser-host.sh')){entry.path=path.join(next.configDir,'companion/browser-host.sh');await change(file,JSON.stringify(entry)+'\n');}}
@@ -38,4 +46,4 @@ function lifecycle({old,next,home,env}){
   }
  };
 }
-module.exports={rewrite,lifecycle};
+module.exports={preflight,rewrite,lifecycle};

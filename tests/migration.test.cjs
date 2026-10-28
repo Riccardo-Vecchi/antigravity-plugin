@@ -27,3 +27,9 @@ test('desktop leases can be paused for Windows file moves without losing the ori
  const f=await fixture(t),{pauseDesktop,resumeDesktop}=require('../common/migration.cjs'),file=path.join(f.old.configDir,'computer-use/state.json'),before=await fs.readFile(file);
  const paused=await pauseDesktop(f.old,f.next);assert.equal(JSON.parse(await fs.readFile(file)).enabled,false);await fs.mkdir(path.join(f.next.configDir,'computer-use'),{recursive:true});await fs.rename(file,path.join(f.next.configDir,'computer-use/state.json'));await resumeDesktop(paused,f.old,f.next,true);assert.deepEqual(await fs.readFile(path.join(f.next.configDir,'computer-use/state.json')),before);
 });
+test('a foreign canonical service is rejected before either helper is stopped',async t=>{
+ const f=await fixture(t);await f.put(path.join(f.home,'.config/systemd/user/antigravity-plugin.service'),'[Service]\nExecStart=/unrelated/program\n');await assert.rejects(f.go(),/another program/);assert.deepEqual(f.calls,[]);assert.match(await fs.readFile(path.join(f.old.configDir,'app.json'),'utf8'),/dynamic/);
+});
+test('a stop failure still attempts to restore the original helper without moving its data',async t=>{
+ const f=await fixture(t);await assert.rejects(f.go({fail:'stop'}),/injected failure/);assert.ok(f.calls.includes('rollback'));assert.match(await fs.readFile(path.join(f.old.configDir,'app.json'),'utf8'),/dynamic/);
+});

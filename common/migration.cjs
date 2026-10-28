@@ -94,8 +94,9 @@ async function migrateUnlocked({home=os.homedir(),platform=process.platform,env=
  const tx={moves:[],changes:[]};let stopped=false,pausedDesktop=new Map();
  const adapter=require(platform==='win32'?'../windows/migration.cjs':'../linux/migration.cjs');
  lifecycle ||= adapter.lifecycle({old,next,home,env});
+ if(adapter.preflight)await adapter.preflight({old,next,home,env});
  try{
-  await lifecycle('preserve');await lifecycle('stop');stopped=true;
+  await lifecycle('preserve');stopped=true;await lifecycle('stop');
   if(platform==='win32'){pausedDesktop=await pauseDesktop(old,next);if(pausedDesktop.size)await lifecycle('quiesce');}
   // All source files are hashed again after the old helper has stopped writing.
   const moved=await moveTrees(old,next,tx);await rewrite(old,next,tx,options);await resumeDesktop(pausedDesktop,old,next,true);
