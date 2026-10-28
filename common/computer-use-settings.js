@@ -1,7 +1,7 @@
 /* Guided desktop access in a dedicated native Settings page. */
 (() => {
  'use strict';
- const VERSION = '1.4.2';
+ const VERSION = '1.4.3';
  if (globalThis.__AGComputerUse?.version === VERSION) return;
  globalThis.__AGComputerUse?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -227,7 +227,7 @@
   updateClose.addEventListener('click',()=>updateDialog.close());
   const examples = node('div', {class: 'agpa-cu-examples','data-cu-examples':''}, node('strong', {text: 'Try asking Antigravity'}),
    node('p', {text: 'Open Calculator, calculate 6 × 7 and verify the result.'}),
-   node('p', {text: 'Check the interface of my app and reproduce the issue visually.'}));
+   node('p', {text: 'Open a text editor, type a three-item packing checklist and leave it open for review.'}));
   section = node('section', {class: 'agpa-cu-panel', 'data-agpa-computer-use-setting': ''},
    node('div', {class: 'agpa-cu-hero'}, node('span', {class: 'agpa-cu-status-dot', 'aria-hidden': 'true'}), node('h3', {'data-cu-connection': '', role: 'status'}),toggle),
    node('p', {class: 'agpa-cu-summary', 'data-cu-summary': ''}), scopes, apps,

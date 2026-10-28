@@ -29,7 +29,7 @@ Open **Settings → Shortcuts** for the configurable window-local switch between
 
 ## Patch status and recovery
 
-Open **Settings → Application → Local customizations**:
+Open **Settings → Application → Plugin updates → Plugin customizations**:
 
 - **Version** identifies the installed helper code.
 - **Check compatibility** reads the current native interface hooks and checks the project, settings, Gemini, and keyboard integrations. The result and time of the last check are shown for that window.

@@ -3,15 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="popup.css" />
-    <title>Antigravity Plugin</title>
+    <title>Antigravity Browser</title>
   </head>
   <body>
-    <h1>Antigravity Plugin</h1>
+    <h1>Antigravity Browser</h1>
     <p id="status" role="status"></p>
     <label id="label" for="name"></label>
     <div class="row">
       <input id="name" maxlength="60" /><button id="save"></button>
     </div>
+    <label id="scope-label" for="scope"></label>
+    <select id="scope"><option value="tabs"></option><option value="profile"></option></select>
     <button id="connect"></button><button id="share" class="primary"></button>
     <p id="explain"></p>
     <ul id="tabs"></ul>

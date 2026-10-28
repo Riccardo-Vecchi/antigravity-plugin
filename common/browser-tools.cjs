@@ -33,11 +33,11 @@ function tool(name, description, properties = {}, required = []) {
 const tools = [
   tool(
     "browser_list_connections",
-    "List connected browser profiles. Only explicitly shared tabs are accessible.",
+    "List connected browser profiles. Only tabs shared individually or through whole-profile mode are accessible.",
   ),
   tool(
     "browser_list_tabs",
-    "List explicitly shared tabs in a connected browser profile.",
+    "List web tabs shared individually or through whole-profile mode in a connected browser profile.",
     { connection: basic.connection },
     ["connection"],
   ),
@@ -97,7 +97,7 @@ const tools = [
   ),
   tool(
     "browser_navigate",
-    "Navigate within the shared tab’s approved origin. For a different site ask the user to open and share that tab.",
+    "Navigate a shared web tab. Selected-tab mode restricts navigation to its approved origin; explicit whole-profile mode permits other HTTP(S) sites.",
     { ...basic, url: { type: "string", maxLength: 4096 } },
     ["connection", "tab", "url"],
   ),

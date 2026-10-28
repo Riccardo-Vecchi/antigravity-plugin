@@ -1,7 +1,7 @@
 /* Local application appearance and startup preferences in native Settings. */
 (() => {
  'use strict';
- const VERSION='1.0.0';
+ const VERSION='1.1.0';
  const i18n=globalThis.__AGPAI18n;
  const initial=globalThis.__AGPA_APP_SETTINGS__||{version:2,taskbarIcon:'antigravity',startupView:'antigravity'};
  const icons=globalThis.__AGPA_APP_ICON_ASSETS__;
@@ -18,7 +18,7 @@
   .agpa-app-icon-section {display:flex;flex-direction:column;gap:12px;padding:15px;border:1px solid var(--border,#353535);border-radius:12px;color:var(--foreground,#eee)}
   .agpa-app-icon-section h3 {font-size:14px;font-weight:500;margin:0}
   .agpa-app-icon-description,.agpa-app-icon-status {font-size:12px;line-height:1.5;color:var(--muted-foreground,#aaa);margin:0}
-  .agpa-app-icon-options {display:flex;gap:10px;flex-wrap:wrap}
+  .agpa-app-icon-options {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.agpa-app-icon-options>.agpa-app-icon-option{min-width:0;width:100%;height:100%;justify-content:center}.agpa-app-icon-options>.agpa-app-icon-option>span:last-child{overflow-wrap:anywhere}@media(max-width:650px){.agpa-app-icon-options{grid-template-columns:1fr}}
   .agpa-app-icon-option {display:flex;align-items:center;gap:10px;min-width:145px;padding:10px 12px;border:1px solid var(--border,#444);border-radius:10px;background:transparent;color:inherit;font:14px system-ui,sans-serif;cursor:pointer}
   .agpa-app-icon-option[aria-checked=true] {border-color:#398bdb;background:var(--secondary,#292929);box-shadow:0 0 0 1px #398bdb}
   .agpa-app-icon-option:hover {background:var(--secondary,#292929)}
@@ -51,11 +51,6 @@
   const tray=section?.querySelector('[data-agpa-tray-status]');
   if(tray)i18n.set(tray,state.platform==='linux'&&!state.desktopIconAvailable?'AppImage or launcher not found. Check the plugin installation settings.':state.platform==='win32'&&!state.desktopIconAvailable?'Open Antigravity (customized) to enable window and tray icons.':state.trayAvailable?'The tray icon follows the same choice.':'Tray updates are available with supported GNOME/Zorin AppIndicator setups.');
   if(patchSection){
-   i18n.set(patchSection.querySelector('[data-agpa-patch-version]'),'Version {version}',{version:patch.version});
-   const summary=patchSection.querySelector('[data-agpa-patch-summary]');
-   i18n.set(summary,({unchecked:'Not checked',compatible:'Ready',needsRepair:'Needs repair',incompatible:'Native interface incompatible'})[patch.state]||'Not checked');summary.setAttribute('data-state',patch.state);
-   const checked=patchSection.querySelector('[data-agpa-patch-checked]');
-   i18n.set(checked,patch.checkedAt?'Last checked: {time}':'',{time:()=>new Intl.DateTimeFormat(i18n.language,{dateStyle:'short',timeStyle:'medium'}).format(new Date(patch.checkedAt))});
    for(const button of patchSection.querySelectorAll('button'))button.disabled=busy;
    for(const row of patchSection.querySelectorAll('[data-agpa-check]')){
     const result=patch.checks.find(c=>c.id===row.getAttribute('data-agpa-check'));
@@ -121,12 +116,7 @@
    const check=node('button',{type:'button',class:'agpa-app-icon-option','data-agpa-check-compatibility':'',text:'Check compatibility'});
    const repair=node('button',{type:'button',class:'agpa-app-icon-option','data-agpa-repair-integration':'',text:'Reapply patch'});
    check.addEventListener('click',()=>choose('checkCompatibility',true));repair.addEventListener('click',()=>choose('repairIntegration',true));
-   patchSection=node('section',{class:'agpa-app-icon-section','data-agpa-patch-setting':'','aria-labelledby':'agpa-patch-title'},
-    node('h3',{id:'agpa-patch-title',text:'Local customizations'}),
-    node('p',{class:'agpa-app-icon-description','data-agpa-patch-version':''}),
-    node('p',{class:'agpa-app-icon-description agpa-patch-summary','data-agpa-patch-summary':'',role:'status','aria-live':'polite'}),
-    node('p',{class:'agpa-app-icon-description','data-agpa-patch-checked':''}),checks,
-    node('p',{class:'agpa-app-icon-description',text:'Check the current interface or reapply the additions without reloading your open pages.'}),
+   patchSection=node('div',{'data-agpa-patch-setting':''},checks,
     node('div',{class:'agpa-patch-actions'},check,repair),node('p',{class:'agpa-app-icon-status',role:'status','aria-live':'polite','data-agpa-patch-operation':''}));
   }
   if(shortcuts&&!shortcutSection){
@@ -156,7 +146,8 @@
   if(shortcutSection&&shortcuts&&shortcutSection.parentElement!==shortcuts)shortcuts.children[0]?.after(shortcutSection);
   if(section&&appearance&&section.parentElement!==appearance)appearance.children[0]?.after(section);
   if(startupSection&&application&&startupSection.parentElement!==application)application.children[0]?.after(startupSection);
-  if(patchSection&&application&&patchSection.parentElement!==application)(startupSection||application.children[0])?.after(patchSection);
+  const diagnosticHost=application?.querySelector('[data-pu-diagnostics]');
+  if(patchSection&&diagnosticHost&&patchSection.parentElement!==diagnosticHost)diagnosticHost.append(patchSection);
   paint();
  }
  function startup(){

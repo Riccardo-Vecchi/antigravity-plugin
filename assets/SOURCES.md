@@ -12,4 +12,4 @@ Downloaded on 26 October 2026. The Antigravity SVG used in the README has only i
 
 `assets/logos/windows.svg` is a minimal four-pane platform indicator drawn for this repository to identify Windows; the Windows name and platform mark belong to Microsoft.
 
-The pointer icon in `common/browser-extension/assets/` is original plugin artwork under 0BSD. `icon.svg` is its source; the bundled PNG sizes are rendered from it. It is not a Google logo.
+The extension assets in `common/browser-extension/assets/` use the official Antigravity favicon SVG above with its background circle removed, as in the README. The PNG sizes are rendered from this SVG; these are Google brand assets, not original plugin artwork.

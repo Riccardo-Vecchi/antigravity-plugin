@@ -95,6 +95,7 @@ for (const [language, label] of Object.entries({
   ja: "このタブの共有を停止",
 }))
   dictionaries[language].push(label);
+const scopeLabels = {"en": ["Browser access", "Selected tabs", "All tabs in this profile", "All current and new web tabs in this profile are shared until you stop sharing or disconnect. Password fields, private tabs and browser pages are excluded.", "Allow access to all tabs in your browser first."], "it": ["Accesso al browser", "Schede selezionate", "Tutte le schede di questo profilo", "Tutte le schede web aperte e nuove di questo profilo sono condivise fino all’interruzione o alla disconnessione. Password, schede private e pagine interne del browser sono escluse.", "Consenti prima l’accesso a tutte le schede nel browser."], "de": ["Browserzugriff", "Ausgewählte Tabs", "Alle Tabs dieses Profils", "Alle vorhandenen und neuen Web-Tabs dieses Profils werden bis zum Beenden oder Trennen freigegeben. Passwortfelder, private Tabs und Browserseiten sind ausgeschlossen.", "Erlaube zuerst den Zugriff auf alle Tabs im Browser."], "es": ["Acceso al navegador", "Pestañas seleccionadas", "Todas las pestañas de este perfil", "Se comparten las pestañas web actuales y nuevas de este perfil hasta detener o desconectar. Se excluyen contraseñas, pestañas privadas y páginas internas.", "Permite primero el acceso a todas las pestañas en el navegador."], "fr": ["Accès au navigateur", "Onglets sélectionnés", "Tous les onglets de ce profil", "Les onglets web actuels et nouveaux de ce profil sont partagés jusqu’à l’arrêt ou la déconnexion. Les mots de passe, onglets privés et pages internes sont exclus.", "Autorisez d’abord l’accès à tous les onglets dans le navigateur."], "zh": ["浏览器访问", "选定标签页", "此配置的所有标签页", "共享此配置中现有及新增的网页标签，直到停止共享或断开连接。不包括密码字段、隐私标签和浏览器内部页面。", "请先在浏览器中允许访问所有标签页。"], "ja": ["ブラウザーへのアクセス", "選択したタブ", "このプロファイルのすべてのタブ", "停止または切断するまで、このプロファイルの既存および新しいウェブタブを共有します。パスワード欄、プライベートタブ、ブラウザー内部ページは対象外です。", "先にブラウザーですべてのタブへのアクセスを許可してください。"]};
 const lang = (chrome.i18n.getUILanguage() || "en").split("-")[0],
   t = dictionaries[lang] || dictionaries.en,
   $ = (id) => document.getElementById(id);
@@ -107,6 +108,10 @@ for (const [id, index] of Object.entries({
   stop: 7,
 }))
   $(id).textContent = t[index];
+const scopeText=scopeLabels[lang]||scopeLabels.en;
+$("scope-label").textContent=scopeText[0];
+$("scope").options[0].textContent=scopeText[1];
+$("scope").options[1].textContent=scopeText[2];
 const errors = {
   "Open Antigravity and enable Browser use in Settings.": {
     it: "Apri Antigravity e abilita Uso del browser nelle impostazioni.",
@@ -166,11 +171,15 @@ let busy = false,
 function controls() {
   for (const b of $("tabs").querySelectorAll("button"))
     b.disabled = busy || !latest.ready;
+  $("scope").disabled=busy||!latest.ready;
+  $("scope").value=latest.scope||"tabs";
+  $("share").hidden=latest.scope==="profile";
+  $("explain").textContent=latest.scope==="profile"?scopeText[3]:t[6];
   $("share").textContent = t[latest.current?.shared ? 10 : 5];
   $("share").disabled = busy || !latest.ready || !latest.current;
   $("save").disabled = busy || !dirty || !$("name").value.trim();
   $("connect").disabled = busy;
-  $("stop").disabled = busy || !latest.shared?.length;
+  $("stop").disabled = busy || (!latest.shared?.length&&latest.scope!=="profile");
 }
 function render(state) {
   latest = state;
@@ -234,3 +243,15 @@ $("save").onclick = () => act("label", { label: $("name").value });
 request("status")
   .then(render)
   .catch((e) => ($("error").textContent = message(e)));
+
+$("scope").onchange=async()=>{
+  const scope=$("scope").value;
+  if(scope==="profile"){
+    try {
+      // Permission requests stay directly in the user's selection gesture.
+      const allowed=await chrome.permissions.request({permissions:["tabs"]});
+      if(!allowed){$("error").textContent=scopeText[4];controls();return;}
+    } catch {$("error").textContent=scopeText[4];controls();return;}
+  }
+  await act("scope",{scope});
+};

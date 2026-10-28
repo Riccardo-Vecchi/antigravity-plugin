@@ -24,7 +24,7 @@ The explicit Cua Driver update check contacts the public GitHub Releases API for
 
 ## Browser connections
 
-The optional browser bridge uses an authenticated local Unix socket or Windows named pipe and Chromium Native Messaging. It does not start a network listener or read an existing browser profile from disk. Only explicitly shared tabs are available to its native agent tools; changing origin revokes sharing. The embedded Gemini website does not receive the tools. See [Browser use](BROWSER_USE.md).
+The optional browser bridge uses an authenticated local Unix socket or Windows named pipe and Chromium Native Messaging. It does not start a network listener or read an existing browser profile from disk. Only tabs shared individually or through the explicit whole-profile mode are available to its native agent tools. Whole-profile mode asks for the optional `tabs` browser permission, includes current and new regular HTTP(S) tabs across sites, and ends on stop/disconnect. Private and internal browser tabs remain excluded; cookies and raw profile files are not exposed. Changing origin revokes individual-tab sharing. The embedded Gemini website does not receive the tools. See [Browser use](BROWSER_USE.md).
 
 The plugin does not record tool events, action history, timings or usage metrics. The former unpublished Activity preview and its toolbar indicator have been removed. On migration, its owned `companion/activity.json` file and recording/retention preferences are deleted; browser connection preferences are retained. Tool responses are transient and delivered only for the requested operation.
 

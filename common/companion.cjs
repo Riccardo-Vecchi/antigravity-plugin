@@ -31,8 +31,10 @@ async function createCompanion({
   home = os.homedir(),
   runtime = process.execPath,
   platform = process.platform,
+  extensionDir = getPaths({platform,home}).extensionDir,
   onChange = () => {},
 } = {}) {
+  await require("./browser-extension.cjs").deploy(extensionDir);
   const loc = core.locations(configDir, platform),
     store = await core.createSettings(configDir),
     connections = new Map(),
@@ -93,7 +95,7 @@ async function createCompanion({
       browser: {
         enabled: store.settings.browserEnabled,
         registered: owned(data.mcpServers?.[SERVER]),
-        extensionPath: path.join(__dirname, "browser-extension"),
+        extensionPath: extensionDir,
         extensionId: require("./browser-identity.json").extensionId,
         connections: [...connections.entries()].map(([id, c]) => ({
           id,
@@ -218,7 +220,7 @@ async function createCompanion({
                 !c ||
                 c.peer !== p ||
                 !Array.isArray(m.value) ||
-                m.value.length > 100
+                m.value.length > 2000
               )
                 throw Error("Invalid shared tabs.");
               c.tabs = m.value.map((t) => {

@@ -241,6 +241,8 @@ test("extension identity remains stable and all privileged entry points are pack
   assert.equal(id, identity.extensionId);
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.host_permissions, undefined);
+  assert.deepEqual(manifest.optional_permissions,["tabs"]);
+  assert.equal(manifest.incognito,"not_allowed");
   assert.deepEqual([...manifest.permissions].sort(), [
     "activeTab",
     "debugger",

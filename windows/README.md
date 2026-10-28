@@ -37,7 +37,7 @@ The shared controls remain in the same locations:
 
 - **Settings → Appearance:** Antigravity, Gemini, or Dynamic icons.
 - **Settings → Application → Startup:** startup view, Remember last view, and launch at sign-in.
-- **Settings → Application → Local customizations:** helper version, interface checks, and UI reapplication.
+- **Settings → Application → Plugin updates → Plugin customizations:** helper version, interface checks, and UI reapplication.
 - **Settings → Shortcuts:** configurable view switching (Ctrl+Alt+G by default), including reset and disable.
 - **Project ⋯ → Edit:** project icons, emoji, colors, and search.
 

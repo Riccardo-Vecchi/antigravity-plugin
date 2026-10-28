@@ -1,7 +1,7 @@
 /* Layout extension for the existing Gemini guest; no session or native API bridge. */
 (() => {
   'use strict';
-  const VERSION='1.0.0';
+  const VERSION='1.1.0';
   const i18n=globalThis.__AGPAI18n;
   const icon=globalThis.__AGPA_INLINE_ICON__;
   delete globalThis.__AGPA_INLINE_ICON__;
@@ -30,7 +30,7 @@
   fallback.addEventListener('click',returnToApp);
   function installInGuest(settings,createRules){
     const rules=createRules();
-    const VERSION='1.0.0';
+    const VERSION='1.1.0';
     const old=globalThis.__agpaInlineReturn;
     if(old?.version===VERSION){old.configure(settings);return old.status();}
     old?.destroy();
@@ -42,7 +42,7 @@
       #agpa-inline-return:focus-visible {outline:2px solid #8ab4f8;outline-offset:2px}
       #agpa-inline-return img {width:20px;height:20px;object-fit:contain;pointer-events:none}
       #agpa-inline-return[data-floating] {position:fixed;top:16px;right:16px;z-index:2147483000;margin:0}
-      @media(max-width:500px){#agpa-inline-return{padding:0 9px;gap:4px}}
+      @media(max-width:500px){#agpa-inline-return{padding:0 9px;gap:4px}#agpa-inline-return>span{display:none}}
     `;
     document.head.append(style);
     const button=document.createElement('button');button.id='agpa-inline-return';button.type='button';
@@ -57,7 +57,12 @@
       const element=document.querySelector('temp-chat-button');
       if(element)return element;
       const b=[...document.querySelectorAll('button[aria-label]')].find(n=>/temporary chat|chat temporane/i.test(n.getAttribute('aria-label')||''));
-      return b?.closest('gem-icon-button')||b;
+      if(b)return b.closest('gem-icon-button')||b;
+      // Signed-out Gemini has links, Get App and Sign in instead of temporary chat.
+      // Join that flex row so native actions retain their own layout space.
+      const signedOut=document.querySelector('.signed-out-buttons');
+      return signedOut?.querySelector(':scope > gem-button')||signedOut?.lastElementChild;
+
     }
     function place(){
       if(stopped)return;
@@ -65,18 +70,26 @@
       if(target?.parentElement){
         if(button.parentElement!==target.parentElement||button.nextElementSibling!==target)target.before(button);
         if(button.hasAttribute('data-floating'))button.removeAttribute('data-floating');
+        button.style.top='';
       }else{
         if(button.parentElement!==document.body)document.body.append(button);
         if(!button.hasAttribute('data-floating'))button.setAttribute('data-floating','');
+        let top=16;
+        for(const header of document.querySelectorAll('header,[role=banner],.top-bar,.buttons-container')){
+          const r=header.getBoundingClientRect();
+          if(r.width&&r.height&&r.top>=0&&r.bottom<180)top=Math.max(top,r.bottom+8);
+        }
+        button.style.top=top+'px';
       }
     }
+    window.addEventListener('resize',place);
     const observer=new MutationObserver(()=>{if(queued||stopped)return;queued=true;queueMicrotask(()=>{queued=false;place();});});
     observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-label']});
     globalThis.__agpaInlineReturn={
       version:VERSION,
       configure(next){current=next;if(!style.isConnected)document.head.append(style);if(image.src!==next.icon)image.src=next.icon;if(button.getAttribute('aria-label')!==next.returnLabel)button.setAttribute('aria-label',next.returnLabel);if(button.title!==next.returnLabel)button.title=next.returnLabel;place();},
       status(){return{installed:button.isConnected,anchored:!button.hasAttribute('data-floating'),label:button.textContent};},
-      destroy(){stopped=true;observer.disconnect();button.removeEventListener('click',activate);window.removeEventListener('keydown',shortcut,true);button.remove();style.remove();delete globalThis.__agpaInlineReturn;}
+      destroy(){stopped=true;observer.disconnect();window.removeEventListener('resize',place);button.removeEventListener('click',activate);window.removeEventListener('keydown',shortcut,true);button.remove();style.remove();delete globalThis.__agpaInlineReturn;}
     };
     place();return globalThis.__agpaInlineReturn.status();
   }

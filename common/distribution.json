@@ -89,7 +89,8 @@
     "common/plugin-update-cli.cjs",
     "common/plugin-update-settings.js",
     "docs/UPDATES.md",
-    "common/header-placement.js"
+    "common/header-placement.js",
+    "common/browser-extension.cjs"
   ],
   "linux": [
     "linux/desktop.cjs",

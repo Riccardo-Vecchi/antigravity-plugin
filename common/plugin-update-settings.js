@@ -1,7 +1,7 @@
 /* Updates belong to the plugin, independently of Antigravity's updater. */
 (() => {
   "use strict";
-  const VERSION = "1.0.0";
+  const VERSION = "1.1.0";
   if (globalThis.__AGPluginUpdates?.version === VERSION) return;
   globalThis.__AGPluginUpdates?.destroy();
   const i = globalThis.__AGPAI18n,
@@ -70,6 +70,7 @@
           }).format(new Date(state.lastChecked)),
       },
     );
+    section.querySelector("[data-pu-latest]").hidden = !state.available;
     const input = section.querySelector("input");
     input.checked = state.automatic !== false;
     input.disabled = busy || state.installing;
@@ -154,6 +155,8 @@
       install.onclick = () => act("install");
       const actions = node("div", null, { class: "agpa-pu-actions" });
       actions.append(check, install);
+      const diagnostics=node("details",null,{class:"agpa-pu-details"});
+      diagnostics.append(node("summary","Plugin customizations"),node("div",null,{"data-pu-diagnostics":""}));
       section.append(
         node("h3", "Plugin updates"),
         node("p", null, { "data-pu-current": "" }),
@@ -170,15 +173,17 @@
           "aria-live": "polite",
         }),
         node("p", null, { "data-pu-checked": "" }),
+        diagnostics,
       );
       refresh();
     }
+    // Native Application keeps its version/about block last. Place the plugin below it.
     if (section.parentElement !== host) host.append(section);
     paint();
   }
   const style = node("style");
   style.textContent =
-    ".agpa-plugin-update-section{display:flex;flex-direction:column;gap:12px;border:1px solid var(--border,#353535);border-radius:12px;padding:15px;margin-top:18px;font-size:13px;color:var(--foreground,#eee)}.agpa-plugin-update-section h3{font-size:14px;font-weight:500;margin:0}.agpa-plugin-update-section p{font-size:12px;line-height:1.6;color:var(--muted-foreground,#aaa);margin:0}.agpa-pu-toggle,.agpa-pu-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.agpa-pu-actions button{display:flex;gap:6px;align-items:center;background:transparent;color:inherit;font:inherit;border:1px solid #444;border-radius:8px;padding:8px 12px;cursor:pointer}.agpa-pu-actions button[hidden]{display:none}.agpa-pu-actions button:disabled{opacity:.5;cursor:wait}.agpa-pu-spin{display:inline-block;animation:agpa-plugin-update-spin 1s linear infinite}@keyframes agpa-plugin-update-spin{to{transform:rotate(360deg)}}";
+    ".agpa-plugin-update-section{display:flex;flex-direction:column;gap:12px;border:1px solid var(--border,#353535);border-radius:12px;padding:15px;margin-top:18px;font-size:13px;color:var(--foreground,#eee)}.agpa-pu-details{border-top:1px solid var(--border,#353535);padding-top:12px}.agpa-pu-details summary{cursor:pointer;font-size:13px}.agpa-pu-details[open]>div{padding-top:10px}.agpa-pu-details .agpa-patch-actions{margin-top:12px}.agpa-plugin-update-section h3{font-size:14px;font-weight:500;margin:0}.agpa-plugin-update-section p{font-size:12px;line-height:1.6;color:var(--muted-foreground,#aaa);margin:0}.agpa-pu-toggle,.agpa-pu-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.agpa-pu-actions button{display:flex;gap:6px;align-items:center;background:transparent;color:inherit;font:inherit;border:1px solid #444;border-radius:8px;padding:8px 12px;cursor:pointer}.agpa-pu-actions button[hidden]{display:none}.agpa-pu-actions button:disabled{opacity:.5;cursor:wait}.agpa-pu-spin{display:inline-block;animation:agpa-plugin-update-spin 1s linear infinite}@keyframes agpa-plugin-update-spin{to{transform:rotate(360deg)}}";
   document.head.append(style);
   const observer = new MutationObserver(() => {
     if (queued) return;

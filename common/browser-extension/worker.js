@@ -6,7 +6,10 @@ let port,
   ready = false,
   connecting = false,
   retry,
-  paused = false;
+  paused = false,
+  scope = "tabs",
+  scopeEpoch = 0;
+const excluded = new Set();
 const grants = new Map(),
   queues = new Map();
 async function profile() {
@@ -41,9 +44,10 @@ async function announceTabs() {
   for (const [id, g] of grants) {
     try {
       const tab = await tabInfo(id);
-      if (AGPApolicy.origin(tab.url) !== g.origin) {
-        await revoke(id);
-        continue;
+      const origin=AGPApolicy.origin(tab.url);
+      if (origin !== g.origin) {
+        if(scope !== "profile") {await revoke(id);continue;}
+        g.origin=origin;g.snapshot=null;g.refs.clear();
       }
       tabs.push({ id, title: tab.title || "", url: tab.url });
     } catch {
@@ -63,6 +67,7 @@ async function revoke(id) {
   chrome.action.setBadgeText({ tabId: id, text: "" }).catch(() => {});
 }
 async function revokeAll() {
+  scope="tabs";scopeEpoch++;excluded.clear();
   for (const id of [...grants.keys()]) await revoke(id);
 }
 async function connect() {
@@ -146,35 +151,63 @@ async function shareCurrent() {
   const tab = await tabInfo(selected.id);
   const origin = AGPApolicy.origin(tab.url);
   if (grants.has(tab.id)) return;
-  await chrome.debugger.attach({ tabId: tab.id }, "1.3");
-  grants.set(tab.id, { origin, snapshot: null, refs: new Map() });
-  try {
-    await chrome.debugger.sendCommand({ tabId: tab.id }, "Page.enable");
-    await chrome.debugger.sendCommand(
-      { tabId: tab.id },
-      "Accessibility.enable",
-    );
-    await chrome.action.setBadgeBackgroundColor({
-      tabId: tab.id,
-      color: "#197446",
-    });
-    await chrome.action.setBadgeText({ tabId: tab.id, text: "ON" });
-    await announceTabs();
-  } catch (e) {
-    await revoke(tab.id);
-    throw e;
-  }
+  const grant={origin, snapshot:null, refs:new Map(),attached:false};
+  grants.set(tab.id,grant);
+  await attachGrant(tab.id,grant);
+  await announceTabs();
 }
+async function attachGrant(id,g) {
+  if(g.attached)return;
+  try {
+  await chrome.debugger.attach({tabId:id},"1.3");
+  if(!ready||grants.get(id)!==g){await chrome.debugger.detach({tabId:id}).catch(()=>{});throw Error("Browser access was revoked.");}
+  g.attached=true;
+    await chrome.debugger.sendCommand({tabId:id},"Page.enable");
+    await chrome.debugger.sendCommand({tabId:id},"Accessibility.enable");
+    await chrome.action.setBadgeBackgroundColor({tabId:id,color:"#197446"});
+    await chrome.action.setBadgeText({tabId:id,text:"ON"});
+  } catch(e){await revoke(id);throw e;}
+}
+async function syncProfile() {
+  if(scope!=="profile"||!ready)return;
+  const epoch=scopeEpoch;
+  const tabs=await chrome.tabs.query({});
+  if(scope!=="profile"||!ready||epoch!==scopeEpoch)return;
+  for(const tab of tabs){
+    if(tab.incognito||excluded.has(tab.id))continue;
+    let origin;
+    try{origin=AGPApolicy.origin(tab.url);}catch{await revoke(tab.id);continue;}
+    if(scope!=="profile"||!ready||epoch!==scopeEpoch)return;
+    const g=grants.get(tab.id);
+    if(!g)grants.set(tab.id,{origin,snapshot:null,refs:new Map(),attached:false});
+    else if(g.origin!==origin){g.origin=origin;g.snapshot=null;g.refs.clear();}
+  }
+  await announceTabs();
+}
+async function setScope(next) {
+  if(!["tabs","profile"].includes(next))throw Error("Invalid sharing mode.");
+  if(!ready)throw Error("Open Antigravity and enable Browser use in Settings.");
+  if(next==="profile"&&!await chrome.permissions.contains({permissions:["tabs"]}))throw Error("Allow access to all tabs in your browser first.");
+  await revokeAll();
+  scope=next;
+  if(scope==="profile")await syncProfile();
+  else await announceTabs();
+}
+
 async function execute(tool, args) {
   const id = args.tab,
     g = grants.get(id);
   if (!g || !ready) throw Error("Share this tab using the extension first.");
   const current = await tabInfo(id);
-  if (AGPApolicy.origin(current.url) !== g.origin) {
+  if (current.incognito) throw Error("Private browsing tabs are excluded.");
+  const origin=AGPApolicy.origin(current.url);
+  if (origin !== g.origin && scope === "profile") {g.origin=origin;g.snapshot=null;g.refs.clear();}
+  if (origin !== g.origin) {
     await revoke(id);
     await announceTabs();
     throw Error("The site changed. Share the tab again.");
   }
+  await attachGrant(id,g);
   async function command(method, params = {}) {
     if (!ready || grants.get(id) !== g)
       throw Error("Browser access was revoked.");
@@ -342,7 +375,7 @@ async function execute(tool, args) {
     return { scrolled: true };
   }
   if (tool === "browser_navigate") {
-    if (AGPApolicy.origin(args.url) !== g.origin)
+    if (AGPApolicy.origin(args.url) !== g.origin && scope !== "profile")
       throw Error("Open and share a tab on the new site first.");
     g.snapshot = null;
     g.refs.clear();
@@ -394,7 +427,7 @@ async function uiState() {
       };
     } catch {}
   }
-  return { ready, profile: await profile(), shared, current };
+  return { ready, profile: await profile(), shared, current, scope };
 }
 chrome.runtime.onMessage.addListener((m, sender, respond) => {
   if (
@@ -409,8 +442,10 @@ chrome.runtime.onMessage.addListener((m, sender, respond) => {
       await connect();
       return uiState();
     }
-    if (m.action === "share") await shareCurrent();
+    if (m.action === "scope") await setScope(m.scope);
+    else if (m.action === "share") await shareCurrent();
     else if (m.action === "revoke") {
+      if(scope==="profile")excluded.add(m.tab);
       await revoke(m.tab);
       await announceTabs();
     } else if (m.action === "revokeAll") {
@@ -436,7 +471,9 @@ chrome.runtime.onMessage.addListener((m, sender, respond) => {
   );
   return true;
 });
-chrome.debugger.onDetach.addListener((source) => {
+chrome.debugger.onDetach.addListener((source,reason) => {
+  if(reason==="canceled_by_user"){revokeAll().then(announceTabs);return;}
+  if(scope==="profile"&&grants.get(source.tabId)?.attached)excluded.add(source.tabId);
   if (grants.has(source.tabId)) {
     grants.delete(source.tabId);
     chrome.action
@@ -452,14 +489,20 @@ chrome.debugger.onEvent.addListener((source, method, params) => {
   g.snapshot = null;
   g.refs.clear();
   try {
-    if (AGPApolicy.origin(params.frame.url) !== g.origin)
+    const origin=AGPApolicy.origin(params.frame.url);
+    if(scope==="profile"){g.origin=origin;announceTabs();}
+    else if (origin !== g.origin)
       revoke(source.tabId).then(announceTabs);
     else announceTabs();
   } catch {
     revoke(source.tabId).then(announceTabs);
   }
 });
+chrome.tabs.onCreated.addListener(() => {syncProfile().catch(()=>{});});
+chrome.tabs.onUpdated.addListener((id,change) => {if(change.url||change.status==="complete")syncProfile().catch(()=>{});});
+chrome.permissions.onRemoved.addListener(p => {if(p.permissions?.includes("tabs")&&scope==="profile")revokeAll().then(announceTabs);});
 chrome.tabs.onRemoved.addListener((id) => {
+  excluded.delete(id);
   if (grants.delete(id)) announceTabs();
 });
 chrome.runtime.onStartup.addListener(connect);

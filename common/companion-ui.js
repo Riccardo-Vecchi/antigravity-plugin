@@ -1,7 +1,7 @@
 /* Optional browser connections. No access from the Gemini guest. */
 (() => {
   "use strict";
-  const VERSION = "1.1.0";
+  const VERSION = "1.2.0";
   if (globalThis.__AGCompanion?.version === VERSION) return;
   globalThis.__AGCompanion?.destroy();
   const i18n = globalThis.__AGPAI18n,
@@ -145,7 +145,7 @@
     content.push(
       heading(
         "Use your existing browsers",
-        "Share tabs from Chrome, Brave, Edge, Vivaldi, Opera or Chromium. Your existing logins stay in the browser.",
+        "Share tabs from Chrome, Brave, Edge or any Chromium-based browser. Your existing logins stay in the browser.",
       ),
     );
     const actions = node("div", { class: "agpa-comp-actions" });
@@ -173,7 +173,7 @@
       "Set up the local connection using the button above.",
       "Open your browser’s Extensions page and enable Developer mode.",
       "Choose Load unpacked and select the extension folder below.",
-      "Open a web page, click the extension and choose Share this tab.",
+      "Open the extension and choose Selected tabs or All tabs in this profile.",
     ])
       steps.append(node("li", { text: key }));
     guide.append(steps);

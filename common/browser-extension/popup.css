@@ -18,6 +18,7 @@ p {
   color: #b7bbc3;
 }
 input,
+select,
 button {
   font: inherit;
   border: 1px solid #464b53;
@@ -82,3 +83,5 @@ input:focus-visible {
   outline: 2px solid #67acff;
   outline-offset: 2px;
 }
+
+select{width:100%;margin-bottom:8px}button:focus-visible,select:focus-visible{outline:2px solid #67acff;outline-offset:2px}

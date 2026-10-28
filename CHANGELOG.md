@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0
+
+- Place the Gemini return button within the signed-out header instead of covering Get App/Sign in; compact it on narrow screens.
+- Equal-width application-icon and startup choices, with a narrow-window layout.
+- Rename the extension to Antigravity Browser and use the official Antigravity icon.
+- Publish its loadable folder under antigravity-plugin while preserving existing helper/config paths and extension identity.
+- Add explicit, optional whole-profile web-tab sharing, including new tabs and cross-site navigation, lazy debugger attachment, per-tab exclusions and immediate revocation.
+- Combine plugin updates and collapsible feature checks below the native app version, removing duplicate diagnostic/version text.
+- Refresh the cross-platform Computer use example and all seven interface languages.
+
 ## 1.3.0
 
 - Fix Windows PowerShell 5.1 installation and removal on fresh user profiles, and accept unsigned official builds while rejecting invalid signatures or a different signed publisher. Thanks to @FrancescoMin for PR #1 and Windows 11 installation/launch/removal verification on Antigravity 2.27.0.
