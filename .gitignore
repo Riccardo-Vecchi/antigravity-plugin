@@ -54,3 +54,6 @@ capabilities.json
 *.agpa-lock
 .driver-install-*/
 driver-*/
+
+# Local browser verification artifacts.
+.playwright-cli/

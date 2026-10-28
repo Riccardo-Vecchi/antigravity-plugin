@@ -21,7 +21,7 @@ jobs:
         run: |
           node -e 'if (process.env.RELEASE_TAG !== "v" + require("./common/versions.cjs").suite) throw Error("Release tag does not match source version")'
           node --test tests/*.test.cjs
-          for file in common/*.cjs common/*.js linux/*.cjs windows/*.cjs; do node --check "$file"; done
+          for file in common/*.cjs common/*.js common/browser-extension/*.js linux/*.cjs windows/*.cjs; do node --check "$file"; done
           bash -n linux/install.sh linux/disable.sh
       - name: Build verified update payloads
         run: node scripts/build-update.cjs output/update
@@ -29,4 +29,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" output/update/* --verify-tag --title "Antigravity Plugin $RELEASE_TAG" --notes "Automatic plugin updates, immediate manual checks, verified packages and preservation of local settings. See CHANGELOG.md and docs/UPDATES.md."
+        run: gh release create "$RELEASE_TAG" output/update/* --verify-tag --title "Antigravity Plugin $RELEASE_TAG" --notes "See CHANGELOG.md for changes in this version and docs/UPDATES.md for installation and update details."

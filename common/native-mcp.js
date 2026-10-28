@@ -18,8 +18,8 @@
   return null;
  }
  globalThis.__AGNativeMcp = {
-  async refresh() {const current = provider(); if (!current) return false; await current.refresh(false, SERVER); return true;},
-  status() {const current = provider(); const own = current?.states.find(s => s.spec?.serverName === SERVER); return {available: !!current, detected: !!own};},
+  async refresh(server = SERVER) {if(![SERVER,'antigravity-plugin-browser'].includes(server))return false;const current = provider(); if (!current) return false; await current.refresh(false, server); return true;},
+  status(server = SERVER) {if(![SERVER,'antigravity-plugin-browser'].includes(server))return {available:false,detected:false};const current = provider(); const own = current?.states.find(s => s.spec?.serverName === server); return {available: !!current, detected: !!own};},
   destroy() {delete globalThis.__AGNativeMcp;},
  };
 })();

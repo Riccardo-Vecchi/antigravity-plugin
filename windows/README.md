@@ -1,8 +1,8 @@
 # <img src="../assets/logos/windows.svg" width="24" alt="Windows"> Windows installation (experimental)
 
-This is the Windows companion for Antigravity Plugin. The interface code is shared with Linux. Google's signed application, ASAR resources, security fuses, account data, and conversation databases are not patched.
+This is the Windows companion for Antigravity Plugin. The interface code is shared with Linux. Google's application, ASAR resources, security fuses, account data, and conversation databases are not patched.
 
-**Status:** implemented, with automated adapter tests and PowerShell syntax checks. Full Windows application and desktop verification is pending. Use this companion as an experimental port.
+**Status:** installation, Start Menu shortcut, application launch and removal were verified by a Windows 11 user with Antigravity 2.27.0 and Windows PowerShell 5.1 (PR #1). Broader desktop and browser automation verification remains pending; Windows support is experimental.
 
 ## Requirements
 
@@ -11,9 +11,9 @@ This is the Windows companion for Antigravity Plugin. The interface code is shar
 - Windows PowerShell 5.1 or later, available with Windows.
 - A normal interactive Windows user session. Administrator privileges are not required for the companion.
 
-The installer checks the application's Google Authenticode signature and the runtime capabilities used by the companion. A future Google build can disable those capabilities; the installer will report the incompatibility instead of modifying the executable or its security settings.
+The installer accepts unsigned builds because the official Windows 2.27.0 executable was reported as `NotSigned`. When a signature is present, it must be valid and identify Google LLC. An unsigned executable cannot be authenticated by that check: download the base app only from Google. The installer also checks the runtime capabilities used by the companion. A future Google build can disable those capabilities; the installer will report the incompatibility instead of modifying the executable or its security settings.
 
-The compatibility baseline inspected for this port is Antigravity 2.26.0. Newer app builds must pass the runtime checks; full Windows desktop validation is still pending.
+The community-tested installation baseline is Antigravity 2.27.0. Newer app builds must pass the runtime checks.
 
 ## Install and launch
 

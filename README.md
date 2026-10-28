@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.2.4](https://img.shields.io/badge/version-1.2.4-blue)](CHANGELOG.md)
+[![Version 1.3.0](https://img.shields.io/badge/version-1.3.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -23,15 +23,16 @@
 | Platform | Status |
 | --- | --- |
 | 🐧 Linux x86-64 | Verified with Antigravity App 2.28.0 on Zorin/GNOME 46 |
-| <img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows 11 x64 | **Experimental**; full desktop verification is pending |
+| <img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows 11 x64 | **Experimental**; community-verified installation on 2.27.0; desktop automation validation is pending |
 
 ## ✨ Features
 
 - Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
+- **Browser use** in existing Chromium profiles, with explicitly shared tabs and existing logins. [Setup](docs/BROWSER_USE.md).
 - Optional **computer use** with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Compact sidebar that keeps navigation and project icons visible.
-- Settings navigation with icons, a dedicated Computer use page and a collapsible Projects group that uses your configured project icons and colors.
+- Settings navigation with icons, dedicated Computer use and Browser use pages and a collapsible Projects group that uses your configured project icons and colors.
 - Fixed Antigravity/Gemini icons or a Dynamic mode, including supported tray integrations.
 - Startup view, Remember last view, desktop autostart, and patch status/recovery controls.
 - English, Italian, German, Spanish, French, Simplified Chinese and Japanese, with English fallback.
@@ -60,7 +61,7 @@ Open Antigravity normally. The helper runs as a user service. The AppImage and l
 
 ## <img src="assets/logos/windows.svg" width="22" alt="Windows"> Install on Windows
 
-Install the **latest official** [Antigravity app for Windows x64](https://antigravity.google/download) first. The companion uses Windows PowerShell 5.1+ and the signed app's bundled runtime; no separate Node.js installation or administrator privileges are required.
+Install the **latest official** [Antigravity app for Windows x64](https://antigravity.google/download) first. The companion uses Windows PowerShell 5.1+ and the app's bundled runtime; no separate Node.js installation or administrator privileges are required.
 
 Download this repository with **Code → Download ZIP**, extract it, and open PowerShell in the extracted folder. Then run:
 
@@ -73,6 +74,8 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 ## ⚙️ Settings and updates
 
 **Computer use:** open **Settings → Computer use**, choose **Entire desktop** or **Selected apps**, and enable it. Works with the native Antigravity agent. On GNOME/Wayland, first setup may require a Linux logout/login. [Setup and troubleshooting](docs/COMPUTER_USE.md).
+
+**Browser use:** open **Settings → Browser use** and follow the extension setup guide.
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Local customizations** contains status and recovery.
 

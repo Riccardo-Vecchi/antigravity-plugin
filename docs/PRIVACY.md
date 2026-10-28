@@ -22,6 +22,12 @@ The screen-capture diagnostic runs automatically once desktop access is ready in
 
 The explicit Cua Driver update check contacts the public GitHub Releases API for `trycua/cua` without account credentials, screenshots or local paths. It reports release metadata and never replaces the reviewed driver.
 
+## Browser connections
+
+The optional browser bridge uses an authenticated local Unix socket or Windows named pipe and Chromium Native Messaging. It does not start a network listener or read an existing browser profile from disk. Only explicitly shared tabs are available to its native agent tools; changing origin revokes sharing. The embedded Gemini website does not receive the tools. See [Browser use](BROWSER_USE.md).
+
+The plugin does not record tool events, action history, timings or usage metrics. The former unpublished Activity preview and its toolbar indicator have been removed. On migration, its owned `companion/activity.json` file and recording/retention preferences are deleted; browser connection preferences are retained. Tool responses are transient and delivered only for the requested operation.
+
 ## Plugin update checks
 
 The optional automatic updater contacts the public GitHub releases API and release-asset CDN for this repository. It sends a generic updater user agent and no conversation, account, project or computer-use content. Normal network request metadata remains visible to GitHub. The manual check uses the same endpoint. Update receipts and preferences remain local; changes made after installation and prerelease builds pause automatic replacement.

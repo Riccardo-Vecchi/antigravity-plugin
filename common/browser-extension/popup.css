@@ -1,0 +1,84 @@
+:root {
+  color-scheme: dark;
+}
+body {
+  font: 13px system-ui;
+  background: #17191c;
+  color: #eee;
+  width: 325px;
+  padding: 18px;
+  margin: 0;
+}
+h1 {
+  font-size: 16px;
+  margin: 0 0 16px;
+}
+p {
+  line-height: 1.5;
+  color: #b7bbc3;
+}
+input,
+button {
+  font: inherit;
+  border: 1px solid #464b53;
+  border-radius: 7px;
+  background: #24272c;
+  color: inherit;
+  padding: 8px;
+}
+button {
+  cursor: pointer;
+  margin: 5px 0;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.primary {
+  background: #e7e9ee;
+  color: #17191c;
+  width: 100%;
+}
+.danger {
+  color: #f99898;
+}
+input {
+  min-width: 0;
+  width: 100%;
+}
+.row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+ul {
+  list-style: none;
+  padding: 0;
+}
+li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#error {
+  color: #f99898;
+}
+label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+li {
+  gap: 10px;
+}
+li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 235px;
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #67acff;
+  outline-offset: 2px;
+}

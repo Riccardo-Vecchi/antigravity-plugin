@@ -58,6 +58,31 @@
     "docs/images/computer-use-checks.png",
     "docs/images/computer-use-updates.png",
     "docs/images/computer-use-disabled.png",
+    "common/companion-core.cjs",
+    "common/companion.cjs",
+    "common/companion-ui.js",
+    "common/browser-identity.json",
+    "common/browser-host.cjs",
+    "common/browser-mcp.cjs",
+    "common/browser-tools.cjs",
+    "common/browser-extension/manifest.json",
+    "common/browser-extension/policy.js",
+    "common/browser-extension/worker.js",
+    "common/browser-extension/popup.html",
+    "common/browser-extension/popup.css",
+    "common/browser-extension/popup.js",
+    "docs/BROWSER_USE.md",
+    "common/browser-extension/assets/icon.svg",
+    "common/browser-extension/assets/icon16.png",
+    "common/browser-extension/assets/icon32.png",
+    "common/browser-extension/assets/icon128.png",
+    "common/browser-extension/_locales/en/messages.json",
+    "common/browser-extension/_locales/it/messages.json",
+    "common/browser-extension/_locales/de/messages.json",
+    "common/browser-extension/_locales/es/messages.json",
+    "common/browser-extension/_locales/fr/messages.json",
+    "common/browser-extension/_locales/zh_CN/messages.json",
+    "common/browser-extension/_locales/ja/messages.json",
     "common/plugin-update-core.cjs",
     "common/plugin-update.cjs",
     "common/plugin-update-worker.cjs",
@@ -80,7 +105,8 @@
     "assets/icons/gemini-128.png",
     "assets/icons/gemini-256.png",
     "linux/installation.cjs",
-    "linux/computer-use.cjs"
+    "linux/computer-use.cjs",
+    "linux/browser.cjs"
   ],
   "windows": [
     "windows/desktop.cjs",
@@ -93,7 +119,8 @@
     "assets/icons/antigravity.ico",
     "assets/icons/gemini.ico",
     "windows/computer-use.cjs",
-    "windows/extract-driver.ps1"
+    "windows/extract-driver.ps1",
+    "windows/browser.cjs"
   ],
   "mappings": {
     "assets/icons/": "icons/"

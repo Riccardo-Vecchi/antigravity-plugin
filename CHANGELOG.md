@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0
+
+- Fix Windows PowerShell 5.1 installation and removal on fresh user profiles, and accept unsigned official builds while rejecting invalid signatures or a different signed publisher. Thanks to @FrancescoMin for PR #1 and Windows 11 installation/launch/removal verification on Antigravity 2.27.0.
+- Add optional Chromium Browser use through explicitly shared tabs and existing profiles, with a dedicated seven-language Settings page and a private Native Messaging bridge.
+- Remove the unpublished Activity dashboard, toolbar indicator and all tool-event/history recording. Delete preview history while preserving browser connection preferences.
+- Match added Settings entries and the Projects heading to native inactive/selected theme colors.
+- Linux browser integration exercised in isolated Chromium/Brave profiles; the Windows browser adapter remains experimental and has not been runtime-tested.
+
 ## 1.2.4
 
 - Recognize the native toolbar introduced by Antigravity App 2.28.0.
@@ -12,6 +20,7 @@
 - Immediate manual update checks and installation controls in Settings → Application.
 - SHA-256/package-path verification, update receipts, local-preview protection and transactional rollback on failed startup.
 - Release packaging for Linux x86-64 and Windows x64; Windows runtime remains experimental.
+
 
 
 ## 1.2.2

@@ -22,7 +22,7 @@ for (const platform of ['linux', 'windows']) {
       const code = fs.readFileSync(path.join(root, file), 'utf8');
       for (const [, reference] of code.matchAll(/['"](\.\.?\/[^'"]+\.(?:cjs|js|json))['"]/g)) {
         const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), reference));
-        if (['common/desktop-icon.cjs','common/computer-use.cjs','common/computer-use-bridge.cjs'].includes(file) && target.startsWith(`${other}/`)) continue;
+        if (['common/desktop-icon.cjs','common/computer-use.cjs','common/computer-use-bridge.cjs','common/companion.cjs'].includes(file) && target.startsWith(`${other}/`)) continue;
         assert.ok(included.has(target), `${file} requires undistributed ${target}`);
       }
     }
