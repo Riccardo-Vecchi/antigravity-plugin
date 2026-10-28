@@ -59,7 +59,7 @@ async function rollback({moves,changes}){
   if(p.duplicate)await fs.copyFile(p.to,p.from);else await fs.rename(p.to,p.from);
  }
 }
-async function trim(root){const s=await stat(root);if(!s)return;if(!s.isDirectory()||s.isSymbolicLink())throw Error('Unsafe cleanup root.');for(const e of await fs.readdir(root,{withFileTypes:true})){const file=path.join(root,e.name);if(e.isDirectory())await trim(file);else if((await fs.lstat(file)).isSocket()&&e.name==='bridge.sock')await fs.unlink(file);}await fs.rmdir(root).catch(e=>{if(!['ENOENT','ENOTEMPTY'].includes(e.code))throw e;});}
+async function trim(root){const s=await stat(root);if(!s)return;if(!s.isDirectory()||s.isSymbolicLink())throw Error('Unsafe cleanup root.');for(const e of await fs.readdir(root,{withFileTypes:true})){const file=path.join(root,e.name);if(e.isDirectory())await trim(file);else if((await fs.lstat(file)).isSocket()&&e.name==='bridge.sock')await fs.unlink(file);}await fs.rmdir(root).catch(e=>{if(!['ENOENT','ENOTEMPTY','EBUSY','EPERM'].includes(e.code))throw e;});}
 async function rewrite(old,next,tx,{home=os.homedir(),platform=process.platform,env=process.env}={}){
  async function change(file,text){const before=await plain(file),after=Buffer.from(text);if(before?.equals(after))return;const mode=(await stat(file))?.mode&0o777||0o600;if(file===path.join(home,'.gemini/config/mcp_config.json'))await mcpAtomic(file,text,before?.toString()||'');else await write(file,after,mode);tx.changes.push({file,before,after,mode});}
  // Only generated path-bearing files. Preserve project IDs, driver receipts, logs and user choices byte-for-byte.
@@ -88,7 +88,7 @@ async function resumeDesktop(paused,old,next,success){
 }
 async function migrateUnlocked({home=os.homedir(),platform=process.platform,env=process.env,lifecycle,prepareOnly=false}={}){
  const options={home,platform,env},old=getLegacyPaths(options),next=getCanonicalPaths(options);
- if(!await stat(old.installDir)&&!await stat(old.configDir))return {migrated:false,...next};
+ if((!await stat(old.installDir)&&!await stat(old.configDir))||((await inventory(old.installDir)).length===0&&(await inventory(old.configDir)).length===0)){await trim(old.installDir);await trim(old.configDir);return {migrated:false,...next};}
  // Preflight both trees before stopping the helper or changing any data.
  for(const key of ['installDir','configDir'])for(const item of await inventory(old[key])){await safeDestination(next[key],path.join(next[key],item.name));const dest=await stat(path.join(next[key],item.name));if(dest&&(!dest.isFile()||dest.isSymbolicLink()||hash(await fs.readFile(path.join(next[key],item.name)))!==item.hash))throw Error('Conflicting migration destination: '+item.name);}
  const tx={moves:[],changes:[]};let stopped=false,pausedDesktop=new Map();
@@ -112,7 +112,7 @@ async function migrateUnlocked({home=os.homedir(),platform=process.platform,env=
 }
 async function migrate(options={}){
  const old=getLegacyPaths(options),next=getCanonicalPaths(options);
- if(!await stat(old.installDir)&&!await stat(old.configDir))return {migrated:false,...next};
+ if((!await stat(old.installDir)&&!await stat(old.configDir))||((await inventory(old.installDir)).length===0&&(await inventory(old.configDir)).length===0)){await trim(old.installDir);await trim(old.configDir);return {migrated:false,...next};}
  const root=await stat(next.configDir);if(root&&(!root.isDirectory()||root.isSymbolicLink()))throw Error('Unsafe migration destination.');
  await fs.mkdir(next.configDir,{recursive:true,mode:0o700});
  const lock=path.join(next.configDir,'migration.lock');let handle;
