@@ -11,6 +11,7 @@ const CONFIG_DIR=platformPaths.configDir;
 const CONFIG_PATH=path.join(CONFIG_DIR,'projects.json');
 const PORT_PATH=path.join(platformPaths.profileDir,'DevToolsActivePort');
 const RENDERER=fs.readFileSync(path.join(BASE,'renderer.js'),'utf8');
+const HEADER_PLACEMENT=fs.readFileSync(path.join(BASE,'header-placement.js'),'utf8');
 const SWITCH=fs.readFileSync(path.join(BASE,'gemini-switch.js'),'utf8');
 const shortcutRules=require('./shortcut-config.cjs');
 const SHORTCUTS=fs.readFileSync(path.join(BASE,'shortcuts.js'),'utf8');
@@ -151,6 +152,7 @@ class Client{
     await this.evaluate(`globalThis.__AGPA_SWITCH_ASSETS__=${JSON.stringify(SWITCH_ASSETS)};globalThis.__AGPA_GEMINI_CSS__=${JSON.stringify(SWITCH_CSS)};\n${SWITCH}`);
     log('Applied Gemini switch to Antigravity window.');
    }
+   if(await this.evaluate('globalThis.__AGHeaderPlacement?.version')!=='1.0.0')await this.evaluate(HEADER_PLACEMENT);
    await this.evaluate(`(()=>{if(document.getElementById('agpa-gemini-styles'))return;const style=document.createElement('style');style.id='agpa-gemini-styles';style.textContent=${JSON.stringify(SWITCH_CSS)};document.head.append(style);})()`);
    if(await this.evaluate('globalThis.__AGGeminiInline?.version')!==INLINE_VERSION){
     await this.evaluate('globalThis.__AGGeminiInline?.destroy()');
@@ -167,7 +169,7 @@ class Client{
    if(await this.evaluate('globalThis.__AGSettingsNavigation?.version')!==versions.settingsNavigation)await this.evaluate(`globalThis.__AGPA_SETTINGS_PROJECT_STYLES__=${JSON.stringify(config)};\n${SETTINGS_NAVIGATION}`);
    if(await this.evaluate('globalThis.__AGComputerUse?.version')!==versions.computerUse)await this.evaluate(`globalThis.__AGPAComputerUseChecks=${connectionChecks.toString()};globalThis.__AGPAComputerUseAccessChanged=${accessChanged.toString()};\n${COMPUTER_USE_SETTINGS}`);
    await this.evaluate(`(()=>{let style=document.getElementById('agpa-window-chrome-styles');if(style?.getAttribute('data-version')===${JSON.stringify(VERSION)})return;if(!style){style=document.createElement('style');style.id='agpa-window-chrome-styles';document.head.append(style);}style.textContent=${JSON.stringify(WINDOW_CHROME)};style.setAttribute('data-version',${JSON.stringify(VERSION)});})()`);
-   const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
+   const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=pane-titlebar-toolbar]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
    if(signature!==this.healthSignature){this.healthSignature=signature;await this.checkCompatibility();}
   }finally{this.busy=false;}
  }
@@ -271,7 +273,7 @@ class Client{
    else throw error;
   }
  }
- async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGPluginUpdates?.destroy();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
+ async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGPluginUpdates?.destroy();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGHeaderPlacement?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
 }
 async function discover(){
  const contents=await fsp.readFile(PORT_PATH,'utf8');const port=contents.split('\n')[0];

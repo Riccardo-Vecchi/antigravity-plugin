@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.4
+
+- Recognize the native toolbar introduced by Antigravity App 2.28.0.
+- Keep the Gemini switch attached after toolbar rerenders without recreating its existing webview or controller.
+- Verify the plugin against Antigravity App 2.28.0 on Linux.
+
 ## 1.2.3
 
 - Automatic plugin update checks and verified stable-release installation on supported installations.

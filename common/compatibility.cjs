@@ -5,14 +5,14 @@ function probe(version,expected={}){
  const local=globalThis.top===globalThis&&/^https:\/\/127\.0\.0\.1:\d+$/.test(location.origin);
  const settingsOpen=exists('[role=dialog][aria-label=Settings]')||exists('[data-testid=settings-nav-item-App]');
  const native={
-  interface:local&&exists('[data-testid=sidebar-toggle]')&&exists('[data-testid=settings-button]')&&exists('[data-testid=titlebar-more-actions]'),
+  interface:local&&exists('[data-testid=sidebar-toggle]')&&exists('[data-testid=settings-button]')&&(exists('[data-testid=titlebar-more-actions]')||exists('[data-testid=pane-titlebar-toolbar]')),
   settings:!settingsOpen||(exists('[data-testid=settings-nav-item-App]')&&exists('[data-testid=settings-nav-item-Appearance]')&&exists('[data-testid=settings-nav-item-Shortcuts]')),
   guest:typeof globalThis.electronNative?.executeJavaScriptInIsolatedWorld==='function'
  };
  const added={
   projects:globalThis.__AGProjectAppearance?.version===(expected.appearance||version)&&exists('#agpa-styles'),
   settings:globalThis.__AGAppSettings?.version===(expected.settings||version)&&globalThis.__AGPAI18n?.version===(expected.i18n||version)&&exists('#agpa-app-settings-styles')&&(!settingsOpen||(exists('[data-agpa-app-icon-setting]')&&exists('[data-agpa-startup-setting]')&&exists('[data-agpa-patch-setting]'))),
-  gemini:!!globalThis.__AGGeminiSwitch&&exists('[data-agpa-open-gemini]')&&exists('#agpa-gemini-styles')&&globalThis.__AGGeminiInline?.version===(expected.inline||version)&&exists('#agpa-gemini-inline-styles')&&exists('#agpa-window-chrome-styles'),
+  gemini:(!expected.headerPlacement||globalThis.__AGHeaderPlacement?.version===expected.headerPlacement)&&!!globalThis.__AGGeminiSwitch&&exists('[data-agpa-open-gemini]')&&exists('#agpa-gemini-styles')&&globalThis.__AGGeminiInline?.version===(expected.inline||version)&&exists('#agpa-gemini-inline-styles')&&exists('#agpa-window-chrome-styles'),
   shortcut:globalThis.__AGShortcuts?.version===(expected.shortcuts||version)&&!!globalThis.__AGShortcuts?.status().installed
  };
  return {native,added,editorOpen:!!globalThis.__AGProjectAppearance?.status().editorOpen};

@@ -63,7 +63,8 @@
     "common/plugin-update-worker.cjs",
     "common/plugin-update-cli.cjs",
     "common/plugin-update-settings.js",
-    "docs/UPDATES.md"
+    "docs/UPDATES.md",
+    "common/header-placement.js"
   ],
   "linux": [
     "linux/desktop.cjs",

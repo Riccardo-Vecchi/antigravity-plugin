@@ -27,12 +27,14 @@
   function applyButton(){
     if(destroyed)return;
     const anchor=document.querySelector('[data-testid="titlebar-more-actions"]');
-    if(!anchor)return;
+    const toolbar=document.querySelector('[data-testid="pane-titlebar-toolbar"]');
+    if(!anchor&&!toolbar)return;
     if(!button){
       button=el('button',{type:'button',class:'agpa-app-switch','data-agpa-open-gemini':'','aria-label':'Open Gemini in this window',title:'Gemini'},icon('gemini'),el('span',{text:'Gemini'}));
       listen(button,'click',open);
     }
-    if(button.parentElement!==anchor.parentElement)anchor.before(button);
+    if(anchor){if(button.parentElement!==anchor.parentElement)anchor.before(button);}
+    else {const host=toolbar.querySelector(':scope > .flex.items-center.gap-1')||toolbar;if(button.parentElement!==host)host.append(button);}
   }
   function update(){
     if(!guest||!ready)return;
