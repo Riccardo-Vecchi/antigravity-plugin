@@ -17,7 +17,7 @@ try{
 }finally{$env:ELECTRON_RUN_AS_NODE=$oldRuntime}
 & (Join-Path $PSScriptRoot 'start.ps1') -Stop
 $runKey='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run';$name='AntigravityLocalCustomizations'
-$value=Get-ItemPropertyValue -LiteralPath $runKey -Name $name -ErrorAction SilentlyContinue
+$value=(Get-ItemProperty -LiteralPath $runKey -Name $name -ErrorAction SilentlyContinue).$name
 $psExe=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $start=Join-Path $PSScriptRoot 'start.ps1'
 $expectedRun='"'+$psExe+'" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "'+$start+'" -Watch'
