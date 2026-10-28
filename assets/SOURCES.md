@@ -30,3 +30,13 @@ Bundled on 28 October 2026 under `assets/browsers/`, without visual modification
 Vivaldi image credit: **Vivaldi Technologies**, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), as stated on its [Press & Media page](https://vivaldi.com/press/). Logos remain subject to trademark restrictions.
 
 The Chromium source-tree license is retained in `assets/browsers/CHROMIUM-LICENSE.txt` from https://raw.githubusercontent.com/chromium/chromium/main/LICENSE.
+
+## Model laboratory icons
+
+Unmodified official favicons, bundled on 28 October 2026 for local model-provider identification:
+
+- Anthropic: https://www.anthropic.com/images/icons/favicon-32x32.png
+- Google: https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png
+- OpenAI: https://developers.openai.com/favicon.png
+
+These marks belong to their respective owners and are excluded from the plugin's 0BSD license.

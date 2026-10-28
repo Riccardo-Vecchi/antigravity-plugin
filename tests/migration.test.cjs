@@ -33,3 +33,7 @@ test('a foreign canonical service is rejected before either helper is stopped',a
 test('a stop failure still attempts to restore the original helper without moving its data',async t=>{
  const f=await fixture(t);await assert.rejects(f.go({fail:'stop'}),/injected failure/);assert.ok(f.calls.includes('rollback'));assert.match(await fs.readFile(path.join(f.old.configDir,'app.json'),'utf8'),/dynamic/);
 });
+test('already-transferred empty legacy roots do not trigger a second migration lifecycle',async t=>{
+ const f=await fixture(t);await fs.rm(f.old.installDir,{recursive:true});await fs.rm(f.old.configDir,{recursive:true});await fs.mkdir(path.join(f.old.installDir,'empty'),{recursive:true});await fs.mkdir(f.old.configDir,{recursive:true});
+ const result=await f.go();assert.equal(result.migrated,false);assert.deepEqual(f.calls,[]);await assert.rejects(fs.stat(f.old.installDir),{code:'ENOENT'});await assert.rejects(fs.stat(f.old.configDir),{code:'ENOENT'});
+});

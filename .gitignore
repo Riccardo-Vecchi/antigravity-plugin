@@ -57,3 +57,6 @@ driver-*/
 
 # Local browser verification artifacts.
 .playwright-cli/
+
+# Per-user model visibility and favorites.
+models.json

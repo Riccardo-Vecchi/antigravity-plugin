@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0
+
+- Merge PR #2 by @FrancescoMin: fix legacy Windows upgrade paths, PowerShell 5.1 rollback and locked/empty migration directories.
+- Add model favorites, recoverable hidden models and offline laboratory logos in the native menu and selected model. Store these preferences separately from native model/policy configuration.
+- Color approval presets without changing their behavior.
+- Simplify Browser use to the next required action, with recovery paths in one collapsed help section. Avoid status polling while the page is closed or the window is hidden.
+- Reuse migration metadata checks without repeatedly hashing large driver binaries just to detect empty roots.
+
 ## 1.6.1
 
 - Show official Brave, Chrome, Edge, Vivaldi, Opera and Chromium icons next to detected browser names, including the selected value and open menu.

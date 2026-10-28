@@ -23,6 +23,10 @@ const INLINE=fs.readFileSync(path.join(BASE,'gemini-inline.js'),'utf8');
 const UPDATE_SETTINGS=fs.readFileSync(path.join(BASE,'plugin-update-settings.js'),'utf8');
 let pluginUpdate;
 const APP_SETTINGS=fs.readFileSync(path.join(BASE,'app-settings.js'),'utf8');
+const MODEL_UI=fs.readFileSync(path.join(BASE,'model-ui.js'),'utf8');
+const modelRules=require('./model-preferences.cjs');
+const modelPreferences=modelRules.createStore(path.join(CONFIG_DIR,'models.json'));
+const LAB_ICONS=Object.fromEntries(['anthropic','google','openai'].map(id=>[id,'data:image/png;base64,'+fs.readFileSync(path.join(BASE,'..','assets','labs',id+'.png')).toString('base64')]));
 const COMPANION_UI=fs.readFileSync(path.join(BASE,'companion-ui.js'),'utf8');
 const {createBrowserPicker}=require('./browser-picker.cjs');
 const BROWSER_ICONS=Object.fromEntries(require('./browser-setup.cjs').BROWSERS.map(({id})=>[id,'data:image/png;base64,'+fs.readFileSync(path.join(BASE,'..','assets','browsers',id+'.png')).toString('base64')]));
@@ -106,6 +110,7 @@ class Client{
    if(m.method==='Runtime.executionContextCreated')this.contexts.set(m.params.context.id,m.params.context);
    if(m.method==='Runtime.executionContextDestroyed')this.contexts.delete(m.params.executionContextId);
    if(m.method==='Runtime.executionContextsCleared')this.contexts.clear();
+   if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaModelPreferences')this.onModels(m.params).catch(()=>log('Model preference rejected.'));
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaPersist')this.onBinding(m.params).catch(e=>log(`Save request rejected: ${e.message}`));
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaPluginUpdate')this.onPluginUpdate(m.params).catch(()=>log('Plugin update request rejected.'));
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaAppSettings')this.onAppSettings(m.params).catch(e=>log(`Application preference rejected: ${e.message}`));
@@ -117,6 +122,7 @@ class Client{
   this.frameId=(await this.call('Page.getFrameTree')).frameTree.frame.id;
   await this.call('Runtime.enable');
   await this.call('Runtime.addBinding',{name:'__agpaPersist'});
+  await this.call('Runtime.addBinding',{name:'__agpaModelPreferences'});
   await this.call('Runtime.addBinding',{name:'__agpaAppSettings'});
   await this.call('Runtime.addBinding',{name:'__agpaPluginUpdate'});
   await this.call('Runtime.addBinding',{name:'__agpaComputerUse'});
@@ -179,6 +185,7 @@ class Client{
    if(!await this.evaluate('!!globalThis.__AGNativeMcp'))await this.evaluate(NATIVE_MCP);
    if(await this.evaluate('globalThis.__AGSettingsNavigation?.version')!==versions.settingsNavigation)await this.evaluate(`globalThis.__AGPA_SETTINGS_PROJECT_STYLES__=${JSON.stringify(config)};\n${SETTINGS_NAVIGATION}`);
    if(await this.evaluate('globalThis.__AGComputerUse?.version')!==versions.computerUse)await this.evaluate(`globalThis.__AGPAComputerUseChecks=${connectionChecks.toString()};globalThis.__AGPAComputerUseAccessChanged=${accessChanged.toString()};globalThis.__AGPAComputerUseControlState=${controlState.toString()};\n${COMPUTER_USE_SETTINGS}`);
+   if(await this.evaluate('globalThis.__AGModelUI?.version')!==versions.models)await this.evaluate(`globalThis.__AGPAProviderFor=${modelRules.providerFor.toString()};globalThis.__AGPAPermissionFor=${modelRules.permissionFor.toString()};globalThis.__AGPA_LAB_ICONS__=${JSON.stringify(LAB_ICONS)};globalThis.__AGPA_MODEL_PREFERENCES__=${JSON.stringify(modelPreferences.current())};\n${MODEL_UI}`);
    if(await this.evaluate('globalThis.__AGCompanion?.version')!==versions.companion)await this.evaluate(`globalThis.__AGPABrowserSetupState=${require('./browser-setup.cjs').setupState.toString()};globalThis.__AGPABrowserPicker=${createBrowserPicker.toString()};globalThis.__AGPA_BROWSER_ICONS__=${JSON.stringify(BROWSER_ICONS)};\n${COMPANION_UI}`);
    await this.evaluate(`(()=>{let style=document.getElementById('agpa-window-chrome-styles');if(style?.getAttribute('data-version')===${JSON.stringify(VERSION)})return;if(!style){style=document.createElement('style');style.id='agpa-window-chrome-styles';document.head.append(style);}style.textContent=${JSON.stringify(WINDOW_CHROME)};style.setAttribute('data-version',${JSON.stringify(VERSION)});})()`);
    const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=pane-titlebar-toolbar]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
@@ -238,6 +245,17 @@ class Client{
    await this.evaluate(`globalThis.__AGAppSettings?.onSaved(${JSON.stringify(payload.requestId)},true,null,${JSON.stringify(next)},${JSON.stringify(this.patchStatus)})`,params.executionContextId);
    if(payload.action!=='viewChanged')log(`Application preference ${payload.action}: ${payload.value}`);
   }catch(error){if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGAppSettings?.onSaved(${JSON.stringify(payload.requestId)},false,${JSON.stringify(error.message)})`,params.executionContextId).catch(()=>{});else throw error;}
+ }
+ async onModels(params){
+  const context=this.contexts.get(params.executionContextId);
+  if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin)return;
+  let payload;try{
+   if(params.payload.length>2048)throw Error('Invalid model preference.');payload=JSON.parse(params.payload);
+   if(!UUID.test(payload.requestId))throw Error('Invalid request.');
+   const job=writeChain.then(()=>modelPreferences.update(payload));writeChain=job.catch(()=>{});const next=await job;
+   for(const c of clients.values())c.evaluate(`globalThis.__AGModelUI?.setPreferences(${JSON.stringify(next)})`).catch(()=>{});
+   await this.evaluate(`globalThis.__AGModelUI?.onResult(${JSON.stringify(payload.requestId)},true,${JSON.stringify(next)})`,params.executionContextId);
+  }catch{if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGModelUI?.onResult(${JSON.stringify(payload.requestId)},false)`,params.executionContextId).catch(()=>{});}
  }
  async onCompanion(params){
   const context=this.contexts.get(params.executionContextId);
@@ -299,7 +317,7 @@ class Client{
    else throw error;
   }
  }
- async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGCompanion?.destroy();globalThis.__AGPluginUpdates?.destroy();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGHeaderPlacement?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
+ async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGModelUI?.destroy();globalThis.__AGCompanion?.destroy();globalThis.__AGPluginUpdates?.destroy();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGHeaderPlacement?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
 }
 async function companionState(){return companion.snapshot();}
 async function discover(){
@@ -339,6 +357,7 @@ let interval;
 (async()=>{
  if(typeof WebSocket!=='function')throw Error('Node.js 22 or newer is required.');
  config=await readConfig();
+ await modelPreferences.load().catch(e=>log(e.message));
  await desktopIcon.initialize();
  if(process.argv.includes('--check-config')){console.log(JSON.stringify({version:VERSION,configPath:CONFIG_PATH,configuredProjects:Object.keys(config.projects).length}));return;}
  companion=await require('./companion.cjs').createCompanion({onChange:()=>{if(companionBroadcast)return;companionBroadcast=setTimeout(async()=>{companionBroadcast=null;if(stopping)return;try{const next=await companionState();for(const c of clients.values())if(c.origin)c.evaluate(`globalThis.__AGCompanion?.receive(${JSON.stringify(next)})`).catch(()=>{});}catch{}},40);}});

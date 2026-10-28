@@ -13,3 +13,5 @@ Windows is a Microsoft trademark. The Windows platform indicator is used only to
 The optional Cua Driver is a separate MIT-licensed dependency from [Cua AI](https://github.com/trycua/cua). Driver binaries are downloaded from upstream at the user’s request and are not included or relicensed under this repository’s 0BSD license. No deprecated cua-agent or optional perception/model package is bundled.
 
 Browser picker icons identify third-party browsers: Brave belongs to Brave Software, Chrome and Chromium branding to Google/the Chromium project, Edge to Microsoft, Opera to Opera Norway AS, and Vivaldi to Vivaldi Technologies. These assets are not relicensed under 0BSD and do not imply affiliation or endorsement. See `assets/SOURCES.md` for source URLs and Vivaldi attribution.
+
+Anthropic, Google and OpenAI laboratory icons identify model providers only. The marks belong to their respective owners; the plugin is not affiliated with or endorsed by these organizations. See `assets/SOURCES.md`.

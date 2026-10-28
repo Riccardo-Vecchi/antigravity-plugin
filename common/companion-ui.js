@@ -1,7 +1,7 @@
 /* Optional browser connections. No access from the Gemini guest. */
 (() => {
   "use strict";
-  const VERSION = "1.3.3";
+  const VERSION = "1.4.1";
   if (globalThis.__AGCompanion?.version === VERSION) return;
   globalThis.__AGCompanion?.destroy();
   const i18n = globalThis.__AGPAI18n,
@@ -125,11 +125,11 @@
     );
   }
   async function copyFolder(open=false){
-    const b=state.browser;
-    try{await navigator.clipboard.writeText(b.extensionPath);notice=t("Folder copied. Paste it in the folder picker.");}
+    const b=state.browser;let copied=false;
+    try{await navigator.clipboard.writeText(b.extensionPath);copied=true;notice=t("Folder copied. Paste it in the folder picker.");}
     catch{notice=t("Copy the folder path below into the folder picker.");}
     if(open&&selectedBrowser!=="other")await act("openExtensions",selectedBrowser);
-    render();
+    render();if(!copied){const help=browserSection?.querySelector(".agpa-comp-advanced");if(help)help.open=true;}
   }
   function renderBrowser() {
     const host=globalThis.__AGSettingsNavigation?.getPage("browser");if(!host)return;
@@ -149,8 +149,8 @@
     content.push(steps);
     const hero=node("div",{class:"agpa-comp-hero","data-ready":String(phase==="ready")});
     const titles={prepare:"Connect your browser",install:"Add Antigravity Browser",share:"Choose what to share",ready:"Ready for your next task"};
-    const descriptions={prepare:"Use the tabs and logins already open in your browser.",install:"A one-time browser step. Your tabs and logins stay open.",share:"Open Antigravity Browser from your browser toolbar and choose your access.",ready:"Ask the Antigravity agent to work with your shared tabs."};
-    hero.append(node("h3",{text:b.needsReload?"Update Antigravity Browser":titles[phase]}),node("p",{text:b.needsReload?"Reload the extension to use the latest sharing controls.":descriptions[phase]}));content.push(hero);
+    const descriptions={prepare:"Let the Antigravity agent use the pages you choose, with your existing browser logins.",install:"Add the extension once. Then choose which pages the Antigravity agent can use.",share:"In your browser, click the puzzle icon, then Antigravity Browser.",ready:"Ask the Antigravity agent to work with your shared tabs."};
+    hero.append(node("h3",{text:b.needsReload?"Update Antigravity Browser":titles[phase]}),node("p",{text:b.needsReload?"Your browser is connected. Reload the extension once, then share a tab.":descriptions[phase]}));content.push(hero);
     const actions=node("div",{class:"agpa-comp-actions"});
     if(phase==="prepare"||phase==="install"){
       const picker=createBrowserPicker({items:[...available,{id:"other",label:t("Other Chromium browser")}],value:selectedBrowser,icons:browserIcons,label:t("Your browser"),onChange(value){
@@ -162,26 +162,26 @@
       actions.append(button(busy?"Connecting…":"Connect browser",()=>act("setupBrowser"),"primary"));content.push(actions);
       content.push(node("p",{class:"agpa-comp-muted",text:"Nothing is shared until you choose it in the extension."}));
     }else if(phase==="install"){
-      const instructions=node("ol",{class:"agpa-comp-steps"},node("li",{text:b.needsReload?"Click Reload next to Antigravity Browser on the Extensions page.":"Turn on Developer mode on the browser’s Extensions page."}),node("li",{text:b.needsReload?"If its folder is missing, choose Load unpacked and use the folder below.":"Choose Load unpacked, then paste the copied folder path."}));
-      content.push(instructions);
-      actions.append(button(selectedBrowser==="other"?"Copy extension folder":"Copy folder and open Extensions",()=>copyFolder(true),"primary"));content.push(actions);
-      const path=node("input",{type:"text",readonly:"","aria-label":"Extension folder"});path.value=b.extensionPath||"";content.push(node("div",{class:"agpa-comp-path"},path,button("Copy",()=>copyFolder())));
+      if(b.needsReload){
+        content.push(node("p",{text:"On the Extensions page, find Antigravity Browser and click its Reload icon (↻)."}));
+        actions.append(button(selectedBrowser==="other"?"Copy extension folder":"Open Extensions",()=>selectedBrowser==="other"?copyFolder():act("openExtensions",selectedBrowser),"primary"));
+      }else{
+        content.push(node("ol",{class:"agpa-comp-steps"},node("li",{text:"Turn on Developer mode on the browser’s Extensions page."}),node("li",{text:"Choose Load unpacked, then paste the copied folder path."})));
+        actions.append(button(selectedBrowser==="other"?"Copy extension folder":"Copy folder and open Extensions",()=>copyFolder(true),"primary"));
+      }
+      content.push(actions);
       if(notice)content.push(node("p",{class:"agpa-comp-notice",role:"status"},text(notice)));
-      const installed=node("details",{class:"agpa-comp-help"},node("summary",{text:"Already installed or moved from an older version?"}),node("p",{text:"Open Antigravity Browser and choose Reconnect. If the browser reports a missing extension folder, remove that old entry and load the folder shown above."}));content.push(installed);
-      content.push(node("p",{class:"agpa-comp-muted",text:"This page continues automatically when the extension connects."}));
-      content.push(node("details",{class:"agpa-comp-help"},
-        node("summary",{text:"Can this step be automatic?"}),
-        node("p",{text:"Your browser requires this one-time step for extensions outside its store. A ZIP package does not skip installation approval. You do not need to repeat setup for every task."})));
     }else if(phase==="share"){
+
       content.push(node("div",{class:"agpa-comp-access"},heading("Selected tabs","Open a web page, click the extension and choose Share this tab."),heading("All tabs in this profile","Includes current and new web tabs until you stop sharing or disconnect.")));
       content.push(node("p",{class:"agpa-comp-muted",text:"Private tabs, browser settings and password fields are excluded."}));
-      content.push(node("p",{class:"agpa-comp-notice",text:"Tip: pin Antigravity Browser using the puzzle icon in your browser toolbar."}));
+
     }else{
       const example="Compare two of my shared pages and summarize their differences.";
       content.push(node("div",{class:"agpa-comp-example"},node("strong",{text:"Try asking Antigravity"}),node("p",{text:example}),button("Copy example",async()=>{try{await navigator.clipboard.writeText(t(example));notice=t("Copied");render();}catch{}})));
       if(notice)content.push(node("p",{class:"agpa-comp-muted",role:"status"},text(notice)));
     }
-    if(b.connections.length){
+    if(b.connections.length && !b.needsReload){
       content.push(node("h3",{text:"Connected browsers"}));
       for(const c of b.connections){
         const profile=node("div",{class:"agpa-comp-profile"},text("✓","passed"),node("div",{},text(c.label),text(t("{count} shared tabs",{count:c.tabs}),"agpa-comp-muted"),node("span",{class:"agpa-comp-muted",text:c.scope==="profile"?"All tabs in this profile":c.scope==="tabs"?"Selected tabs":"Access is managed in the extension."})));
@@ -189,9 +189,15 @@
       }
     }
     const advanced=node("details",{class:"agpa-comp-advanced"},node("summary",{text:"Connection details and help"}));
+    if(phase==="install"){
+      advanced.append(node("h3",{text:"Extension missing or moved?"}),node("p",{text:"Choose Load unpacked and select this folder. Remove an old broken entry if necessary."}));
+      const path=node("input",{type:"text",readonly:"","aria-label":"Extension folder"});path.value=b.extensionPath||"";
+      advanced.append(node("div",{class:"agpa-comp-path"},path,button("Copy extension folder",()=>copyFolder())));
+    }
+
     const checks=node("ul",{class:"agpa-comp-checks"});
     for(const [key,value]of [["Browser access enabled",b.enabled],["Registered in Antigravity",b.registered],["Server detected by Antigravity",globalThis.__AGNativeMcp?.status("antigravity-plugin-browser").detected],["Browser profile connected",b.connections.length>0],["At least one tab shared",b.connections.some(c=>c.tabs>0)]])checks.append(check(key,value));
-    advanced.append(checks,node("p",{class:"agpa-comp-muted",text:"Available to the native Antigravity agent. The embedded Gemini website does not receive these tools."}),node("p",{class:"agpa-comp-muted",text:"If the agent cannot see the tools, start a new conversation."}));
+    advanced.append(checks,node("p",{class:"agpa-comp-muted",text:"If the agent cannot see the tools, start a new conversation."}),node("a",{href:"https://github.com/Riccardo-Vecchi/antigravity-plugin/blob/main/docs/BROWSER_USE.md",target:"_blank",rel:"noopener noreferrer",text:"Browser-use setup guide"}));
     const tools=node("div",{class:"agpa-comp-actions"},button("Refresh status",refresh));
     if(b.enabled)tools.append(button("Repair browser connection",()=>act("setupBrowser")),button("Turn off Browser use",()=>act("disableBrowser"),"danger"));advanced.append(tools);content.push(advanced);
     const focus=document.activeElement,wasPath=focus===browserSection.querySelector("input"),wasPicker=focus===browserSection.querySelector("[data-agpa-browser-trigger]"),pickerOpen=browserSection.querySelector("[data-agpa-browser-trigger]")?.getAttribute("aria-expanded")==="true";
@@ -236,7 +242,7 @@
   window.addEventListener("agpa:settings-page", onPage);
   const unsubscribe = i18n.subscribe(render);
   const timer = setInterval(() => {
-    if (!busy) refresh();
+    if (!busy && !document.hidden && globalThis.__AGSettingsNavigation?.isOpen("browser")) refresh();
   }, 2000);
   globalThis.__AGCompanion = {
     version: VERSION,

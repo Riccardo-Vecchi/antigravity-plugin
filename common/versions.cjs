@@ -1,2 +1,2 @@
 'use strict';
-module.exports=Object.freeze({suite:'1.6.1',companion:'1.3.3',updates:'1.1.0',appearance:'1.7.0',geminiSwitch:'1.2.0',inline:'1.1.0',settings:'1.1.0',i18n:'1.7.0',shortcuts:'1.0.0',computerUse:'1.4.4',settingsNavigation:'1.2.1',headerPlacement:'1.0.0'});
+module.exports=Object.freeze({suite:'1.7.0',companion:'1.4.1',models:'1.0.2',updates:'1.1.0',appearance:'1.7.0',geminiSwitch:'1.2.0',inline:'1.1.0',settings:'1.1.0',i18n:'1.7.0',shortcuts:'1.0.0',computerUse:'1.4.4',settingsNavigation:'1.2.1',headerPlacement:'1.0.0'});

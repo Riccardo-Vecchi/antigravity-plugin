@@ -27,6 +27,12 @@ In Dynamic mode, the taskbar and supported tray follow the last view reported by
 
 Open **Settings → Shortcuts** for the configurable window-local switch between Antigravity and Gemini (default **Ctrl+Alt+G**). Choose Change shortcut, press Ctrl+Alt or Ctrl+Shift with a letter/number, then Save shortcut. Escape cancels recording; Reset shortcut restores the default, and Disable shortcut turns the binding off. Preferences update existing native and Gemini views without reloading them. System shortcuts may take priority. It does not register an operating-system-wide shortcut, and repeated keys, input-method composition, and AltGr typing are ignored. The in-page shortcut is added only on the official Gemini origin; account sign-in pages retain the visible return button.
 
+## Model organization and approval colors
+
+Open the native model menu and use the star beside a model to pin it. **Manage models** provides keyboard-accessible Favorite/Hidden checkboxes. Favorites appear first; **Show hidden models** restores hidden entries in the menu. The selected model and native availability/notice badges are preserved. Gemini effort groups are organized as one family; their native effort submenu stays available. Preferences live in the plugin's private `models.json`, separate from Antigravity model configuration.
+
+Anthropic, Google and OpenAI icons identify recognized providers in the menu and selected-model button. Unknown providers keep their native presentation. Approval colors indicate Request Review (blue), Default (green), Auto (amber) and Turbo (red); they do not change native approval rules.
+
 ## Patch status and recovery
 
 Open **Settings → Application → Plugin updates → Plugin customizations**:
