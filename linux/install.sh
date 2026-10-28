@@ -24,6 +24,7 @@ while IFS=$'\t' read -r file destination; do
   case "$file" in *.sh) mode=700 ;; esac
   install -m "$mode" "$source_dir/$file" "$target_dir/$destination"
 done <<< "$payload"
+"$node_bin" "$target_dir/common/plugin-update-cli.cjs" receipt "$target_dir"
 install -d -m 755 "$unit_dir"
 cat > "$unit_dir/antigravity-project-appearance.service" <<UNIT
 [Unit]

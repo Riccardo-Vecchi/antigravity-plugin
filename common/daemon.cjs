@@ -17,6 +17,8 @@ const SHORTCUTS=fs.readFileSync(path.join(BASE,'shortcuts.js'),'utf8');
 const SWITCH_CSS=fs.readFileSync(path.join(BASE,'gemini-switch.css'),'utf8');
 const compatibility=require('./compatibility.cjs');
 const INLINE=fs.readFileSync(path.join(BASE,'gemini-inline.js'),'utf8');
+const UPDATE_SETTINGS=fs.readFileSync(path.join(BASE,'plugin-update-settings.js'),'utf8');
+let pluginUpdate;
 const APP_SETTINGS=fs.readFileSync(path.join(BASE,'app-settings.js'),'utf8');
 const COMPUTER_USE_SETTINGS=fs.readFileSync(path.join(BASE,'computer-use-settings.js'),'utf8');
 const NATIVE_MCP=fs.readFileSync(path.join(BASE,'native-mcp.js'),'utf8');
@@ -98,6 +100,7 @@ class Client{
    if(m.method==='Runtime.executionContextDestroyed')this.contexts.delete(m.params.executionContextId);
    if(m.method==='Runtime.executionContextsCleared')this.contexts.clear();
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaPersist')this.onBinding(m.params).catch(e=>log(`Save request rejected: ${e.message}`));
+   if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaPluginUpdate')this.onPluginUpdate(m.params).catch(()=>log('Plugin update request rejected.'));
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaAppSettings')this.onAppSettings(m.params).catch(e=>log(`Application preference rejected: ${e.message}`));
    if(m.method==='Runtime.bindingCalled'&&m.params.name==='__agpaComputerUse')this.onComputerUse(m.params).catch(()=>log('Computer-use request rejected.'));
   };
@@ -107,6 +110,7 @@ class Client{
   await this.call('Runtime.enable');
   await this.call('Runtime.addBinding',{name:'__agpaPersist'});
   await this.call('Runtime.addBinding',{name:'__agpaAppSettings'});
+  await this.call('Runtime.addBinding',{name:'__agpaPluginUpdate'});
   await this.call('Runtime.addBinding',{name:'__agpaComputerUse'});
   await this.ensure();
   await desktopIcon.ensureTray();
@@ -157,6 +161,7 @@ class Client{
     await this.evaluate(`globalThis.__AGPA_APP_SETTINGS__=${JSON.stringify(desktopIcon.getState())};globalThis.__AGPA_PATCH_STATUS__=${JSON.stringify(this.patchStatus)};globalThis.__AGPA_APP_ICON_ASSETS__=${JSON.stringify(APP_ICON_ASSETS)};\n${APP_SETTINGS}`);
     log('Applied application icon setting.');
    }
+   if(await this.evaluate('globalThis.__AGPluginUpdates?.version')!=='1.0.0')await this.evaluate(UPDATE_SETTINGS);
    if(await this.evaluate('globalThis.__AGShortcuts?.version')!==versions.shortcuts)await this.evaluate(SHORTCUTS);
    if(!await this.evaluate('!!globalThis.__AGNativeMcp'))await this.evaluate(NATIVE_MCP);
    if(await this.evaluate('globalThis.__AGSettingsNavigation?.version')!==versions.settingsNavigation)await this.evaluate(`globalThis.__AGPA_SETTINGS_PROJECT_STYLES__=${JSON.stringify(config)};\n${SETTINGS_NAVIGATION}`);
@@ -220,6 +225,16 @@ class Client{
    if(payload.action!=='viewChanged')log(`Application preference ${payload.action}: ${payload.value}`);
   }catch(error){if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGAppSettings?.onSaved(${JSON.stringify(payload.requestId)},false,${JSON.stringify(error.message)})`,params.executionContextId).catch(()=>{});else throw error;}
  }
+ async onPluginUpdate(params){
+  const context=this.contexts.get(params.executionContextId);
+  if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin||!pluginUpdate)return;
+  let payload;try{
+   if(params.payload.length>1024)throw Error('Invalid update request.');payload=JSON.parse(params.payload);
+   if(!UUID.test(payload.requestId)||!['status','check','automatic','install'].includes(payload.action)||(payload.action==='automatic'?typeof payload.value!=='boolean':payload.value!==true))throw Error('Invalid update request.');
+   const result=await pluginUpdate.perform(payload.action,payload.value);
+   await this.evaluate(`globalThis.__AGPluginUpdates?.onResult(${JSON.stringify(payload.requestId)},true,${JSON.stringify(result)})`,params.executionContextId);
+  }catch{if(UUID.test(payload?.requestId||''))await this.evaluate(`globalThis.__AGPluginUpdates?.onResult(${JSON.stringify(payload.requestId)},false)`,params.executionContextId).catch(()=>{});}
+ }
  async onComputerUse(params){
   const context=this.contexts.get(params.executionContextId);
   if(!context?.auxData?.isDefault||context.auxData.frameId!==this.frameId||context.origin!==this.origin)return;
@@ -256,7 +271,7 @@ class Client{
    else throw error;
   }
  }
- async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
+ async destroy(){try{await this.evaluate('(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGPluginUpdates?.destroy();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()');}catch{}this.ws?.close();}
 }
 async function discover(){
  const contents=await fsp.readFile(PORT_PATH,'utf8');const port=contents.split('\n')[0];
@@ -285,7 +300,7 @@ async function poll(){
  }finally{polling=false;}
 }
 async function shutdown(){
- if(stopping)return;stopping=true;clearInterval(interval);
+ if(stopping)return;stopping=true;clearInterval(interval);pluginUpdate?.close();
  await writeChain;
  await Promise.allSettled([...clients.values()].map(c=>c.destroy()));
  process.exit(0);
@@ -296,7 +311,16 @@ let interval;
  config=await readConfig();
  await desktopIcon.initialize();
  if(process.argv.includes('--check-config')){console.log(JSON.stringify({version:VERSION,configPath:CONFIG_PATH,configuredProjects:Object.keys(config.projects).length}));return;}
+ pluginUpdate=require('./plugin-update.cjs').createUpdater({canApply:async manual=>{
+  if((await computerUse.status()).operation)return false;
+  for(const c of clients.values()){
+   const selector='[data-agpa-editor],.agpa-overlay,dialog[open]'+(manual?'':',[data-testid=settings-nav-item-App]');
+   if(await c.evaluate(`!!document.querySelector(${JSON.stringify(selector)})`).catch(()=>true))return false;
+  }
+  return true;
+ }});
+ await pluginUpdate.initialize();
  process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
  log(`Project appearance ${VERSION}; preferences: ${CONFIG_PATH}`);
- await poll();interval=setInterval(poll,1500);
+ await poll();await pluginUpdate.ready();pluginUpdate.start();interval=setInterval(poll,1500);
 })().catch(error=>{console.error(error.message);process.exitCode=1;});

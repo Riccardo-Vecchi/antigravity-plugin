@@ -57,7 +57,13 @@
     "docs/images/computer-use.png",
     "docs/images/computer-use-checks.png",
     "docs/images/computer-use-updates.png",
-    "docs/images/computer-use-disabled.png"
+    "docs/images/computer-use-disabled.png",
+    "common/plugin-update-core.cjs",
+    "common/plugin-update.cjs",
+    "common/plugin-update-worker.cjs",
+    "common/plugin-update-cli.cjs",
+    "common/plugin-update-settings.js",
+    "docs/UPDATES.md"
   ],
   "linux": [
     "linux/desktop.cjs",

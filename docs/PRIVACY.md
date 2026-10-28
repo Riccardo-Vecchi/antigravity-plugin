@@ -21,3 +21,7 @@ The Computer use documentation screenshot shows only the Settings UI, cropped ab
 The screen-capture diagnostic runs automatically once desktop access is ready in Entire desktop mode, with manual retry available. It captures once in the local driver process, discards the returned image in memory and reports only success/pending status. It does not send that diagnostic image to a model or save it through the plugin. **Remove computer use** revokes the connection and removes the verified plugin-managed driver, own MCP entry, setup files and unchanged generated skill. Shared GNOME helper files, other Cua installations and locally edited skills are preserved.
 
 The explicit Cua Driver update check contacts the public GitHub Releases API for `trycua/cua` without account credentials, screenshots or local paths. It reports release metadata and never replaces the reviewed driver.
+
+## Plugin update checks
+
+The optional automatic updater contacts the public GitHub releases API and release-asset CDN for this repository. It sends a generic updater user agent and no conversation, account, project or computer-use content. Normal network request metadata remains visible to GitHub. The manual check uses the same endpoint. Update receipts and preferences remain local; changes made after installation and prerelease builds pause automatic replacement.

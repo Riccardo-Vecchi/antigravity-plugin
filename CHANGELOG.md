@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.3
+
+- Automatic plugin update checks and verified stable-release installation on supported installations.
+- Immediate manual update checks and installation controls in Settings → Application.
+- SHA-256/package-path verification, update receipts, local-preview protection and transactional rollback on failed startup.
+- Release packaging for Linux x86-64 and Windows x64; Windows runtime remains experimental.
+
+
 ## 1.2.2
 
 - Update the verified Linux compatibility baseline to Antigravity App 2.27.0, reported working by the repository owner.

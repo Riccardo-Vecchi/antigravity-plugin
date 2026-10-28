@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.2.2](https://img.shields.io/badge/version-1.2.2-blue)](CHANGELOG.md)
+[![Version 1.2.3](https://img.shields.io/badge/version-1.2.3-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -76,7 +76,9 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Local customizations** contains status and recovery.
 
-To update, get the latest source and rerun the installer for your platform. To disable:
+**Plugin updates:** after installing this version once, the plugin checks stable GitHub releases every six hours and installs verified updates automatically when its settings/editors are closed. **Application → Plugin updates → Check for updates** forces an immediate check; you can disable automatic installation or install an available release manually. Local previews and modified plugin files are protected from automatic replacement. See the [update reference](docs/UPDATES.md).
+
+To disable:
 
 - **🐧 Linux:** run `./linux/disable.sh` from the repository. Save any Gemini draft first.
 - **<img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows:** run the command in [Update and disable](windows/README.md#update-and-disable).

@@ -1,0 +1,32 @@
+name: Release update packages
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Validate tag and test
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node -e 'if (process.env.RELEASE_TAG !== "v" + require("./common/versions.cjs").suite) throw Error("Release tag does not match source version")'
+          node --test tests/*.test.cjs
+          for file in common/*.cjs common/*.js linux/*.cjs windows/*.cjs; do node --check "$file"; done
+          bash -n linux/install.sh linux/disable.sh
+      - name: Build verified update payloads
+        run: node scripts/build-update.cjs output/update
+      - name: Publish stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" output/update/* --verify-tag --title "Antigravity Plugin $RELEASE_TAG" --notes "Automatic plugin updates, immediate manual checks, verified packages and preservation of local settings. See CHANGELOG.md and docs/UPDATES.md."

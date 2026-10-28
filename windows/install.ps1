@@ -42,6 +42,11 @@ foreach($file in $files){
  Copy-Item -LiteralPath (Join-Path $root $file) -Destination $destination -Force
 }
 [IO.File]::WriteAllText((Join-Path $config 'installation.json'),(@{version=1;appExe=$AppExe;nativeIconsSupported=$nativeIcons}|ConvertTo-Json),(New-Object Text.UTF8Encoding($false)))
+$receiptInfo=New-Object System.Diagnostics.ProcessStartInfo
+$receiptInfo.FileName=$AppExe;$receiptInfo.Arguments='"'+(Join-Path $target 'common\plugin-update-cli.cjs')+'" receipt "'+$target+'"'
+$receiptInfo.UseShellExecute=$false;$receiptInfo.CreateNoWindow=$true;$receiptInfo.EnvironmentVariables['ELECTRON_RUN_AS_NODE']='1'
+$receiptProcess=[System.Diagnostics.Process]::Start($receiptInfo);$receiptProcess.WaitForExit()
+if($receiptProcess.ExitCode -ne 0){throw 'Could not register the update receipt.'}
 $psExe=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $start=Join-Path $target 'windows\start.ps1'
 $legacyStart=Join-Path $target 'start-windows.ps1'
