@@ -13,6 +13,12 @@ test('Linux discovery prefers a valid launcher over old downloads and preserves 
  const f=await fixture(t),exe=await f.image('My Apps/Antigravity.AppImage');const launcher=await f.desktop('my-agent.desktop',exe);await f.image('Downloads/Antigravity-old.AppImage');
  const found=await f.find();assert.equal(found.executable,exe);assert.equal(found.desktopFile,launcher);assert.match(found.entry.Exec,/--example %U$/);assert.equal(found.entry.Icon,'custom-vendor-icon');
 });
+test('hidden tray identity aliases never replace the chosen user launcher during discovery',options,async t=>{
+ const f=await fixture(t),exe=await f.image('Apps/Antigravity.AppImage');
+ const launcher=await f.desktop('zzz-user.desktop',exe);
+ await f.desktop('antigravity.desktop',exe,'NoDisplay=true\nX-Antigravity-Plugin-Window-Identity=true\n');
+ assert.equal((await f.find()).desktopFile,launcher);
+});
 test('Linux discovery prepares a user override without writing to the system launcher',options,async t=>{
  const f=await fixture(t),exe=await f.image('vendor/Antigravity.AppImage');const source=await f.desktop('antigravity.desktop',exe,'',true),before=await fs.readFile(source,'utf8');
  const found=await f.find();assert.equal(found.desktopFile,path.join(f.apps,'antigravity.desktop'));assert.equal(found.generated,true);await assert.rejects(fs.stat(found.desktopFile),{code:'ENOENT'});assert.equal(await fs.readFile(source,'utf8'),before);

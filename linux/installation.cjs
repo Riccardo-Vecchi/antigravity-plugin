@@ -2,6 +2,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
+const IDENTITY_MARKER = 'X-Antigravity-Plugin-Window-Identity=true';
 function failure(code) { return Object.assign(Error(`Antigravity AppImage discovery: ${code}. Set AGPA_APPIMAGE and AGPA_DESKTOP_FILE to select an installation.`), {code: `AGPA_${code.toUpperCase()}`}); }
 function parseDesktop(text) {
   const data = {}; let active = false, seen = false;
@@ -31,6 +32,8 @@ async function appImage(file) {
 async function readDesktop(file) {
   try { const stat = await fs.lstat(file); if (!stat.isFile() || stat.size > 131072) return null;
     const text = await fs.readFile(file, 'utf8'), entry = parseDesktop(text);
+    // A hidden window-association alias is not the user's launch entry.
+    if (text.split(/\r?\n/).includes(IDENTITY_MARKER)) return null;
     if (!entry || !/antigravity/i.test((entry.Name || '') + ' ' + path.basename(entry.executable))) return null;
     const image = await appImage(entry.executable); return image ? {...image, text, entry, source: file} : null;
   } catch { return null; }
@@ -84,4 +87,4 @@ async function discover({home = os.homedir(), env = process.env} = {}) {
   const text = `[Desktop Entry]\nType=Application\nName=Antigravity\nExec=${quoted}\nIcon=antigravity\nTerminal=false\nStartupWMClass=Antigravity\n`;
   return {...image, text, entry: parseDesktop(text), desktopFile, generated: true};
 }
-module.exports = {discover, parseDesktop, appImage};
+module.exports = {discover, parseDesktop, appImage, IDENTITY_MARKER};

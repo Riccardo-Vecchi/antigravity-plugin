@@ -11,6 +11,7 @@ const PREFERENCES=path.join(DIRECTORY,'app.json');
 const session=require('../common/session-state.cjs').createSessionStore(path.join(DIRECTORY,'session.json'));
 let lastView='antigravity';
 const discovery=require('./installation.cjs');
+const windowIdentity=require('./window-identity.cjs');
 let installation=null,DESKTOP=null,EXECUTABLE=null;
 async function resolveInstallation(){installation=await discovery.discover();DESKTOP=installation.desktopFile;EXECUTABLE=installation.executable;return installation;}
 const GEMINI_ICON=iconPath('gemini-512.png');
@@ -95,6 +96,7 @@ async function renderIcon({live=true,force=false}={}){
  const undoIcons=await themeIcons(choice);
  try{if(desktop.after!==desktop.before)await atomic(DESKTOP,desktop.after,desktop.mode);}
  catch(error){await undoIcons().catch(()=>{});throw error;}
+ await windowIdentity.sync({desktopFile:DESKTOP,icon:CURRENT_ICON});
  await syncTray(choice);
  await refresh({live});effectiveIcon=choice;
  return getState();
@@ -137,6 +139,7 @@ async function setView(view){
  currentView=view;lastView=await session.record(view);return renderIcon();
 }
 async function ensureTray(){await syncTray(effectiveIcon||desiredIcon());return getState();}
+async function windowOpened(){return renderIcon({force:true});}
 async function initialize(){
  let saved=false;
  try{const stat=await fs.stat(PREFERENCES);if(stat.size>4096)throw Error('Application preferences are too large.');state=validate(JSON.parse(await fs.readFile(PREFERENCES,'utf8')));saved=true;}
@@ -151,7 +154,8 @@ async function initialize(){
 async function restoreIntegration(){
  await initialize();await apply('antigravity');await setAutostart(false);
  const d=await desktopWithIcon('restore');if(d.after!==d.before)await atomic(DESKTOP,d.after,d.mode);
+ await windowIdentity.remove(DESKTOP);
  await run('/usr/bin/python3',[path.join(__dirname,'sync-tray-icon.py'),'--restore'],{timeout:8000});
  await refresh();return getState();
 }
-module.exports={initialize,apply,setStartupView,setAutostart,setToggleShortcut,setView,ensureTray,getState,validate,restoreIntegration};
+module.exports={initialize,apply,setStartupView,setAutostart,setToggleShortcut,setView,ensureTray,windowOpened,getState,validate,restoreIntegration};

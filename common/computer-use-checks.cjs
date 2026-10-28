@@ -27,3 +27,12 @@ function accessChanged(current, selected) {
   return JSON.stringify(normalize(current.apps)) !== JSON.stringify(normalize(selected.apps));
 }
 module.exports.accessChanged = accessChanged;
+
+// One state model for the switch and its content, including setup cancellation.
+function controlState(state, {busy = false, pendingAction = null, stopRequested = false} = {}) {
+  const working = busy || !!state.operation;
+  const enabling = !stopRequested && (pendingAction === 'setup' || ['setup', 'install', 'connect'].includes(state.operation));
+  const switchOn = pendingAction !== 'disconnect' && (!!state.enabled || enabling);
+  return {working, enabling, switchOn};
+}
+module.exports.controlState = controlState;

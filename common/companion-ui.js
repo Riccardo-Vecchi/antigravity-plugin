@@ -1,7 +1,7 @@
 /* Optional browser connections. No access from the Gemini guest. */
 (() => {
   "use strict";
-  const VERSION = "1.3.1";
+  const VERSION = "1.3.2";
   if (globalThis.__AGCompanion?.version === VERSION) return;
   globalThis.__AGCompanion?.destroy();
   const i18n = globalThis.__AGPAI18n,
@@ -167,6 +167,9 @@
       if(notice)content.push(node("p",{class:"agpa-comp-notice",role:"status"},text(notice)));
       const installed=node("details",{class:"agpa-comp-help"},node("summary",{text:"Already installed or moved from an older version?"}),node("p",{text:"Open Antigravity Browser and choose Reconnect. If the browser reports a missing extension folder, remove that old entry and load the folder shown above."}));content.push(installed);
       content.push(node("p",{class:"agpa-comp-muted",text:"This page continues automatically when the extension connects."}));
+      content.push(node("details",{class:"agpa-comp-help"},
+        node("summary",{text:"Can this step be automatic?"}),
+        node("p",{text:"Your browser requires this one-time step for extensions outside its store. A ZIP package does not skip installation approval. You do not need to repeat setup for every task."})));
     }else if(phase==="share"){
       content.push(node("div",{class:"agpa-comp-access"},heading("Selected tabs","Open a web page, click the extension and choose Share this tab."),heading("All tabs in this profile","Includes current and new web tabs until you stop sharing or disconnect.")));
       content.push(node("p",{class:"agpa-comp-muted",text:"Private tabs, browser settings and password fields are excluded."}));

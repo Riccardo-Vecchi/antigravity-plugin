@@ -1,7 +1,7 @@
 /* Guided desktop access in a dedicated native Settings page. */
 (() => {
  'use strict';
- const VERSION = '1.4.3';
+ const VERSION = '1.4.4';
  if (globalThis.__AGComputerUse?.version === VERSION) return;
  globalThis.__AGComputerUse?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -53,9 +53,9 @@
  function paint() {
   if (!section || destroyed) return;
   const t = (selector, text, params) => i18n.set(section.querySelector(selector), text, params);
-  const working = busy || !!state.operation;
-  const enabling = !stopRequested && (pendingAction === 'setup' || ['setup','install','connect'].includes(state.operation));
-  const switchOn = pendingAction !== 'disconnect' && (!!state.enabled || enabling);
+  const {working, enabling, switchOn} = globalThis.__AGPAComputerUseControlState(state, {busy, pendingAction, stopRequested});
+  section.querySelector('[data-cu-content]').hidden = !switchOn;
+  if (!switchOn) for (const dialog of section.querySelectorAll('[data-cu-update-dialog][open], [data-cu-confirm-removal][open]')) dialog.close();
   t('[data-cu-connection]', state.operation === 'uninstall' ? 'Removing computer use…' : state.operation ? 'Preparing computer use…' : state.enabled ? state.needsHelper ? 'Desktop access needs activation' : 'Computer use is enabled' : 'Your agent, across your desktop');
   t('[data-cu-summary]', state.enabled ? 'Describe the result you want in Antigravity. The agent can see and operate the desktop within your chosen access.' : state.installed ? 'Computer use is disabled. Your installation and access settings are kept.' : 'Let Antigravity work across your apps: explore, click, type and verify the result.');
   const loginRequired = state.needsHelper && state.helperInstalled && ['signInRequired', 'unknown'].includes(state.helperState);
@@ -66,7 +66,7 @@
   section.querySelector('[data-cu-connect]').hidden = !state.enabled;
   const toggle=section.querySelector('[data-cu-toggle]');
   toggle.setAttribute('aria-checked',String(switchOn));
-  i18n.set(toggle,switchOn?'Disconnect the agent and keep setup.':'Enable using the access selected below.',{},'title');
+  i18n.set(toggle,switchOn?'Disconnect the agent and keep setup.':'Enable computer use with your saved access settings.',{},'title');
   t('[data-cu-toggle-label]',pendingAction==='disconnect'?'Disabling…':enabling&&!state.enabled?'Enabling…':state.enabled?'Enabled':'Disabled');
   section.querySelector('[data-cu-runtime-notice]').hidden = !switchOn;
   section.querySelector('[data-cu-examples]').hidden = !state.enabled;
@@ -230,7 +230,9 @@
    node('p', {text: 'Open a text editor, type a three-item packing checklist and leave it open for review.'}));
   section = node('section', {class: 'agpa-cu-panel', 'data-agpa-computer-use-setting': ''},
    node('div', {class: 'agpa-cu-hero'}, node('span', {class: 'agpa-cu-status-dot', 'aria-hidden': 'true'}), node('h3', {'data-cu-connection': '', role: 'status'}),toggle),
-   node('p', {class: 'agpa-cu-summary', 'data-cu-summary': ''}), scopes, apps,
+   node('p', {class: 'agpa-cu-summary', 'data-cu-summary': ''}),
+   node('p', {class: 'agpa-app-icon-status', 'data-cu-operation': '', role: 'status', 'aria-live': 'polite'}),
+   node('div', {class: 'agpa-cu-content', 'data-cu-content': '', hidden: ''}, scopes, apps,
    node('p', {class: 'agpa-cu-muted', text: 'Entire desktop access includes visible screen content. The agent still follows your task and Antigravity approval settings.'}),
    node('div', {class: 'agpa-cu-controls'}, enable,remove),
    node('div', {class: 'agpa-cu-notice','data-cu-runtime-notice':''}, node('p', {'data-cu-platform': ''}),
@@ -239,10 +241,9 @@
    node('details', {class: 'agpa-cu-advanced'}, node('summary', {'data-cu-details-title':'',text: 'Connection details'}),
     node('ul', {class:'agpa-cu-checks','data-cu-checks':'','aria-label':'Connection checks'}),
     advancedActions,
-    node('p', {class: 'agpa-app-icon-status', 'data-cu-operation': '', role: 'status', 'aria-live': 'polite'}),
-    removal,node('p',{class:'agpa-cu-notice','data-cu-removal':'',role:'status'}),
+    node('p',{class:'agpa-cu-notice','data-cu-removal':'',role:'status'}),
     node('p', {class: 'agpa-cu-muted', 'data-cu-native-note':'',text: 'Available to the native Antigravity agent. The embedded Gemini website does not receive these tools.'}),
-    node('a', {href: 'https://github.com/Riccardo-Vecchi/antigravity-plugin/blob/main/docs/COMPUTER_USE.md', target: '_blank', rel: 'noopener noreferrer', text: 'Computer-use setup guide'})),progressDialog,updateDialog);
+    node('a', {href: 'https://github.com/Riccardo-Vecchi/antigravity-plugin/blob/main/docs/COMPUTER_USE.md', target: '_blank', rel: 'noopener noreferrer', text: 'Computer-use setup guide'}))),removal,progressDialog,updateDialog);
   request('status', true).then(receive).catch(() => {});
  }
  function apply() {
@@ -255,6 +256,7 @@
  }
  const style = node('style', {id: 'agpa-computer-use-styles', text: `
   .agpa-cu-panel{display:flex;flex-direction:column;gap:18px;color:var(--foreground,#eee);font-size:13px}
+  .agpa-cu-content{display:flex;flex-direction:column;gap:18px}
   .agpa-cu-panel p{margin:0;line-height:1.55}.agpa-cu-hero{display:flex;align-items:center;gap:10px;margin-top:4px}
   .agpa-cu-hero h3{font-size:14px;font-weight:500;margin:0;line-height:1.5}.agpa-cu-status-dot{width:8px;height:8px;flex-shrink:0;background:#888;border-radius:50%}
   .agpa-cu-enable-switch{display:inline-flex;align-items:center;gap:8px;margin-left:auto;padding:5px 0 5px 10px;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0}

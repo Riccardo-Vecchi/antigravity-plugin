@@ -5,8 +5,8 @@ Give the **native Antigravity agent** desktop tools through the maintained [Cua 
 ## 🧭 Get started
 
 1. Open **Settings → Computer use**, its own item in the Settings menu. Settings navigation has icons; its Projects group can be collapsed and uses your configured project appearance.
-2. Choose **Entire desktop** to work across your environment, or **Selected apps** for an application allowlist.
-3. Turn on the **Computer use** switch at the top. A centered progress dialog shows the active step with a spinner, individual checks, and actual downloaded MB. **Continue in background** or Escape hides the dialog while setup continues; **Cancel setup** revokes it. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
+2. Turn on the **Computer use** switch at the top. Your saved access is reused; first setup starts with **Entire desktop**. After enabling, choose **Selected apps** and apply changes if you prefer an application allowlist.
+3. A centered progress dialog shows the active step with a spinner, individual checks, and actual downloaded MB. **Continue in background** or Escape hides the dialog while setup continues; **Cancel setup** revokes it. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
 4. Follow any OS access prompt. On GNOME/Wayland, the helper needs a **Linux session logout/login once** to load. Save your work, open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select **Refresh status**. **Locking/unlocking the screen keeps the same Linux session and does not load the extension.** Closing the app or signing out of Google also does not load it. The wizard never logs you out or restarts your apps.
 5. Start a **new Antigravity conversation** and describe the result you want. Existing conversations can keep their earlier tool list.
 
@@ -16,7 +16,7 @@ Try: “Open Calculator, calculate 6 × 7 and verify the displayed result.” Th
 
 If an upstream app change prevents automatic MCP refresh, use native **Customizations → Installed → MCP Servers**, or its Settings equivalent, and refresh/reopen Antigravity when convenient.
 
-![Computer-use enable switch and Stop/Remove controls](images/computer-use.png)
+![Computer-use enable switch and access controls](images/computer-use.png)
 
 ![Connection checks with individual passed and pending states](images/computer-use-checks.png)
 
@@ -41,15 +41,15 @@ In either mode, the bridge exposes only the reviewed GUI tool set (17 tools for 
 
 ## 🎚️ Enable, disable and stop
 
-The top switch reflects the actual connection state. **OFF** revokes desktop access and disconnects the native agent while keeping the installed driver and access choices. **ON** runs setup/reconnection using the access currently selected below; an installed reviewed driver is reused. **Apply access changes** saves scope edits while enabled.
+The top switch reflects the actual connection state. **OFF** revokes desktop access and disconnects the native agent while keeping the installed driver and access choices. **ON** runs setup/reconnection using your saved access choices (Entire desktop on first setup); an installed reviewed driver is reused. **Apply access changes** saves scope edits while enabled.
 
 The switch is the single connection control and remains usable to cancel setup after the progress dialog is sent to the background. The dialog has a contextual **Cancel setup** action. The red **Remove computer use** button removes managed components after confirmation.
 
 **Apply access changes** is gray and disabled when the visible scope/app list matches the saved configuration. Selecting another scope or editing the selected-app allowlist makes it white and clickable; selecting the original scope again disables it. Reordering/duplicating app paths alone is not an access change.
 
-When disabled, access choices stay editable for the next activation, and **Remove computer use** remains available. Examples, desktop-permission notices and connection checks are hidden. **Installation details** retains the driver version and update check. Enabling restores the full interface without discarding access drafts.
+When disabled, only the activation switch and a short summary remain visible. Access choices, removal, diagnostics, version checks and examples are hidden together. Enabling restores the full interface and saved access choices. Setup errors remain visible so a failed activation is never silent.
 
-![Disabled computer use keeps access choices and installation details available](images/computer-use-disabled.png)
+![Disabled computer use shows only its activation interface](images/computer-use-disabled.png?v=1.6.0)
 
 Activity spinners keep rotating even when the OS requests reduced motion, as an explicit exception limited to these work indicators. Other OS motion preferences are unchanged.
 

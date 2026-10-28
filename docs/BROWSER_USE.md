@@ -14,6 +14,20 @@ Each browser profile connects separately. The extension keeps sharing controls i
 
 If you already loaded the extension from a folder removed by migration, use **Load unpacked** with the new folder shown in the guide; remove the broken old entry if the browser requires it. An extension already loaded from the branded folder can simply be reloaded on the Extensions page.
 
+## 📦 Packaged extension and installation approval
+
+Each release includes [antigravity-browser.zip](https://github.com/Riccardo-Vecchi/antigravity-plugin/releases/latest/download/antigravity-browser.zip), a reproducible Manifest V3 archive built from the distribution allowlist. It contains the extension directly at its root and is suitable for store submission or manual extraction. A ZIP is not a signed CRX and cannot be installed by clicking it. The guided local-folder method remains the recommended way to keep it paired with plugin updates.
+
+Browser consent cannot be replaced by plugin consent. For a common direct-install experience across Chrome on Windows and Linux, the extension needs a published **Chrome Web Store listing**, which this project does not yet have. Linux also supports externally distributed signed CRX packages; managed deployments can use browser policies. Those mechanisms are not equivalent across platforms, and this plugin does not silently change browser management policies, edit protected profile preferences, restart your browser or bypass extension approval. The guide prepares Native Messaging, copies the correct folder and opens Extensions; the browser's final installation and sharing choices remain yours.
+
+Distribution rules: [Chrome extension distribution](https://developer.chrome.com/docs/extensions/how-to/distribute), [alternative installation methods](https://developer.chrome.com/docs/extensions/how-to/distribute/install-extensions), and [Microsoft Edge distribution](https://learn.microsoft.com/en-us/microsoft-edge/extensions/developer-guide/alternate-distribution-options).
+
+To build the archive locally (Python 3 is a development/release tool, not a new Windows runtime requirement):
+
+```sh
+python3 scripts/package-browser-extension.py output/antigravity-browser.zip
+```
+
 ## 🧭 Working with tabs
 
 The native agent can list connected profiles and shared tabs, read a page's accessibility tree, click referenced elements, type in ordinary editable fields, press navigation keys, scroll, navigate within the approved origin (or across regular web sites in whole-profile mode) and capture the current viewport. The profile connection and tab identifiers make the target explicit. Stale references require a fresh snapshot. The initial semantic snapshot targets the main document; embedded cross-origin/out-of-process frames may need the desktop tools instead.

@@ -84,3 +84,12 @@ test('app access changes ignore order, blank lines and duplicates but detect add
  assert.equal(accessChanged(current,{scope:'apps',apps:['/bin/one']}),true);
  assert.equal(accessChanged(current,{scope:'apps',apps:['/bin/one','/bin/two','/bin/three']}),true);
 });
+
+test('disabled computer use hides its content, including installed and cancelled setups',()=>{
+ const {controlState}=require('../common/computer-use-checks.cjs');
+ for(const state of [{enabled:false},{enabled:false,installed:true,scope:'apps',apps:['/allowed']},{enabled:false,error:'operationFailed'}])assert.equal(controlState(state).switchOn,false);
+ assert.equal(controlState({enabled:true}).switchOn,true);
+ assert.equal(controlState({enabled:true},{pendingAction:'disconnect'}).switchOn,false);
+ assert.equal(controlState({enabled:false,operation:'setup'}).switchOn,true);
+ assert.equal(controlState({enabled:false,operation:'setup'},{stopRequested:true}).switchOn,false);
+});

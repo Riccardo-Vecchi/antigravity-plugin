@@ -21,10 +21,13 @@ jobs:
         run: |
           node -e 'if (process.env.RELEASE_TAG !== "v" + require("./common/versions.cjs").suite) throw Error("Release tag does not match source version")'
           node --test tests/*.test.cjs
-          for file in common/*.cjs common/*.js common/browser-extension/*.js linux/*.cjs windows/*.cjs; do node --check "$file"; done
+          python3 -m unittest discover -s tests -p 'test_*.py'
+          for file in common/*.cjs common/*.js common/browser-extension/*.js linux/*.cjs windows/*.cjs scripts/*.cjs; do node --check "$file"; done
           bash -n linux/install.sh linux/disable.sh
       - name: Build verified update payloads
-        run: node scripts/build-update.cjs output/update
+        run: |
+          node scripts/build-update.cjs output/update
+          python3 scripts/package-browser-extension.py output/update/antigravity-browser.zip
       - name: Publish stable release
         env:
           GH_TOKEN: ${{ github.token }}

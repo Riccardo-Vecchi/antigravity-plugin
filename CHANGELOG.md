@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0
+
+- Hide all Computer use configuration and diagnostics while disabled, keeping its activation switch, summary and actionable errors. Preserve saved access when re-enabled.
+- Publish a reproducible, allowlisted Manifest V3 extension ZIP with every release and explain browser installation approval in the guide. No policy or browser-profile bypass.
+- Give tray-created Linux windows a stable hidden desktop identity and refresh their selected icon even when its preference is unchanged. Preserve foreign desktop entries.
+- Extract and regression-test Computer use switch state, centralize daemon injection versions, validate extension archives, and refresh the startup and disabled-mode screenshots.
+
 ## 1.5.1
 
 - Detect older connected extensions and keep their browser-setup step visible, with reload or missing-folder recovery instructions after migration.

@@ -110,7 +110,8 @@
     "linux/installation.cjs",
     "linux/computer-use.cjs",
     "linux/browser.cjs",
-    "linux/migration.cjs"
+    "linux/migration.cjs",
+    "linux/window-identity.cjs"
   ],
   "windows": [
     "windows/desktop.cjs",

@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.5.1](https://img.shields.io/badge/version-1.5.1-blue)](CHANGELOG.md)
+[![Version 1.6.0](https://img.shields.io/badge/version-1.6.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -45,7 +45,7 @@
 
 | Settings → Appearance: application and tray icons | Settings → Application: startup view and autostart |
 | --- | --- |
-| ![Plugin settings for fixed Antigravity or Gemini icons and Dynamic mode](docs/images/preferences.png) | ![Plugin settings for the startup view, remembering the last view and desktop autostart](docs/images/startup.png) |
+| ![Plugin settings for fixed Antigravity or Gemini icons and Dynamic mode](docs/images/preferences.png) | ![Plugin settings for the startup view, remembering the last view and desktop autostart](docs/images/startup.png?v=1.6.0) |
 
 ## 🐧 Install on Linux
 
@@ -73,9 +73,9 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 ## ⚙️ Settings and updates
 
-**Computer use:** open **Settings → Computer use**, choose **Entire desktop** or **Selected apps**, and enable it. Works with the native Antigravity agent. On GNOME/Wayland, first setup may require a Linux logout/login. [Setup and troubleshooting](docs/COMPUTER_USE.md).
+**Computer use:** open **Settings → Computer use** and enable it. Reuses saved access, or starts with **Entire desktop** on first setup; choose **Selected apps** to limit access. When disabled, only its activation controls remain visible. Works with the native Antigravity agent. On GNOME/Wayland, first setup may require a Linux logout/login. [Setup and troubleshooting](docs/COMPUTER_USE.md).
 
-**Browser use:** open **Settings → Browser use** and follow the extension setup guide.
+**Browser use:** open **Settings → Browser use** and follow the extension setup guide. Releases also include an [extension ZIP](https://github.com/Riccardo-Vecchi/antigravity-plugin/releases/latest/download/antigravity-browser.zip); browser installation approval is still required. [Packaging and installation limits](docs/BROWSER_USE.md#-packaged-extension-and-installation-approval).
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Plugin updates → Plugin customizations** contains status and recovery.
 
@@ -90,7 +90,7 @@ The official application and conversation databases are not patched. Gemini sign
 
 ## 🛠️ Development
 
-`common/` contains the shared runtime and UI; `linux/` and `windows/` contain platform adapters and scripts. `common/distribution.json` defines deployment files; stable installed icon paths and older Windows shortcuts remain compatible. Run `node --test tests/*.test.cjs`; CI also checks script syntax. See [privacy notes](docs/PRIVACY.md) for published-data boundaries.
+`common/` contains the shared runtime and UI; `linux/` and `windows/` contain platform adapters and scripts. `common/distribution.json` defines deployment files; stable installed icon paths and older Windows shortcuts remain compatible. Run `node --test tests/*.test.cjs`; CI also checks script syntax. Python 3 is used only to build/test the standalone extension ZIP (`python3 -m unittest discover -s tests -p 'test_*.py'`). See [privacy notes](docs/PRIVACY.md) for published-data boundaries.
 
 ## 📜 License
 

@@ -224,7 +224,6 @@
       "Testing screen capture…": "Testing screen capture…",
       "Enabled": "Enabled",
       "Disconnect the agent and keep setup.": "Disconnect the agent and keep setup.",
-      "Enable using the access selected below.": "Enable using the access selected below.",
       "Installation details": "Installation details",
       "Cancel setup": "Cancel setup",
       "Enabling…": "Enabling…",
@@ -344,7 +343,10 @@
       "Update Antigravity Browser": "Update Antigravity Browser",
       "Reload the extension to use the latest sharing controls.": "Reload the extension to use the latest sharing controls.",
       "Click Reload next to Antigravity Browser on the Extensions page.": "Click Reload next to Antigravity Browser on the Extensions page.",
-      "If its folder is missing, choose Load unpacked and use the folder below.": "If its folder is missing, choose Load unpacked and use the folder below."
+      "If its folder is missing, choose Load unpacked and use the folder below.": "If its folder is missing, choose Load unpacked and use the folder below.",
+      "Enable computer use with your saved access settings.": "Enable computer use with your saved access settings.",
+      "Can this step be automatic?": "Can this step be automatic?",
+      "Your browser requires this one-time step for extensions outside its store. A ZIP package does not skip installation approval. You do not need to repeat setup for every task.": "Your browser requires this one-time step for extensions outside its store. A ZIP package does not skip installation approval. You do not need to repeat setup for every task."
     },
     "icons": {
       "folder": "Folder",
@@ -622,7 +624,6 @@
       "Testing screen capture…": "Verifica della cattura schermo…",
       "Enabled": "Abilitato",
       "Disconnect the agent and keep setup.": "Scollega l’agente mantenendo l’installazione.",
-      "Enable using the access selected below.": "Abilita con l’accesso selezionato qui sotto.",
       "Installation details": "Dettagli dell’installazione",
       "Cancel setup": "Annulla configurazione",
       "Enabling…": "Abilitazione…",
@@ -742,7 +743,10 @@
       "Update Antigravity Browser": "Aggiorna Antigravity Browser",
       "Reload the extension to use the latest sharing controls.": "Ricarica l’estensione per usare i nuovi controlli di condivisione.",
       "Click Reload next to Antigravity Browser on the Extensions page.": "Clicca Ricarica accanto ad Antigravity Browser nella pagina Estensioni.",
-      "If its folder is missing, choose Load unpacked and use the folder below.": "Se la cartella manca, scegli Carica estensione non pacchettizzata e usa la cartella qui sotto."
+      "If its folder is missing, choose Load unpacked and use the folder below.": "Se la cartella manca, scegli Carica estensione non pacchettizzata e usa la cartella qui sotto.",
+      "Enable computer use with your saved access settings.": "Abilita Computer use con le impostazioni di accesso salvate.",
+      "Can this step be automatic?": "Questo passaggio può essere automatico?",
+      "Your browser requires this one-time step for extensions outside its store. A ZIP package does not skip installation approval. You do not need to repeat setup for every task.": "Il browser richiede questo passaggio iniziale per le estensioni esterne al suo store. Un pacchetto ZIP non evita l’approvazione dell’installazione. Non occorre ripetere la configurazione per ogni attività."
     },
     "icons": {
       "folder": "Cartella",
@@ -1020,7 +1024,6 @@
       "Testing screen capture…": "Bildschirmaufnahme wird getestet…",
       "Enabled": "Aktiviert",
       "Disconnect the agent and keep setup.": "Agent trennen und Einrichtung beibehalten.",
-      "Enable using the access selected below.": "Mit dem unten gewählten Zugriff aktivieren.",
       "Installation details": "Installationsdetails",
       "Cancel setup": "Einrichtung abbrechen",
       "Enabling…": "Wird aktiviert…",
@@ -1140,7 +1143,10 @@
       "Update Antigravity Browser": "Antigravity Browser aktualisieren",
       "Reload the extension to use the latest sharing controls.": "Lade die Erweiterung neu, um die aktuellen Freigabeoptionen zu nutzen.",
       "Click Reload next to Antigravity Browser on the Extensions page.": "Klicke auf der Erweiterungsseite neben Antigravity Browser auf Neu laden.",
-      "If its folder is missing, choose Load unpacked and use the folder below.": "Falls der Ordner fehlt, wähle Entpackte Erweiterung laden und nutze den folgenden Ordner."
+      "If its folder is missing, choose Load unpacked and use the folder below.": "Falls der Ordner fehlt, wähle Entpackte Erweiterung laden und nutze den folgenden Ordner.",
+      "Enable computer use with your saved access settings.": "Computer use mit den gespeicherten Zugriffseinstellungen aktivieren.",
+      "Can this step be automatic?": "Kann dieser Schritt automatisch erfolgen?",
+      "Your browser requires this one-time step for extensions outside its store. A ZIP package does not skip installation approval. You do not need to repeat setup for every task.": "Dein Browser verlangt diesen einmaligen Schritt für Erweiterungen außerhalb seines Stores. Ein ZIP-Paket umgeht die Installationsbestätigung nicht. Du musst die Einrichtung nicht für jede Aufgabe wiederholen."
     },
     "icons": {
       "folder": "Ordner",
@@ -1418,7 +1424,6 @@
       "Testing screen capture…": "Probando la captura de pantalla…",
       "Enabled": "Activado",
       "Disconnect the agent and keep setup.": "Desconectar el agente y conservar la instalación.",
-      "Enable using the access selected below.": "Activar con el acceso seleccionado abajo.",
       "Installation details": "Detalles de instalación",
       "Cancel setup": "Cancelar configuración",
       "Enabling…": "Activando…",
@@ -1538,7 +1543,10 @@
       "Update Antigravity Browser": "Actualiza Antigravity Browser",
       "Reload the extension to use the latest sharing controls.": "Recarga la extensión para usar los nuevos controles de uso compartido.",
       "Click Reload next to Antigravity Browser on the Extensions page.": "Pulsa Recargar junto a Antigravity Browser en la página de extensiones.",
-      "If its folder is missing, choose Load unpacked and use the folder below.": "Si falta la carpeta, elige Cargar descomprimida y usa la carpeta inferior."
+      "If its folder is missing, choose Load unpacked and use the folder below.": "Si falta la carpeta, elige Cargar descomprimida y usa la carpeta inferior.",
+      "Enable computer use with your saved access settings.": "Activa Computer use con los ajustes de acceso guardados.",
+      "Can this step be automatic?": "¿Se puede automatizar este paso?",
+      "Your browser requires this one-time step for extensions outside its store. A ZIP package does not skip installation approval. You do not need to repeat setup for every task.": "El navegador exige este paso inicial para extensiones fuera de su tienda. Un archivo ZIP no evita la aprobación de la instalación. No tienes que repetir la configuración para cada tarea."
     },
     "icons": {
       "folder": "Carpeta",
@@ -1816,7 +1824,6 @@
       "Testing screen capture…": "Test de la capture d’écran…",
       "Enabled": "Activé",
       "Disconnect the agent and keep setup.": "Déconnecter l’agent et conserver l’installation.",
-      "Enable using the access selected below.": "Activer avec l’accès sélectionné ci-dessous.",
       "Installation details": "Détails de l’installation",
       "Cancel setup": "Annuler la configuration",
       "Enabling…": "Activation…",
@@ -1936,7 +1943,10 @@
       "Update Antigravity Browser": "Mettez à jour Antigravity Browser",
       "Reload the extension to use the latest sharing controls.": "Rechargez l’extension pour utiliser les nouveaux contrôles de partage.",
       "Click Reload next to Antigravity Browser on the Extensions page.": "Cliquez sur Recharger à côté d’Antigravity Browser sur la page des extensions.",
-      "If its folder is missing, choose Load unpacked and use the folder below.": "Si le dossier manque, choisissez Charger l’extension non empaquetée et utilisez le dossier ci-dessous."
+      "If its folder is missing, choose Load unpacked and use the folder below.": "Si le dossier manque, choisissez Charger l’extension non empaquetée et utilisez le dossier ci-dessous.",
+      "Enable computer use with your saved access settings.": "Activez Computer use avec les paramètres d’accès enregistrés.",
+      "Can this step be automatic?": "Cette étape peut-elle être automatique ?",
+      "Your browser requires this one-time step for extensions outside its store. A ZIP package does not skip installation approval. You do not need to repeat setup for every task.": "Votre navigateur exige cette étape unique pour les extensions hors de sa boutique. Un fichier ZIP ne remplace pas l’approbation de l’installation. La configuration n’est pas à répéter pour chaque tâche."
     },
     "icons": {
       "folder": "Dossier",
@@ -2214,7 +2224,6 @@
       "Testing screen capture…": "正在测试屏幕截图…",
       "Enabled": "已启用",
       "Disconnect the agent and keep setup.": "断开智能体连接并保留安装。",
-      "Enable using the access selected below.": "使用下方选择的访问范围启用。",
       "Installation details": "安装详情",
       "Cancel setup": "取消设置",
       "Enabling…": "正在启用…",
@@ -2334,7 +2343,10 @@
       "Update Antigravity Browser": "更新 Antigravity Browser",
       "Reload the extension to use the latest sharing controls.": "重新加载扩展以使用最新的共享控件。",
       "Click Reload next to Antigravity Browser on the Extensions page.": "在扩展页面中点击 Antigravity Browser 旁的重新加载。",
-      "If its folder is missing, choose Load unpacked and use the folder below.": "如果文件夹缺失，请选择加载已解压的扩展程序并使用下方文件夹。"
+      "If its folder is missing, choose Load unpacked and use the folder below.": "如果文件夹缺失，请选择加载已解压的扩展程序并使用下方文件夹。",
+      "Enable computer use with your saved access settings.": "使用已保存的访问设置启用电脑操作。",
+      "Can this step be automatic?": "这一步可以自动完成吗？",
+      "Your browser requires this one-time step for extensions outside its store. A ZIP package does not skip installation approval. You do not need to repeat setup for every task.": "对于商店以外的扩展程序，浏览器要求完成这一次性步骤。ZIP 压缩包不会跳过安装确认。无需为每项任务重复设置。"
     },
     "icons": {
       "folder": "文件夹",
@@ -2612,7 +2624,6 @@
       "Testing screen capture…": "画面キャプチャをテスト中…",
       "Enabled": "有効",
       "Disconnect the agent and keep setup.": "設定を保持してエージェントを切断します。",
-      "Enable using the access selected below.": "下で選択したアクセス範囲で有効にします。",
       "Installation details": "インストールの詳細",
       "Cancel setup": "設定をキャンセル",
       "Enabling…": "有効にしています…",
@@ -2732,7 +2743,10 @@
       "Update Antigravity Browser": "Antigravity Browser を更新",
       "Reload the extension to use the latest sharing controls.": "最新の共有コントロールを使うには拡張機能を再読み込みしてください。",
       "Click Reload next to Antigravity Browser on the Extensions page.": "拡張機能ページで Antigravity Browser の横にある再読み込みをクリックしてください。",
-      "If its folder is missing, choose Load unpacked and use the folder below.": "フォルダーが見つからない場合は、パッケージ化されていない拡張機能を読み込むを選び、下のフォルダーを使ってください。"
+      "If its folder is missing, choose Load unpacked and use the folder below.": "フォルダーが見つからない場合は、パッケージ化されていない拡張機能を読み込むを選び、下のフォルダーを使ってください。",
+      "Enable computer use with your saved access settings.": "保存済みのアクセス設定でコンピューター操作を有効にします。",
+      "Can this step be automatic?": "この手順は自動化できますか？",
+      "Your browser requires this one-time step for extensions outside its store. A ZIP package does not skip installation approval. You do not need to repeat setup for every task.": "ストア外の拡張機能には、この初回手順が必要です。ZIP ファイルでもインストールの承認は省略できません。タスクごとに設定し直す必要はありません。"
     },
     "icons": {
       "folder": "フォルダー",

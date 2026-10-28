@@ -30,7 +30,7 @@ const NATIVE_MCP=fs.readFileSync(path.join(BASE,'native-mcp.js'),'utf8');
 const SETTINGS_NAVIGATION=fs.readFileSync(path.join(BASE,'settings-navigation.js'),'utf8');
 const PROJECT_PRESENTATION=fs.readFileSync(path.join(BASE,'project-presentation.js'),'utf8');
 const computerUse=require('./computer-use.cjs').createManager();
-const {connectionChecks,accessChanged}=require('./computer-use-checks.cjs');
+const {connectionChecks,accessChanged,controlState}=require('./computer-use-checks.cjs');
 const I18N=fs.readFileSync(path.join(BASE,'i18n.js'),'utf8');
 const TRANSLATIONS=JSON.parse(fs.readFileSync(path.join(BASE,'locales.json'),'utf8'));
 const WINDOW_CHROME=fs.readFileSync(path.join(BASE,'window-chrome.css'),'utf8');
@@ -122,6 +122,9 @@ class Client{
   await this.ensure();
   await desktopIcon.ensureTray();
   await desktopIcon.setView(await this.evaluate('globalThis.__AGGeminiSwitch?.status().visible?"gemini":"antigravity"'));
+  // A tray-created window has no launcher startup notification. Refresh its
+  // desktop identity even when the selected icon did not change.
+  if(desktopIcon.windowOpened)await desktopIcon.windowOpened().catch(e=>log('Window icon refresh: '+e.message));
   await this.updateAppState();
  }
  call(method,params={}){
@@ -158,7 +161,7 @@ class Client{
     await this.evaluate(`globalThis.__AGPA_SWITCH_ASSETS__=${JSON.stringify(SWITCH_ASSETS)};globalThis.__AGPA_GEMINI_CSS__=${JSON.stringify(SWITCH_CSS)};\n${SWITCH}`);
     log('Applied Gemini switch to Antigravity window.');
    }
-   if(await this.evaluate('globalThis.__AGHeaderPlacement?.version')!=='1.0.0')await this.evaluate(HEADER_PLACEMENT);
+   if(await this.evaluate('globalThis.__AGHeaderPlacement?.version')!==versions.headerPlacement)await this.evaluate(HEADER_PLACEMENT);
    await this.evaluate(`(()=>{if(document.getElementById('agpa-gemini-styles'))return;const style=document.createElement('style');style.id='agpa-gemini-styles';style.textContent=${JSON.stringify(SWITCH_CSS)};document.head.append(style);})()`);
    if(await this.evaluate('globalThis.__AGGeminiInline?.version')!==INLINE_VERSION){
     await this.evaluate('globalThis.__AGGeminiInline?.destroy()');
@@ -169,12 +172,12 @@ class Client{
     await this.evaluate(`globalThis.__AGPA_APP_SETTINGS__=${JSON.stringify(desktopIcon.getState())};globalThis.__AGPA_PATCH_STATUS__=${JSON.stringify(this.patchStatus)};globalThis.__AGPA_APP_ICON_ASSETS__=${JSON.stringify(APP_ICON_ASSETS)};\n${APP_SETTINGS}`);
     log('Applied application icon setting.');
    }
-   if(await this.evaluate('globalThis.__AGPluginUpdates?.version')!=='1.1.0')await this.evaluate(UPDATE_SETTINGS);
+   if(await this.evaluate('globalThis.__AGPluginUpdates?.version')!==versions.updates)await this.evaluate(UPDATE_SETTINGS);
    if(await this.evaluate('globalThis.__AGShortcuts?.version')!==versions.shortcuts)await this.evaluate(SHORTCUTS);
    if(!await this.evaluate('!!globalThis.__AGNativeMcp'))await this.evaluate(NATIVE_MCP);
    if(await this.evaluate('globalThis.__AGSettingsNavigation?.version')!==versions.settingsNavigation)await this.evaluate(`globalThis.__AGPA_SETTINGS_PROJECT_STYLES__=${JSON.stringify(config)};\n${SETTINGS_NAVIGATION}`);
-   if(await this.evaluate('globalThis.__AGComputerUse?.version')!==versions.computerUse)await this.evaluate(`globalThis.__AGPAComputerUseChecks=${connectionChecks.toString()};globalThis.__AGPAComputerUseAccessChanged=${accessChanged.toString()};\n${COMPUTER_USE_SETTINGS}`);
-   if(await this.evaluate('globalThis.__AGCompanion?.version')!=='1.3.1')await this.evaluate(`globalThis.__AGPABrowserSetupState=${require('./browser-setup.cjs').setupState.toString()};\n${COMPANION_UI}`);
+   if(await this.evaluate('globalThis.__AGComputerUse?.version')!==versions.computerUse)await this.evaluate(`globalThis.__AGPAComputerUseChecks=${connectionChecks.toString()};globalThis.__AGPAComputerUseAccessChanged=${accessChanged.toString()};globalThis.__AGPAComputerUseControlState=${controlState.toString()};\n${COMPUTER_USE_SETTINGS}`);
+   if(await this.evaluate('globalThis.__AGCompanion?.version')!==versions.companion)await this.evaluate(`globalThis.__AGPABrowserSetupState=${require('./browser-setup.cjs').setupState.toString()};\n${COMPANION_UI}`);
    await this.evaluate(`(()=>{let style=document.getElementById('agpa-window-chrome-styles');if(style?.getAttribute('data-version')===${JSON.stringify(VERSION)})return;if(!style){style=document.createElement('style');style.id='agpa-window-chrome-styles';document.head.append(style);}style.textContent=${JSON.stringify(WINDOW_CHROME)};style.setAttribute('data-version',${JSON.stringify(VERSION)});})()`);
    const signature=await this.evaluate(`JSON.stringify(['[data-testid=settings-button]','[data-testid=sidebar-toggle]','[data-testid=titlebar-more-actions]','[data-testid=pane-titlebar-toolbar]','[data-testid=settings-nav-item-App]','#agpa-styles','#agpa-app-settings-styles'].map(selector=>!!document.querySelector(selector)))`);
    if(signature!==this.healthSignature){this.healthSignature=signature;await this.checkCompatibility();}
