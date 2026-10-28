@@ -1,0 +1,3 @@
+# Preserve upstream licenses and shader whitespace in reproducible vendor output.
+assets/viewers/viewers.js linguist-generated=true linguist-vendored=true -whitespace
+assets/viewers/LICENSES.txt linguist-vendored=true -whitespace
