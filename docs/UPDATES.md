@@ -2,7 +2,7 @@
 
 Install version 1.2.3 or later once using the normal Linux or Windows installer. Then open **Settings → Application → Plugin updates**.
 
-- **Automatically install plugin updates** is enabled by default for managed stable installations. The helper checks every six hours, beginning shortly after startup. Checks run only while the helper is running.
+- **Automatically install plugin updates** is enabled by default for managed stable installations. The helper checks every 24 hours, with the first check shortly after startup on a fresh installation. The last-check timestamp is preserved across restarts. Checks run only while the helper is running.
 - **Check for updates** always contacts GitHub immediately, independently of the scheduled-check timestamp. It also works with automatic updates disabled. Network errors and GitHub rate limiting are shown in the page.
 - **Install update** applies an available release manually. Automatic installation waits until plugin settings/editors are closed and Computer use setup is idle.
 - The page shows the installed version, latest stable release, last-check time and progress/errors. Prereleases and downgrades are excluded.

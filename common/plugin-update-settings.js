@@ -1,7 +1,7 @@
 /* Updates belong to the plugin, independently of Antigravity's updater. */
 (() => {
   "use strict";
-  const VERSION = "1.2.0";
+  const VERSION = "1.2.1";
   if (globalThis.__AGPluginUpdates?.version === VERSION) return;
   globalThis.__AGPluginUpdates?.destroy();
   const i = globalThis.__AGPAI18n,
@@ -200,7 +200,7 @@
         label,
         node(
           "p",
-          "Checks every six hours. Updates preserve your settings and open pages.",
+          "Checks every 24 hours. Updates preserve your settings and open pages.",
         ),
         actions,
         node("p", null, {

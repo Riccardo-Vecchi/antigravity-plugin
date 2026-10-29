@@ -252,7 +252,7 @@ test("forced checks always contact GitHub, even with automatic updates disabled"
   assert.equal((await updater.status()).available, true);
   updater.close();
 });
-test("periodic checks respect six-hour schedule, install verified releases and avoid duplicate attempts", async (t) => {
+test("periodic checks install verified releases and avoid duplicate attempts", async (t) => {
   const f = await installed(t),
     api = feed(f),
     configDir = await folder(t);
@@ -280,6 +280,26 @@ test("periodic checks respect six-hour schedule, install verified releases and a
   assert.equal(api.checks, 1);
   assert.equal(dispatched, 1);
   updater.close();
+});
+test("scheduled checks wait 24 hours across restarts, including a pending release; manual checks bypass the schedule", async (t) => {
+  const f = await installed(t), api = feed(f), configDir = await folder(t);
+  let now = Date.now();
+  t.mock.method(Date, "now", () => now);
+  const options = {current: "1.2.2", paths: {configDir, installDir: f.directory},
+    platform: "linux", arch: "x64", managed: true, fetcher: api.fetch, canApply: async () => false};
+  const first = createUpdater(options);
+  await first.initialize(); await first.tick();
+  assert.equal(api.checks, 1); first.close();
+  now += 24 * 3600000 - 1;
+  const restarted = createUpdater(options);
+  t.after(() => restarted.close());
+  await restarted.initialize(); await restarted.tick();
+  assert.equal(api.checks, 1);
+  now++; await restarted.tick();
+  assert.equal(api.checks, 2);
+  now++; await restarted.perform("check");
+  assert.equal(api.checks, 3);
+  await restarted.tick(); assert.equal(api.checks, 3);
 });
 test("local previews check availability but never dispatch an automatic or manual overwrite", async (t) => {
   const f = await installed(t),

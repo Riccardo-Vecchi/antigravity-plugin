@@ -8,6 +8,7 @@ const fs = require("node:fs/promises"),
 const core = require("./plugin-update-core.cjs"),
   { getPaths } = require("./platform-paths.cjs");
 const run = promisify(execFile);
+const CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 function createUpdater({
   paths = getPaths(),
   current = require("./versions.cjs").suite,
@@ -223,11 +224,7 @@ function createUpdater({
     if (!prefs.automatic) return;
     const before = await status();
     if (before.installing) return;
-    if (
-      Date.now() - prefs.lastChecked >= 6 * 3600000 ||
-      (!candidate && prefs.latest && core.newer(prefs.latest, current))
-    )
-      await check();
+    if (Date.now() - prefs.lastChecked >= CHECK_INTERVAL) await check();
     if (
       candidate?.available &&
       prefs.lastAttempt !== candidate.version &&

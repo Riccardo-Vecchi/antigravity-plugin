@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10.1
+
+- Check for plugin updates every 24 hours, preserving the schedule across restarts; forced checks remain immediate.
+- Use a single equal-width screenshot table in the README, refresh the colored Antigravity interface and show Library’s interactive teapot preview.
+
 ## 1.10.0
 
 - Add an independent Library switch under Appearance; disabling hides navigation, closes previews and stops discovery while preserving saved preferences and originals.

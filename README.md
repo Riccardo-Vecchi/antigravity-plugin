@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.10.0](https://img.shields.io/badge/version-1.10.0-blue)](CHANGELOG.md)
+[![Version 1.10.1](https://img.shields.io/badge/version-1.10.1-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -39,17 +39,32 @@
 
 ## 📸 Screenshots
 
-| Antigravity: project colors and compact sidebar | Gemini in the same window |
-| --- | --- |
-| ![Antigravity with colored project icons and the compact sidebar](docs/images/antigravity-demo.png) | ![Gemini with the in-page Antigravity return button](docs/images/gemini-demo.png) |
-
-| Settings → Appearance: application and tray icons | Settings → Application: startup view and autostart |
-| --- | --- |
-| ![Plugin settings for fixed Antigravity or Gemini icons and Dynamic mode](docs/images/preferences.png) | ![Plugin settings for the startup view, remembering the last view and desktop autostart](docs/images/startup.png?v=1.6.0) |
-
-| Library | Word document preview |
-| --- | --- |
-| ![Library with demonstration artifacts](docs/images/library.png) | ![Local Word document preview](docs/images/document-preview.png) |
+<table width="100%">
+  <tr>
+    <th width="50%">Antigravity</th>
+    <th width="50%">Gemini in the same window</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/antigravity-demo.png?v=1.10.1" width="560" alt="Antigravity with its colored header logo, project icons and model provider logo"></td>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/gemini-demo.png" width="560" alt="Gemini with the in-page Antigravity return button"></td>
+  </tr>
+  <tr>
+    <th width="50%">Application and tray icons</th>
+    <th width="50%">Startup and autostart</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/preferences.png" width="560" alt="Fixed Antigravity or Gemini icons and Dynamic mode"></td>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/startup.png" width="560" alt="Startup view, remember last view and desktop autostart"></td>
+  </tr>
+  <tr>
+    <th width="50%">Library: interactive 3D preview</th>
+    <th width="50%">Word document preview</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/library.png?v=1.10.1" width="560" alt="Blue teapot rendered in Library’s interactive 3D viewer"></td>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/document-preview.png" width="560" alt="Local Word document preview"></td>
+  </tr>
+</table>
 
 ## 🐧 Install on Linux
 
@@ -87,7 +102,7 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 **Enable/disable:** use **Application → Plugin updates → Enable plugin**. Disabling pauses customizations, restores native icons and disconnects desktop/browser access while keeping preferences and Gemini sessions. Re-enable from the same place; tool access is enabled separately. The small management helper and desktop startup choices remain available.
 
-**Plugin updates:** after installing this version once, the plugin checks stable GitHub releases every six hours and installs verified updates automatically when its settings/editors are closed. **Antigravity → Check Plugin Updates** or **Application → Plugin updates → Check Plugin Updates** forces an immediate check; you can disable automatic installation or install an available release manually. Local previews and modified plugin files are protected from automatic replacement. See the [update reference](docs/UPDATES.md).
+**Plugin updates:** after installing this version once, the plugin checks stable GitHub releases every 24 hours and installs verified updates automatically when its settings/editors are closed. **Antigravity → Check Plugin Updates** or **Application → Plugin updates → Check Plugin Updates** forces an immediate check; you can disable automatic installation or install an available release manually. Local previews and modified plugin files are protected from automatic replacement. See the [update reference](docs/UPDATES.md).
 
 To stop the helper entirely instead:
 
