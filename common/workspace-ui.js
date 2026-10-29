@@ -1,7 +1,7 @@
 /* Branding, title and optional hover sidebar. Native documents stay mounted. */
 (() => {
   "use strict";
-  const VERSION = "1.0.1";
+  const VERSION = "1.1.0";
   globalThis.__AGWorkspace?.destroy();
   const i18n = globalThis.__AGPAI18n,
     icon = globalThis.__AGPA_BRAND_ICON__,
@@ -31,7 +31,6 @@
  body[data-agpa-layout-ready] .agpa-rail{width:var(--agpa-rail-width)!important;transition:opacity 160ms ease,visibility 0s linear 160ms!important}
  [data-agpa-sidebar-panel][data-agpa-hover-pane]{position:absolute!important;left:0!important;top:0!important;height:100%!important;width:var(--agpa-expanded-width,256px)!important;visibility:hidden!important;overflow:hidden!important;z-index:60!important;box-shadow:12px 0 32px #0005;background:var(--sidebar,#171717);transform:translateX(-100%);opacity:0;pointer-events:none;will-change:transform;transition:transform 240ms cubic-bezier(.22,1,.36,1),opacity 140ms ease,visibility 0s linear 240ms!important}
  [data-agpa-sidebar-panel][data-agpa-hover-pane][data-agpa-peek]{transform:translateX(0);opacity:1;visibility:visible!important;pointer-events:auto;transition:transform 240ms cubic-bezier(.22,1,.36,1),opacity 140ms ease,visibility 0s!important}
- @media(prefers-reduced-motion:reduce){body:not([data-agpa-smooth-sidebar])[data-agpa-layout-ready]{transition:none!important}body:not([data-agpa-smooth-sidebar]) [data-agpa-sidebar-panel],body:not([data-agpa-smooth-sidebar]) [data-agpa-sidebar-panel][data-agpa-hover-pane],body:not([data-agpa-smooth-sidebar]) .agpa-rail{transition:none!important}}
  .agpa-sidebar-setting{margin-top:18px;padding:16px;border:1px solid var(--border,#353535);border-radius:12px;color:var(--foreground,#eee)}
  .agpa-sidebar-setting h3{font-size:14px;font-weight:500;margin:0 0 8px}.agpa-sidebar-setting p{font-size:12px;color:var(--muted-foreground,#aaa);margin:0 0 12px}
  .agpa-sidebar-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.agpa-sidebar-choices button{font:inherit;font-size:13px;padding:10px 8px;border:1px solid var(--border,#444);border-radius:9px;color:inherit;background:transparent;cursor:pointer}.agpa-sidebar-choices button[aria-checked=true]{border-color:#398bdb;background:var(--secondary,#292929)}.agpa-sidebar-choices button:focus-visible{outline:2px solid #398bdb;outline-offset:2px}
@@ -151,8 +150,8 @@
     }
   }
   function paint() {
-    const motion = section?.querySelector("[data-agpa-sidebar-motion]");
-    if (motion) motion.checked = preferences.sidebarMotion === "smooth";
+    const enabled = section?.querySelector("[data-agpa-library-enabled]");
+    if (enabled) enabled.checked = preferences.libraryEnabled !== false;
     const mode =
       preferences.sidebarMode ||
       (toggle()?.getAttribute("aria-expanded") === "false"
@@ -165,7 +164,9 @@
       );
   }
   async function choose(mode, action = "sidebar") {
-    hide();
+    if (action === "sidebar") hide();
+    const control = section?.querySelector("[data-agpa-library-enabled]");
+    if (control && action === "libraryEnabled") control.disabled = true;
     try {
       await new Promise((resolve, reject) => {
         const requestId = crypto.randomUUID(),
@@ -181,6 +182,9 @@
     } catch {
       const s = section?.querySelector("[role=status]");
       if (s) i18n.set(s, "Could not save. Try again.");
+      paint();
+    } finally {
+      if (control) control.disabled = false;
     }
   }
   function apply() {
@@ -306,13 +310,18 @@
           "display:flex;gap:9px;align-items:center;margin-top:14px;font-size:13px;cursor:pointer";
         const input = document.createElement("input");
         input.type = "checkbox";
-        input.setAttribute("data-agpa-sidebar-motion", "");
+        input.setAttribute("data-agpa-library-enabled", "");
         input.style.accentColor = "#398bdb";
         on(input, "change", () =>
-          choose(input.checked ? "smooth" : "system", "sidebarMotion"),
+          choose(input.checked, "libraryEnabled"),
         );
-        label.append(input, text("span", "Smooth sidebar transitions"));
+        label.append(input, text("span", "Enable Library"));
+        const libraryHeading = text("h3", "Library");
+        libraryHeading.style.cssText = "margin-top:20px;border-top:1px solid var(--border,#353535);padding-top:16px";
+        section.insertBefore(libraryHeading, section.lastChild);
+        label.style.marginTop = "8px";
         section.insertBefore(label, section.lastChild);
+        section.insertBefore(text("p", "Show generated files and uploads. Disabling keeps your favorites and added files."), section.lastChild);
       }
       if (section.parentElement !== host) host.append(section);
       paint();
@@ -320,10 +329,6 @@
   }
   function setPreferences(next) {
     preferences = next;
-    document.body.toggleAttribute(
-      "data-agpa-smooth-sidebar",
-      next.sidebarMotion === "smooth",
-    );
     hide();
     preparePanel();
     const t = toggle(),
@@ -398,12 +403,11 @@
       sidebarMode: preferences.sidebarMode,
       peek,
       title: document.title,
-      sidebarMotion: preferences.sidebarMotion || "system",
+      libraryEnabled: preferences.libraryEnabled !== false,
     }),
     destroy() {
       stopped = true;
       intent.destroy();
-      document.body.removeAttribute("data-agpa-smooth-sidebar");
       document.body.removeAttribute("data-agpa-layout-ready");
       document.body.style.removeProperty("--agpa-navigation-width");
       document.body.style.removeProperty("--agpa-rail-width");

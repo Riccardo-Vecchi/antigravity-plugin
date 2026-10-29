@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.0
+
+- Add an independent Library switch under Appearance; disabling hides navigation, closes previews and stops discovery while preserving saved preferences and originals.
+- Separate Generated, Uploaded and All views, with independent format/search/favorite filters, source labels, automatic discovery of supported local conversation uploads and deduplicated paths. Adding files opens the Uploaded view.
+- Make synchronized sidebar transitions the single active-plugin behavior and remove the old motion preference and settings control.
+- Keep additions in English unless the native app explicitly declares another interface language; simplify the README feature list.
+
 ## 1.9.1
 
 - Fix main sidebar targeting when a file viewer exposes its own sidebar button. Keep its state independent and remove the extra blank space in Library.

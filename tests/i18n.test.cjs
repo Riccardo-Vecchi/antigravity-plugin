@@ -25,13 +25,14 @@ test('every supported language has all interface strings, icon names and matchin
   }
  }
 });
-test('app language takes priority over browser language, and unsupported languages fall back to English',async()=>{
+test('only the declared app language controls translations; browser language and unsupported languages fall back to English',async()=>{
  const f=await fixture('it-IT','de-DE');assert.equal(f.api.t('Save'),'Salva');
  await f.language('fr_CA');assert.equal(f.api.t('Save'),'Enregistrer');
  await f.language('zh-Hans-CN');assert.equal(f.api.t('Save'),'保存');
  await f.language('ja-JP');assert.equal(f.api.t('Save'),'保存');
  await f.language('pt-BR');assert.equal(f.api.t('Save'),'Save');
- assert.equal((await fixture(null,'es-ES')).api.t('Save'),'Guardar');
+ assert.equal((await fixture(null,'es-ES')).api.t('Save'),'Save');
+ assert.equal((await fixture('', 'it-IT')).api.t('Save'),'Save');
 });
 test('a language change updates open controls and attributes without replacing inputs or losing their draft',async()=>{
  const f=await fixture();const heading=element(),search=element(),status=element();

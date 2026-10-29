@@ -1,7 +1,7 @@
 /* Translation applies only to this integration's controls, never user content. */
 (() => {
  'use strict';
- const VERSION='1.7.0';
+ const VERSION='1.8.0';
  let catalogs=globalThis.__AGPA_TRANSLATIONS__;
  delete globalThis.__AGPA_TRANSLATIONS__;
  if(globalThis.__AGPAI18n?.version===VERSION){globalThis.__AGPAI18n.setCatalogs(catalogs);return;}
@@ -9,7 +9,7 @@
  const bindings=new Set(),nodes=new WeakMap(),listeners=new Set();
  let stopped=false,queued=false;
  function normalize(value){const base=String(value||'en').trim().replace(/_/g,'-').toLowerCase().split('-')[0];return Object.hasOwn(catalogs,base)?base:'en';}
- function detect(){return normalize(document.documentElement.getAttribute('lang')||navigator.language||'en');}
+ function detect(){return normalize(document.documentElement.getAttribute('lang')||'en');}
  let language=detect();
  function t(key,params={}){
   const template=catalogs[language]?.strings[key]??catalogs.en.strings[key]??key;

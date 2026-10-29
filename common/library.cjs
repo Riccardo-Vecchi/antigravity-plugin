@@ -70,6 +70,17 @@ async function readBounded(file, max) {
     await handle.close();
   }
 }
+// Source, format and favorite filters are independent; originals are deduplicated by path.
+function filterItems(items, { source = "generated", type = "all", favorites = false, query = "" } = {}) {
+  const search = String(query).toLocaleLowerCase().trim();
+  return items.filter((item) => {
+    const sources = item.sources || [item.source];
+    return (source === "all" || sources.includes(source) ||
+        (source === "uploaded" && sources.includes("added"))) &&
+      (type === "all" || item.category === type) && (!favorites || item.favorite) &&
+      (!search || [item.name, item.summary].some((v) => v?.toLocaleLowerCase().includes(search)));
+  });
+}
 function createLibrary({
   brain = path.join(os.homedir(), ".gemini", "antigravity", "brain"),
   configDir = require("./platform-paths.cjs").getPaths().configDir,
@@ -78,6 +89,8 @@ function createLibrary({
     entries = new Map(),
     transcripts = new Map();
   let preferences = { version: 1, favorites: [], files: [] },
+    enabled = true,
+    epoch = 0,
     loaded = false,
     scanning = null,
     lastScan = 0,
@@ -112,8 +125,9 @@ function createLibrary({
       await fs.rm(tmp, { force: true });
     }
   }
-  async function remember(file, conversationId, source, summary = "") {
-    if (entries.size >= MAX_ITEMS) {
+  async function remember(catalog, file, conversationId, source, summary = "") {
+    if (!enabled) return;
+    if (catalog.size >= MAX_ITEMS && !catalog.has(idFor(file))) {
       truncated = true;
       return;
     }
@@ -123,8 +137,9 @@ function createLibrary({
       const real = await fs.realpath(file);
       if (real !== path.resolve(file)) return;
       const id = idFor(real),
-        old = entries.get(id);
-      entries.set(id, {
+        old = catalog.get(id),
+        sources = [...new Set([...(old?.sources || []), source])];
+      catalog.set(id, {
         id,
         name: path.basename(file),
         path: real,
@@ -133,7 +148,8 @@ function createLibrary({
         size: stat.size,
         modified: stat.mtimeMs,
         conversationId: conversationId || old?.conversationId || null,
-        source: old?.source === "generated" ? "generated" : source,
+        source: ["generated", "uploaded", "added"].find((s) => sources.includes(s)),
+        sources,
         summary: String(summary || old?.summary || "").slice(0, 500),
         previewable: stat.size <= MAX_FILE,
       });
@@ -141,8 +157,8 @@ function createLibrary({
       /* Missing, remote and linked files are not opened or copied. */
     }
   }
-  async function generated(folder, cid, depth = 0) {
-    if (depth > 5) return;
+  async function discover(catalog, folder, cid, source, depth = 0, scanEpoch = epoch) {
+    if (!enabled || epoch !== scanEpoch || depth > 5) return;
     let list;
     try {
       list = await fs.readdir(folder, { withFileTypes: true });
@@ -150,11 +166,12 @@ function createLibrary({
       return;
     }
     for (const e of list) {
+      if (!enabled || epoch !== scanEpoch) return;
       if (e.name.startsWith(".") || e.name === "scratch" || e.isSymbolicLink())
         continue;
       const file = path.join(folder, e.name);
       if (e.isDirectory()) {
-        await generated(file, cid, depth + 1);
+        await discover(catalog, file, cid, source, depth + 1, scanEpoch);
         continue;
       }
       if (!e.isFile() || !category(e.name)) continue;
@@ -164,7 +181,7 @@ function createLibrary({
         meta = JSON.parse(await fs.readFile(file + ".metadata.json", "utf8"));
       } catch {}
       if (meta?.userFacing === false) continue;
-      await remember(file, cid, "generated", meta?.summary);
+      await remember(catalog, file, cid, source, meta?.summary);
     }
   }
   async function references(file) {
@@ -178,7 +195,7 @@ function createLibrary({
     const cached = transcripts.get(file);
     if (cached?.size === s.size && cached?.mtime === s.mtimeMs)
       return cached.files;
-    const found = new Set();
+    const referenceEpoch = epoch, found = new Set();
     const input = createReadStream(file, {
         encoding: "utf8",
         end: Math.max(0, s.size - 1),
@@ -186,6 +203,7 @@ function createLibrary({
       lines = createInterface({ input, crlfDelay: Infinity });
     try {
       for await (const line of lines) {
+        if (!enabled || epoch !== referenceEpoch) break;
         if (line.length > 2 * 1024 * 1024) {
           truncated = true;
           continue;
@@ -220,15 +238,21 @@ function createLibrary({
       input.destroy();
     }
     const files = [...found].slice(0, MAX_ITEMS);
-    transcripts.set(file, { size: s.size, mtime: s.mtimeMs, files });
+    if (enabled && epoch === referenceEpoch)
+      transcripts.set(file, { size: s.size, mtime: s.mtimeMs, files });
     return files;
   }
   async function refresh(force = false) {
+    if (!enabled) throw Error("disabled");
     await load();
-    if (scanning) return scanning;
+    if (scanning) {
+      await scanning;
+      return refresh(force);
+    }
+    if (!enabled) throw Error("disabled");
     if (!force && Date.now() - lastScan < 20000) return;
-    scanning = (async () => {
-      entries.clear();
+    const scanEpoch = epoch, catalog = new Map();
+    const job = scanning = (async () => {
       truncated = false;
       unavailable = false;
       let folders = [];
@@ -244,19 +268,29 @@ function createLibrary({
         if (!UUID.test(f.name) || !f.isDirectory() || f.isSymbolicLink())
           continue;
         const folder = path.join(brain, f.name);
-        await generated(folder, f.name);
+        if (!enabled || epoch !== scanEpoch) return;
+        await discover(catalog, folder, f.name, "generated");
+        const uploads = path.join(folder, ".user_uploaded");
+        const uploadStat = await fs.lstat(uploads).catch(() => null);
+        if (uploadStat?.isDirectory() && !uploadStat.isSymbolicLink())
+          await discover(catalog, uploads, f.name, "uploaded");
         for (const file of await references(
           path.join(folder, ".system_generated", "logs", "transcript.jsonl"),
         ))
-          await remember(file, f.name, "generated");
+          await remember(catalog, file, f.name,
+            path.relative(uploads, file).split(path.sep)[0] !== ".." &&
+              !path.isAbsolute(path.relative(uploads, file)) ? "uploaded" : "generated");
       }
-      for (const file of preferences.files) await remember(file, null, "added");
+      for (const file of preferences.files) await remember(catalog, file, null, "added");
+      if (!enabled || epoch !== scanEpoch) return;
+      entries.clear();
+      for (const [id, entry] of catalog) entries.set(id, entry);
       lastScan = Date.now();
     })();
     try {
-      await scanning;
+      await job;
     } finally {
-      scanning = null;
+      if (scanning === job) scanning = null;
     }
   }
   function snapshot() {
@@ -270,6 +304,7 @@ function createLibrary({
   }
   async function list(force = false) {
     await refresh(force);
+    if (!enabled) throw Error("disabled");
     return snapshot();
   }
   async function item(id) {
@@ -278,6 +313,7 @@ function createLibrary({
     const e = entries.get(id);
     await regular(e.path);
     if ((await fs.realpath(e.path)) !== e.path) throw Error("unavailable");
+    if (!enabled) throw Error("disabled");
     return e;
   }
   async function preview(id, { thumbnail = false } = {}) {
@@ -286,6 +322,7 @@ function createLibrary({
     if (stat.size > (thumbnail ? 512 * 1024 : MAX_FILE))
       throw Error("tooLarge");
     const bytes = await readBounded(e.path, thumbnail ? 512 * 1024 : MAX_FILE);
+    if (!enabled) throw Error("disabled");
     if (bytes.length > MAX_FILE) throw Error("tooLarge");
     return {
       id: e.id,
@@ -304,6 +341,7 @@ function createLibrary({
     return snapshot();
   }
   async function add(files) {
+    if (!enabled) throw Error("disabled");
     await load();
     if (!Array.isArray(files) || files.length > 50) throw Error("unavailable");
     const next = new Set(preferences.files);
@@ -320,7 +358,7 @@ function createLibrary({
   }
   async function remove(id) {
     const e = await item(id);
-    if (e.source !== "added") throw Error("unavailable");
+    if (!e.sources.includes("added")) throw Error("unavailable");
     await save({
       ...preferences,
       files: preferences.files.filter((p) => p !== e.path),
@@ -328,6 +366,15 @@ function createLibrary({
     });
     return list(true);
   }
-  return { list, preview, favorite, add, remove, item };
+  function setEnabled(value) {
+    if (typeof value !== "boolean") throw Error("unavailable");
+    if (enabled === value) return;
+    enabled = value;
+    epoch++;
+    entries.clear();
+    transcripts.clear();
+    lastScan = 0;
+  }
+  return { list, preview, favorite, add, remove, item, setEnabled };
 }
-module.exports = { createLibrary, category, filePath, idFor, MAX_FILE };
+module.exports = { createLibrary, category, filePath, idFor, MAX_FILE, filterItems };

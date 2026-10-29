@@ -55,11 +55,11 @@ These are local interface checks. A Ready result does not certify every vendor f
 
 ## Languages
 
-The additions follow the native page's declared interface language (`<html lang>`), including changes while the app is open. If the page declares no language, Chromium's preferred language is used. Regional variants map to their base language, and unsupported languages fall back to English.
+The additions follow the native page's declared interface language (`<html lang>`), including changes while the app is open. If the page declares no language, the additions stay in English; the operating system/browser language is not used to create a mixed interface. Regional variants map to their base language, and unsupported languages fall back to English.
 
 Translations cover settings, project editing, the compact sidebar, accessibility labels, tooltips, status/error messages, and the Antigravity return button in Gemini. Icon names can be searched in the selected language; stable icon IDs remain unchanged. Changing language preserves open inputs and unsaved project appearance choices. Project names, user text, and Google's website content are not translated by this helper.
 
-The initial localization inspection on Antigravity 2.26.0 found an English interface without a native display-language selector. The current tested Linux compatibility baseline is 2.27.0. This integration does not add a separate language preference or translate the native app. Live language checks change the native document's language temporarily, then restore it; following an upstream language preference depends on the app declaring that language.
+The initial localization inspection on Antigravity 2.26.0 found an English interface without a native display-language selector. The current tested Linux compatibility baseline is 2.28.0. This integration does not add a separate language preference or translate the native app. Live language checks change the native document's language temporarily, then restore it; following an upstream language preference depends on the app declaring that language.
 
 ## Gemini sessions and switching
 

@@ -4,7 +4,7 @@ const test = require("node:test"),
   fs = require("node:fs/promises"),
   os = require("node:os"),
   path = require("node:path");
-const { createLibrary, MAX_FILE } = require("../common/library.cjs");
+const { createLibrary, MAX_FILE, filterItems } = require("../common/library.cjs");
 async function fixture(t) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "agpa-library-"));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
@@ -22,7 +22,7 @@ async function fixture(t) {
     store: createLibrary({ brain, configDir }),
   };
 }
-test("discovery excludes internal logs, uploads, scratch, hidden metadata and symlinks", async (t) => {
+test("discovery separates local uploads and excludes internal logs, scratch, hidden metadata and symlinks", async (t) => {
   const f = await fixture(t);
   for (const name of [
     "report.md",
@@ -51,9 +51,11 @@ test("discovery excludes internal logs, uploads, scratch, hidden metadata and sy
   const result = await f.store.list();
   assert.deepEqual(result.items.map((i) => i.name).sort(), [
     "picture.png",
+    "private.txt",
     "report.md",
   ]);
   assert.ok(result.items.every((i) => i.conversationId === f.cid));
+  assert.equal(result.items.find(i => i.name === "private.txt").source, "uploaded");
   assert.deepEqual(await fs.readFile(path.join(f.folder, "report.md")), before);
 });
 test("write references index outputs outside brain while read tools and user text do not", async (t) => {
@@ -174,4 +176,55 @@ test("removing an explicitly added artifact preserves its original and cannot re
   );
   assert.equal(await fs.readFile(file, "utf8"), "keep this");
   assert.equal(await fs.readFile(generated, "utf8"), "keep that");
+});
+
+test("source, favorite, file type and search filters combine without losing their state", () => {
+  const items = [
+    { name: "Output.png", summary: "diagram", source: "generated", sources: ["generated"], category: "images", favorite: true },
+    { name: "Input.png", source: "uploaded", sources: ["uploaded"], category: "images", favorite: true },
+    { name: "Manual.docx", source: "added", sources: ["added"], category: "documents" },
+    { name: "Both.pdf", source: "generated", sources: ["generated", "uploaded"], category: "pdf" },
+  ];
+  assert.deepEqual(filterItems(items).map(i => i.name), ["Output.png", "Both.pdf"]);
+  assert.deepEqual(filterItems(items, {source: "uploaded"}).map(i => i.name), ["Input.png", "Manual.docx", "Both.pdf"]);
+  assert.deepEqual(filterItems(items, {source: "all", type: "images", favorites: true, query: " diagram "}).map(i => i.name), ["Output.png"]);
+  assert.equal(filterItems(items, {source: "uploaded", type: "documents", favorites: true}).length, 0);
+});
+test("upload links keep their provenance and manual additions do not duplicate discovered originals", async (t) => {
+  const f = await fixture(t), uploads = path.join(f.folder, ".user_uploaded"), logs = path.join(f.folder, ".system_generated", "logs");
+  await fs.mkdir(uploads); await fs.mkdir(logs, {recursive: true});
+  const file = path.join(uploads, "input.pdf"); await fs.writeFile(file, "original");
+  await fs.writeFile(path.join(logs, "transcript.jsonl"), JSON.stringify({source: "MODEL", content: `[input](${file})`}));
+  const data = await f.store.add([file]);
+  assert.equal(data.items.length, 1);
+  assert.equal(data.items[0].source, "uploaded");
+  assert.deepEqual(data.items[0].sources, ["uploaded", "added"]);
+  assert.equal(data.items[0].conversationId, f.cid);
+  assert.equal(filterItems(data.items).length, 0);
+  assert.equal(filterItems(data.items, {source: "uploaded"}).length, 1);
+  assert.equal(await fs.readFile(file, "utf8"), "original");
+});
+test("disabling blocks discovery and previews, cancels an in-flight refresh and preserves favorites for reactivation", async (t) => {
+  const f = await fixture(t), file = path.join(f.root, "kept.txt");
+  await fs.writeFile(file, "keep");
+  const added = await f.store.add([file]), id = added.items[0].id;
+  await f.store.favorite(id, true);
+  const before = await fs.readFile(path.join(f.configDir, "library.json"));
+  const refreshing = f.store.list(true);
+  f.store.setEnabled(false);
+  await assert.rejects(refreshing, /disabled/);
+  await assert.rejects(f.store.list(), /disabled/);
+  await assert.rejects(f.store.preview(id), /disabled/);
+  await assert.rejects(f.store.add([file]), /disabled/);
+  f.store.setEnabled(true);
+  const next = await f.store.list();
+  assert.equal(next.items.length, 1); assert.equal(next.items[0].favorite, true);
+  assert.deepEqual(await fs.readFile(path.join(f.configDir, "library.json")), before);
+  assert.equal(await fs.readFile(file, "utf8"), "keep");
+});
+test("a linked upload directory cannot expose files outside the official conversation", {skip: process.platform === "win32"}, async (t) => {
+  const f = await fixture(t), outside = path.join(f.root, "outside");
+  await fs.mkdir(outside); await fs.writeFile(path.join(outside, "secret.txt"), "private");
+  await fs.symlink(outside, path.join(f.folder, ".user_uploaded"));
+  assert.equal((await f.store.list()).items.length, 0);
 });

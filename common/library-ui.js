@@ -1,10 +1,14 @@
 /* Artifact library layered over the native pane, preserving its conversation. */
 (() => {
   "use strict";
-  const VERSION = "1.0.1";
+  const VERSION = "1.1.0";
   globalThis.__AGLibrary?.destroy();
   const i18n = globalThis.__AGPAI18n;
   const createPicker = globalThis.__AGPA_LIBRARY_PICKER__;
+  const filterItems = globalThis.__AGPA_FILTER_LIBRARY__;
+  let enabled = globalThis.__AGPA_LIBRARY_ENABLED__ !== false;
+  delete globalThis.__AGPA_FILTER_LIBRARY__;
+  delete globalThis.__AGPA_LIBRARY_ENABLED__;
   delete globalThis.__AGPA_LIBRARY_PICKER__;
   let bundle = globalThis.__AGPA_VIEWER_BUNDLE__;
   delete globalThis.__AGPA_VIEWER_BUNDLE__;
@@ -15,6 +19,9 @@
     viewer = null,
     items = [],
     filter = "all",
+    sourceFilter = "generated",
+    favoritesOnly = false,
+    catalogGeneration = 0,
     query = "",
     limit = 60,
     loading = false,
@@ -105,7 +112,7 @@
           pending.delete(requestId);
           reject(Error("unavailable"));
         }, 20000);
-      pending.set(requestId, { resolve, reject, timer });
+      pending.set(requestId, { resolve, reject, timer, generation: catalogGeneration });
       try {
         globalThis.__agpaLibrary(JSON.stringify({ requestId, action, value }));
       } catch (e) {
@@ -444,19 +451,18 @@
     requestGeneration++;
     thumbnailQueue = [];
     const generation = requestGeneration;
-    const filtered = items.filter(
-      (i) =>
-        (filter === "all" ||
-          (filter === "favorites" && i.favorite) ||
-          filter === i.category) &&
-        (!query ||
-          [i.name, i.summary].some((v) =>
-            v?.toLocaleLowerCase().includes(query),
-          )),
-    );
+    const filtered = filterItems(items, {
+      source: sourceFilter, type: filter, favorites: favoritesOnly, query,
+    });
     grid.replaceChildren();
     count.textContent = String(filtered.length);
     empty.hidden = filtered.length > 0 || loading;
+    const description = empty.querySelector("p");
+    i18n.set(empty.querySelector("h2"), query || favoritesOnly || filter !== "all" ? "No matching files" :
+      sourceFilter === "uploaded" ? "Your uploads, together" : "Your creations, together");
+    i18n.set(description, query || favoritesOnly || filter !== "all" ? "Try another search or change the filters." :
+      sourceFilter === "uploaded" ? "Conversation uploads and files you add appear here. Originals stay where they are." :
+      "Saved outputs appear here. Use Uploaded to find conversation attachments and files you add.");
     const fragment = document.createDocumentFragment();
     for (const item of filtered.slice(0, limit)) {
       const holder = el(
@@ -474,6 +480,7 @@
           el("strong", { text: item.name }),
           el("small", {
             text:
+              i18n.t(item.source === "generated" ? "Generated" : item.source === "uploaded" ? "Uploaded" : "Added manually") + " · " +
               item.extension.toUpperCase() +
               " · " +
               size(item.size) +
@@ -524,23 +531,21 @@
     grid.append(fragment);
     panel.querySelector("[data-agpa-library-more]").hidden =
       filtered.length <= limit;
-    for (const b of panel.querySelectorAll("[data-agpa-library-filter]"))
-      b.setAttribute(
-        "aria-pressed",
-        String(b.dataset.agpaLibraryFilter === filter),
-      );
-    filterControl.setValue(
-      ["all", "favorites"].includes(filter) ? "all" : filter,
-    );
+    for (const b of panel.querySelectorAll("[data-agpa-library-source]"))
+      b.setAttribute("aria-pressed", String(b.dataset.agpaLibrarySource === sourceFilter));
+    panel.querySelector("[data-agpa-library-favorites]").setAttribute("aria-pressed", String(favoritesOnly));
+    filterControl.setValue(filter);
   }
   async function refresh(force = false) {
-    if (loading) return;
+    if (loading || !enabled) return;
+    const generation = catalogGeneration;
     loading = true;
     const refreshButton = panel.querySelector("[data-agpa-library-refresh]");
     refreshButton.disabled = true;
     i18n.set(notice, "Finding artifacts…");
     try {
       const data = await request(force ? "refresh" : "list", true);
+      if (!enabled || generation !== catalogGeneration) return;
       items = data.items;
       i18n.set(
         notice,
@@ -551,11 +556,13 @@
             : "",
       );
     } catch {
+      if (!enabled || generation !== catalogGeneration) return;
       i18n.set(notice, "Could not load Library. Try Refresh.");
     } finally {
       loading = false;
       refreshButton.disabled = false;
       paint();
+      if (enabled && generation !== catalogGeneration && panel && !panel.hidden) refresh();
     }
   }
   const fileTypes = [
@@ -586,7 +593,7 @@
     );
     return createPicker({
       items: fileTypes.map(([id, key]) => ({ id, label: i18n.t(key) })),
-      value: ["all", "favorites"].includes(filter) ? "all" : filter,
+      value: filter,
       icons,
       label: i18n.t("File type"),
       onChange: (value) => {
@@ -643,7 +650,14 @@
           ),
         );
         const data = await request("add", paths);
+        if (!enabled) return;
         items = data.items;
+        sourceFilter = "uploaded";
+        favoritesOnly = false;
+        filter = "all";
+        query = "";
+        search.value = "";
+        limit = 60;
         paint();
       } catch {
         i18n.set(
@@ -677,21 +691,27 @@
     dismiss.onclick = close;
     const filters = el("div", { class: "agpa-library-filters" });
     for (const [value, key] of [
+      ["generated", "Generated"],
+      ["uploaded", "Uploaded"],
       ["all", "All"],
-      ["favorites", "Favorites"],
     ]) {
       const b = el("button", {
         type: "button",
-        "data-agpa-library-filter": value,
+        "data-agpa-library-source": value,
         text: key,
       });
       b.onclick = () => {
-        filter = value;
+        sourceFilter = value;
         limit = 60;
         paint();
       };
       filters.append(b);
     }
+    const favorites = el("button", {
+      type: "button", "data-agpa-library-favorites": "", "aria-pressed": "false", text: "Favorites",
+    });
+    favorites.onclick = () => { favoritesOnly = !favoritesOnly; limit = 60; paint(); };
+    filters.append(favorites);
     filterControl = makeFilter();
     count = el("span", { class: "agpa-library-count" });
     filters.append(filterControl, count);
@@ -700,10 +720,8 @@
       "div",
       { class: "agpa-library-empty" },
       icon("library", 40),
-      el("h2", { text: "Your creations, together" }),
-      el("p", {
-        text: "Artifacts saved by Antigravity appear here. Add other files whenever you need them.",
-      }),
+      el("h2"),
+      el("p"),
     );
     notice = el("p", {
       class: "agpa-library-notice",
@@ -750,6 +768,7 @@
     document.body.append(panel);
   }
   function open() {
+    if (!enabled) return;
     opener = document.activeElement;
     if (!panel) create();
     panel.hidden = false;
@@ -760,7 +779,7 @@
     search.focus();
   }
   function apply() {
-    if (stopped) return;
+    if (stopped || !enabled) return;
     observeLayout();
     const source = document.querySelector("[data-testid=automations-button]");
     if (source) {
@@ -846,18 +865,36 @@
     }
     if (panel && !panel.hidden) paint();
   });
+  function setEnabled(value) {
+    enabled = value !== false;
+    if (!enabled) {
+      catalogGeneration++;
+      close();
+      button?.remove();
+      items = [];
+      grid?.replaceChildren();
+      resizeObserver.disconnect();
+      observedPanel = observedRail = null;
+    } else apply();
+  }
   globalThis.__AGLibrary = {
     version: VERSION,
     open,
     close,
+    setEnabled,
     onResult(id, ok, result) {
       const p = pending.get(id);
       if (!p) return;
       clearTimeout(p.timer);
       pending.delete(id);
-      ok ? p.resolve(result) : p.reject(Error(result?.error || "unavailable"));
+      ok && enabled && p.generation === catalogGeneration
+        ? p.resolve(result) : p.reject(Error(result?.error || "unavailable"));
     },
     status: () => ({
+      enabled,
+      source: sourceFilter,
+      type: filter,
+      favorites: favoritesOnly,
       visible: !!panel && !panel.hidden,
       count: items.length,
       preview: !!viewer,

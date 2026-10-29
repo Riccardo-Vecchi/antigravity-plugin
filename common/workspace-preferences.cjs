@@ -2,7 +2,7 @@
 const fs = require("node:fs/promises"),
   path = require("node:path");
 function createStore(file) {
-  let state = { version: 1, sidebarMode: null, sidebarMotion: "system" };
+  let state = { version: 1, sidebarMode: null, libraryEnabled: true };
   async function save(patch) {
     const next = { ...state, ...patch };
     await fs.mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
@@ -28,16 +28,14 @@ function createStore(file) {
           !["open", "compact", "hover", null].includes(d.sidebarMode)
         )
           throw Error("Invalid workspace preferences.");
-        if (
-          d.sidebarMotion !== undefined &&
-          !["system", "smooth"].includes(d.sidebarMotion)
-        )
-          throw Error("Invalid sidebar motion.");
+        if (d.libraryEnabled !== undefined && typeof d.libraryEnabled !== "boolean")
+          throw Error("Invalid Library preference.");
         state = {
           version: 1,
           sidebarMode: d.sidebarMode,
-          sidebarMotion: d.sidebarMotion || "system",
+          libraryEnabled: d.libraryEnabled !== false,
         };
+        if (Object.hasOwn(d, "sidebarMotion")) await save(state);
       } catch (e) {
         if (e.code !== "ENOENT") throw e;
       }
@@ -48,10 +46,9 @@ function createStore(file) {
         throw Error("Invalid sidebar mode.");
       return save({ sidebarMode });
     },
-    async updateMotion(sidebarMotion) {
-      if (!["system", "smooth"].includes(sidebarMotion))
-        throw Error("Invalid sidebar motion.");
-      return save({ sidebarMotion });
+    async updateLibrary(libraryEnabled) {
+      if (typeof libraryEnabled !== "boolean") throw Error("Invalid Library preference.");
+      return save({ libraryEnabled });
     },
   };
 }

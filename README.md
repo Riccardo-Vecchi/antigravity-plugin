@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.9.1](https://img.shields.io/badge/version-1.9.1-blue)](CHANGELOG.md)
+[![Version 1.10.0](https://img.shields.io/badge/version-1.10.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -28,18 +28,14 @@
 ## ✨ Features
 
 - Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
-- **Library**, below Automations: search saved artifacts, filter by type, keep favorites and add other local files. Preview Word documents, spreadsheets, slide content, images, PDFs and self-contained 3D models. Select a passage and use **Discuss selection** to prepare a chat draft. [Formats and limits](docs/LIBRARY.md).
 - Optional **Computer Use** with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - **Browser use** with browser detection, one-click folder copy/open, selected tabs or whole-profile web-tab sharing and existing logins. [Setup](docs/BROWSER_USE.md).
 - Model favorites and visibility controls, with Anthropic/Google/OpenAI logos in the menu and selected model. Native model availability and selection stay in Antigravity.
-- Color-coded approval presets, including the selected mode.
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.
-- A colored Antigravity header logo and the **Google Gemini** window title while using Gemini.
-- Settings navigation with icons, dedicated Computer use and Browser use pages and a collapsible Projects group that uses your configured project icons and colors.
 - Fixed Antigravity/Gemini icons or a Dynamic mode, including supported tray integrations.
 - Startup view, Remember last view, desktop autostart, and patch status/recovery controls.
-- English, Italian, German, Spanish, French, Simplified Chinese and Japanese, with English fallback.
+- Optional **Library** for generated files and uploads, with search, favorites and local document, media and 3D previews. [Details](docs/LIBRARY.md).
 
 ## 📸 Screenshots
 
@@ -87,7 +83,7 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Plugin updates → Plugin customizations** contains status and recovery.
 
-**Appearance → Sidebar** selects Expanded, Compact or Expand on hover. **Smooth sidebar transitions** enables the short synchronized animation; when off, reduced-motion system preferences are honored. **Library** collects saved local artifacts without moving them or changing the official conversation databases.
+**Appearance → Sidebar** selects Expanded, Compact or Expand on hover. **Appearance → Library → Enable Library** shows or hides the library while preserving favorites and added files.
 
 **Enable/disable:** use **Application → Plugin updates → Enable plugin**. Disabling pauses customizations, restores native icons and disconnects desktop/browser access while keeping preferences and Gemini sessions. Re-enable from the same place; tool access is enabled separately. The small management helper and desktop startup choices remain available.
 
