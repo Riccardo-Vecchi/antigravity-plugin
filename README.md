@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.10.1](https://img.shields.io/badge/version-1.10.1-blue)](CHANGELOG.md)
+[![Version 1.11.0](https://img.shields.io/badge/version-1.11.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -58,11 +58,11 @@
   </tr>
   <tr>
     <th width="50%">Library of generated artifacts</th>
-    <th width="50%">Documents preview</th>
+    <th width="50%">Computer use</th>
   </tr>
   <tr>
     <td width="50%" align="center" valign="middle"><img src="docs/images/library.png?v=1.10.1" width="560" alt="Blue teapot rendered in Library’s interactive 3D viewer"></td>
-    <td width="50%" align="center" valign="middle"><img src="docs/images/document-preview.png" width="560" alt="Local Word document preview"></td>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/computer-use.png?v=1.11.0" width="560" alt="Current Computer use settings with full-desktop access and dedicated Browser use navigation"></td>
   </tr>
 </table>
 

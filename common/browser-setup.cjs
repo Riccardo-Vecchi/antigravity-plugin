@@ -7,8 +7,11 @@ const BROWSERS=Object.freeze([
  {id:'opera',label:'Opera',url:'opera://extensions',linux:['opera'],windows:['Programs/Opera/opera.exe','Opera/opera.exe']},
  {id:'chromium',label:'Chromium',url:'chrome://extensions',linux:['chromium','chromium-browser'],windows:['Chromium/Application/chrome.exe']},
 ]);
-function setupState(browser){
+function setupState(browser,selected){
  const prepared=browser.enabled&&browser.registered,connected=browser.connections?.length>0,shared=browser.connections?.some(c=>c.tabs>0);
- return !prepared?'prepare':(!connected||browser.needsReload)?'install':!shared?'share':'ready';
+ if(!prepared)return 'prepare';
+ if(browser.needsReload)return 'install';
+ if(connected)return shared?'ready':'share';
+ return ['installed','disabled'].includes(browser.installations?.[selected]?.status)?'reconnect':'install';
 }
 module.exports={BROWSERS,setupState};

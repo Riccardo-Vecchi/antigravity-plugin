@@ -331,9 +331,9 @@ class Client{
   let payload;
   try{
    if(params.payload.length>2048)throw Error('Request too large.');payload=JSON.parse(params.payload);
-   if(!UUID.test(payload.requestId)||!['status','setupBrowser','disableBrowser','disconnectProfile','openExtensions'].includes(payload.action))throw Error('Invalid companion request.');
+   if(!UUID.test(payload.requestId)||!['status','setupBrowser','disableBrowser','disconnectProfile','openExtensions','openExtensionDetails','inspectBrowser'].includes(payload.action))throw Error('Invalid companion request.');
    if(payload.action==='disconnectProfile'){if(!UUID.test(payload.value))throw Error('Invalid connection.');}
-   else if(payload.action==='openExtensions'){if(!require('./browser-setup.cjs').BROWSERS.some(b=>b.id===payload.value))throw Error('Invalid browser.');}
+   else if(['openExtensions','openExtensionDetails','inspectBrowser'].includes(payload.action)){if(!require('./browser-setup.cjs').BROWSERS.some(b=>b.id===payload.value))throw Error('Invalid browser.');}
    else if(payload.value!==true)throw Error('Invalid value.');
    const result=await companion.perform(payload.action,payload.value);
    await this.evaluate(`globalThis.__AGCompanion?.onResult(${JSON.stringify(payload.requestId)},true,${JSON.stringify(result)})`,params.executionContextId);

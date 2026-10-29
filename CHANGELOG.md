@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.11.0
+
+- Detect the browser extension’s installation separately from its live connection. Offer reconnect, enable/reload or missing-folder recovery instructions, and open a standard profile containing the installed copy.
+- Make folder-copy instructions name the browser’s Load unpacked folder-selection window, with Linux and Windows location-bar shortcuts. Keep browser approval and sharing explicit.
+- Replace the README document preview with a current, privacy-safe Computer use screenshot including Browser use in settings navigation; clarify packed-extension distribution limits.
+
 ## 1.10.1
 
 - Check for plugin updates every 24 hours, preserving the schedule across restarts; forced checks remain immediate.

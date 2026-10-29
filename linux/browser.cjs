@@ -87,12 +87,14 @@ async function detect({env=process.env}={}){
  const defaultBrowser=found.find(b=>preferred.includes(b.id))?.id||found[0]?.id||'other';
  return {available:found.map(({id,label})=>({id,label})),defaultBrowser};
 }
-async function openExtensions(id,{env=process.env}={}){
+async function openExtensions(id,{env=process.env,profileDirectory=null,details=false}={}){
  const spec=BROWSERS.find(b=>b.id===id);if(!spec)throw Error('Unsupported browser.');
+ if(profileDirectory!==null&&!/^(?:Default|Profile \d+)$/.test(profileDirectory))throw Error('Invalid browser profile.');
+ const args=[...(profileDirectory?['--profile-directory='+profileDirectory]:[]),spec.url+(details?'?id='+identity.extensionId:'')];
  for(const name of spec.linux)for(const folder of (env.PATH||'').split(path.delimiter).filter(Boolean)){
   const executable=path.join(folder,name);try{await fs.access(executable,require('node:fs').constants.X_OK);}catch{continue;}
   const clean={...env};delete clean.ELECTRON_RUN_AS_NODE;delete clean.NODE_OPTIONS;
-  const child=spawn(executable,[spec.url],{env:clean,detached:true,stdio:'ignore'});await new Promise((r,j)=>{child.once('spawn',r);child.once('error',j);});child.unref();return true;
+  const child=spawn(executable,args,{env:clean,detached:true,stdio:'ignore'});await new Promise((r,j)=>{child.once('spawn',r);child.once('error',j);});child.unref();return true;
  }
  throw Error('Browser executable not found.');
 }

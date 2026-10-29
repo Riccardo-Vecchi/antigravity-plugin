@@ -63,10 +63,19 @@ test('opening browser setup allows only known browser IDs and a fixed Extensions
  const executable=path.join(root,'brave-browser'),output=path.join(root,'opened');
  await fs.writeFile(executable,'#!/bin/sh\nprintf "%s" "$1" > "$HOME/opened"\n',{mode:0o700});
  const adapter=require('../linux/browser.cjs');await assert.rejects(adapter.openExtensions('arbitrary',{env:{HOME:root,PATH:root}}),/Unsupported/);
+ await assert.rejects(adapter.openExtensions('brave',{env:{HOME:root,PATH:root},profileDirectory:'../../other'}),/Invalid/);
  await adapter.openExtensions('brave',{env:{HOME:root,PATH:root}});
  let value;for(let n=0;n<30;n++){value=await fs.readFile(output,'utf8').catch(()=>null);if(value)break;await new Promise(r=>setTimeout(r,10));}
  assert.equal(value,'brave://extensions');
 });
 test('an older connected extension is sent to reload recovery instead of an unusable sharing step',()=>{
  const {setupState}=require('../common/browser-setup.cjs');assert.equal(setupState({enabled:true,registered:true,connections:[{tabs:0}],needsReload:true}),'install');assert.equal(setupState({enabled:true,registered:true,connections:[{tabs:4}],needsReload:true}),'install');
+});
+test('installed-extension recovery opens only its fixed details URL in a validated existing profile',async t=>{
+ if(process.platform!=='linux')return t.skip();
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-profile-browser-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
+ await fs.writeFile(path.join(root,'brave-browser'),'#!/bin/sh\nprintf "%s\\n" "$@" > "$HOME/args"\n',{mode:0o700});
+ await require('../linux/browser.cjs').openExtensions('brave',{env:{HOME:root,PATH:root},profileDirectory:'Profile 2',details:true});
+ let args;for(let n=0;n<30;n++){args=await fs.readFile(path.join(root,'args'),'utf8').catch(()=>null);if(args)break;await new Promise(r=>setTimeout(r,10));}
+ assert.deepEqual(args.trim().split('\n'),['--profile-directory=Profile 2','brave://extensions?id='+require('../common/browser-identity.json').extensionId]);
 });

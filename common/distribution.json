@@ -116,7 +116,8 @@
     "docs/LIBRARY.md",
     "docs/images/library.png",
     "docs/images/document-preview.png",
-    "common/sidebar-layout.cjs"
+    "common/sidebar-layout.cjs",
+    "common/browser-installation.cjs"
   ],
   "linux": [
     "linux/desktop.cjs",

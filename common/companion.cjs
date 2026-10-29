@@ -40,6 +40,7 @@ async function createCompanion({
     connections = new Map(),
     peers = new Set();
   const adapter=require(platform === "win32" ? "../windows/browser.cjs" : "../linux/browser.cjs");
+  const installationProbe=require("./browser-installation.cjs").createProbe({platform,home});
   let discovery=adapter.detect().catch(()=>({available:[],defaultBrowser:"other"}));
   let mutations = Promise.resolve(),
     closed = false;
@@ -92,14 +93,16 @@ async function createCompanion({
     }
   }
   async function snapshot() {
-    const data = parse(await read(mcpFile));
+    const data = parse(await read(mcpFile)), detected = await discovery;
     return {
       browser: {
         enabled: store.settings.browserEnabled,
         needsReload:[...connections.values()].some(c=>!c.scope&&Date.now()-c.connectedAt>2000),
         registered: owned(data.mcpServers?.[SERVER]),
         extensionPath: extensionDir,
-        ...await discovery,
+        platform,
+        ...detected,
+        installations:await installationProbe.inspect(detected.available),
         extensionId: require("./browser-identity.json").extensionId,
         connections: [...connections.entries()].map(([id, c]) => ({
           id,
@@ -281,9 +284,15 @@ async function createCompanion({
     browserCall,
     async perform(action, value) {
       if (action === "status") return snapshot();
-      if(action === "openExtensions"){
+      if(action === "inspectBrowser"){
+        if(!require("./browser-setup.cjs").BROWSERS.some(b=>b.id===value))throw Error("Unsupported browser.");
+        discovery=adapter.detect().catch(()=>({available:[],defaultBrowser:"other"}));
+        await installationProbe.inspect((await discovery).available,{force:true});return snapshot();
+      }
+      if(action === "openExtensions"||action === "openExtensionDetails"){
         if(!store.settings.browserEnabled)throw Error("Browser access is disabled.");
-        await adapter.openExtensions(value);return snapshot();
+        await installationProbe.inspect((await discovery).available,{force:true});
+        await adapter.openExtensions(value,{profileDirectory:installationProbe.target(value),details:action==="openExtensionDetails"});return snapshot();
       }
       const job = mutations.then(async () => {
         if (action === "setupBrowser") {
