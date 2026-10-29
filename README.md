@@ -41,7 +41,7 @@
 
 <table width="100%">
   <tr>
-    <th width="50%">Antigravity</th>
+    <th width="50%">A better and more colorful Antigravity</th>
     <th width="50%">Gemini in the same window</th>
   </tr>
   <tr>
@@ -57,8 +57,8 @@
     <td width="50%" align="center" valign="middle"><img src="docs/images/startup.png" width="560" alt="Startup view, remember last view and desktop autostart"></td>
   </tr>
   <tr>
-    <th width="50%">Library: interactive 3D preview</th>
-    <th width="50%">Word document preview</th>
+    <th width="50%">Library of generated artifacts</th>
+    <th width="50%">Documents preview</th>
   </tr>
   <tr>
     <td width="50%" align="center" valign="middle"><img src="docs/images/library.png?v=1.10.1" width="560" alt="Blue teapot rendered in Library’s interactive 3D viewer"></td>
