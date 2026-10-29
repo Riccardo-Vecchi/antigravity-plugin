@@ -446,7 +446,15 @@
       "Open the browser’s Extensions page and turn on Developer mode (top right). Find Antigravity Browser and click the Reload icon (↻) on its card.": "Open the browser’s Extensions page and turn on Developer mode (top right). Find Antigravity Browser and click the Reload icon (↻) on its card.",
       "Reload the browser extension": "Reload the browser extension",
       "Antigravity Browser is the browser extension included with Antigravity Plugin. Reload is on its card on the browser’s Extensions page, not in its popup.": "Antigravity Browser is the browser extension included with Antigravity Plugin. Reload is on its card on the browser’s Extensions page, not in its popup.",
-      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards."
+      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.",
+      "Browser use is enabled": "Browser use is enabled",
+      "Browser use is disabled": "Browser use is disabled",
+      "Preparing Browser use…": "Preparing Browser use…",
+      "Disabling Browser use…": "Disabling Browser use…",
+      "Disable Browser use and stop sharing. Keep the extension installed.": "Disable Browser use and stop sharing. Keep the extension installed.",
+      "Enable Browser use. Choose what to share in the extension.": "Enable Browser use. Choose what to share in the extension.",
+      "Open {browser} Extensions": "Open {browser} Extensions",
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there."
     },
     "icons": {
       "folder": "Folder",
@@ -946,7 +954,15 @@
       "Open the browser’s Extensions page and turn on Developer mode (top right). Find Antigravity Browser and click the Reload icon (↻) on its card.": "Apri la pagina Estensioni del browser e attiva Modalità sviluppatore in alto a destra. Trova Antigravity Browser e premi l’icona Ricarica (↻) sulla sua scheda.",
       "Reload the browser extension": "Ricarica estensione del browser",
       "Antigravity Browser is the browser extension included with Antigravity Plugin. Reload is on its card on the browser’s Extensions page, not in its popup.": "Antigravity Browser è l’estensione browser inclusa in Antigravity Plugin. Il pulsante Ricarica è sulla sua scheda nella pagina Estensioni del browser, non nel popup.",
-      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "Attiva Modalità sviluppatore in alto a destra per vedere l’icona Ricarica (↻). Ricaricare l’estensione interrompe la condivisione: dopo dovrai scegliere nuovamente le schede."
+      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "Attiva Modalità sviluppatore in alto a destra per vedere l’icona Ricarica (↻). Ricaricare l’estensione interrompe la condivisione: dopo dovrai scegliere nuovamente le schede.",
+      "Browser use is enabled": "Browser use è abilitato",
+      "Browser use is disabled": "Browser use è disabilitato",
+      "Preparing Browser use…": "Preparazione di Browser use…",
+      "Disabling Browser use…": "Disabilitazione di Browser use…",
+      "Disable Browser use and stop sharing. Keep the extension installed.": "Disabilita Browser use e interrompi la condivisione. L’estensione resta installata.",
+      "Enable Browser use. Choose what to share in the extension.": "Abilita Browser use. Scegli cosa condividere nell’estensione.",
+      "Open {browser} Extensions": "Apri Estensioni di {browser}",
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Usa il pulsante Apri Estensioni qui sopra: apre direttamente la pagina Estensioni del browser selezionato. Lì trovi Ricarica sulla scheda dell’estensione."
     },
     "icons": {
       "folder": "Cartella",
@@ -1446,7 +1462,15 @@
       "Open the browser’s Extensions page and turn on Developer mode (top right). Find Antigravity Browser and click the Reload icon (↻) on its card.": "Öffne die Erweiterungsseite des Browsers und aktiviere oben rechts den Entwicklermodus. Suche Antigravity Browser und klicke auf das Neuladen-Symbol (↻) auf der Karte.",
       "Reload the browser extension": "Browser-Erweiterung neu laden",
       "Antigravity Browser is the browser extension included with Antigravity Plugin. Reload is on its card on the browser’s Extensions page, not in its popup.": "Antigravity Browser ist die Browser-Erweiterung von Antigravity Plugin. Neuladen befindet sich auf ihrer Karte auf der Erweiterungsseite, nicht im Popup.",
-      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "Aktiviere oben rechts den Entwicklermodus, um Neuladen (↻) einzublenden. Das Neuladen beendet die Tab-Freigabe; wähle danach die Tabs erneut aus."
+      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "Aktiviere oben rechts den Entwicklermodus, um Neuladen (↻) einzublenden. Das Neuladen beendet die Tab-Freigabe; wähle danach die Tabs erneut aus.",
+      "Browser use is enabled": "Browser use ist aktiviert",
+      "Browser use is disabled": "Browser use ist deaktiviert",
+      "Preparing Browser use…": "Browser use wird vorbereitet…",
+      "Disabling Browser use…": "Browser use wird deaktiviert…",
+      "Disable Browser use and stop sharing. Keep the extension installed.": "Browser use deaktivieren und die Freigabe beenden. Die Erweiterung bleibt installiert.",
+      "Enable Browser use. Choose what to share in the extension.": "Browser use aktivieren. Wähle in der Erweiterung aus, was du freigeben möchtest.",
+      "Open {browser} Extensions": "{browser}-Erweiterungen öffnen",
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Verwende oben Erweiterungen öffnen. Der Button öffnet direkt die Erweiterungsseite des gewählten Browsers; dort ist Neuladen auf der Erweiterungskarte."
     },
     "icons": {
       "folder": "Ordner",
@@ -1946,7 +1970,15 @@
       "Open the browser’s Extensions page and turn on Developer mode (top right). Find Antigravity Browser and click the Reload icon (↻) on its card.": "Abre la página Extensiones del navegador y activa el Modo de desarrollador arriba a la derecha. Busca Antigravity Browser y pulsa el icono Recargar (↻) en su tarjeta.",
       "Reload the browser extension": "Recargar extensión del navegador",
       "Antigravity Browser is the browser extension included with Antigravity Plugin. Reload is on its card on the browser’s Extensions page, not in its popup.": "Antigravity Browser es la extensión incluida en Antigravity Plugin. Recargar está en su tarjeta en la página Extensiones del navegador, no en el popup.",
-      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "Activa el Modo de desarrollador arriba a la derecha para mostrar Recargar (↻). Recargar detiene la compartición; después vuelve a elegir las pestañas."
+      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "Activa el Modo de desarrollador arriba a la derecha para mostrar Recargar (↻). Recargar detiene la compartición; después vuelve a elegir las pestañas.",
+      "Browser use is enabled": "Browser use está activado",
+      "Browser use is disabled": "Browser use está desactivado",
+      "Preparing Browser use…": "Preparando Browser use…",
+      "Disabling Browser use…": "Desactivando Browser use…",
+      "Disable Browser use and stop sharing. Keep the extension installed.": "Desactiva Browser use y detén la compartición. La extensión permanece instalada.",
+      "Enable Browser use. Choose what to share in the extension.": "Activa Browser use. Elige qué compartir en la extensión.",
+      "Open {browser} Extensions": "Abrir Extensiones de {browser}",
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Usa el botón Abrir Extensiones de arriba. Abre directamente la página Extensiones del navegador seleccionado; allí está Recargar en la tarjeta de la extensión."
     },
     "icons": {
       "folder": "Carpeta",
@@ -2446,7 +2478,15 @@
       "Open the browser’s Extensions page and turn on Developer mode (top right). Find Antigravity Browser and click the Reload icon (↻) on its card.": "Ouvrez la page Extensions du navigateur et activez le Mode développeur en haut à droite. Trouvez Antigravity Browser et cliquez sur l’icône Recharger (↻) de sa fiche.",
       "Reload the browser extension": "Recharger l’extension du navigateur",
       "Antigravity Browser is the browser extension included with Antigravity Plugin. Reload is on its card on the browser’s Extensions page, not in its popup.": "Antigravity Browser est l’extension incluse dans Antigravity Plugin. Recharger se trouve sur sa fiche dans la page Extensions du navigateur, pas dans sa fenêtre contextuelle.",
-      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "Activez le Mode développeur en haut à droite pour afficher Recharger (↻). Le rechargement arrête le partage ; choisissez ensuite de nouveau les onglets."
+      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "Activez le Mode développeur en haut à droite pour afficher Recharger (↻). Le rechargement arrête le partage ; choisissez ensuite de nouveau les onglets.",
+      "Browser use is enabled": "Browser use est activé",
+      "Browser use is disabled": "Browser use est désactivé",
+      "Preparing Browser use…": "Préparation de Browser use…",
+      "Disabling Browser use…": "Désactivation de Browser use…",
+      "Disable Browser use and stop sharing. Keep the extension installed.": "Désactivez Browser use et arrêtez le partage. L’extension reste installée.",
+      "Enable Browser use. Choose what to share in the extension.": "Activez Browser use. Choisissez les éléments à partager dans l’extension.",
+      "Open {browser} Extensions": "Ouvrir les extensions de {browser}",
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Utilisez le bouton Ouvrir les extensions ci-dessus. Il ouvre directement la page Extensions du navigateur sélectionné ; Recharger se trouve sur la fiche de l’extension."
     },
     "icons": {
       "folder": "Dossier",
@@ -2946,7 +2986,15 @@
       "Open the browser’s Extensions page and turn on Developer mode (top right). Find Antigravity Browser and click the Reload icon (↻) on its card.": "打开浏览器的扩展程序页面，开启右上角的开发者模式。找到 Antigravity Browser，然后点击其卡片上的重新加载图标 (↻)。",
       "Reload the browser extension": "重新加载浏览器扩展",
       "Antigravity Browser is the browser extension included with Antigravity Plugin. Reload is on its card on the browser’s Extensions page, not in its popup.": "Antigravity Browser 是 Antigravity Plugin 附带的浏览器扩展。重新加载按钮位于浏览器扩展程序页面的卡片上，而不在弹出窗口中。",
-      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "开启右上角的开发者模式以显示重新加载图标 (↻)。重新加载扩展会停止标签页共享，之后需重新选择要共享的标签页。"
+      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "开启右上角的开发者模式以显示重新加载图标 (↻)。重新加载扩展会停止标签页共享，之后需重新选择要共享的标签页。",
+      "Browser use is enabled": "浏览器使用已启用",
+      "Browser use is disabled": "浏览器使用已禁用",
+      "Preparing Browser use…": "正在准备浏览器使用…",
+      "Disabling Browser use…": "正在禁用浏览器使用…",
+      "Disable Browser use and stop sharing. Keep the extension installed.": "禁用浏览器使用并停止共享。扩展仍保留安装。",
+      "Enable Browser use. Choose what to share in the extension.": "启用浏览器使用。在扩展中选择要共享的内容。",
+      "Open {browser} Extensions": "打开 {browser} 扩展程序",
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "使用上方的“打开扩展程序”按钮，直接打开所选浏览器的扩展程序页面；重新加载按钮位于该页面的扩展卡片上。"
     },
     "icons": {
       "folder": "文件夹",
@@ -3446,7 +3494,15 @@
       "Open the browser’s Extensions page and turn on Developer mode (top right). Find Antigravity Browser and click the Reload icon (↻) on its card.": "ブラウザーの拡張機能ページを開き、右上のデベロッパーモードを有効にします。Antigravity Browser を探し、そのカードの再読み込みアイコン (↻) を押してください。",
       "Reload the browser extension": "ブラウザー拡張機能を再読み込み",
       "Antigravity Browser is the browser extension included with Antigravity Plugin. Reload is on its card on the browser’s Extensions page, not in its popup.": "Antigravity Browser は Antigravity Plugin に含まれるブラウザー拡張機能です。再読み込みボタンはポップアップではなく、ブラウザーの拡張機能ページのカードにあります。",
-      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "右上のデベロッパーモードを有効にすると、再読み込みアイコン (↻) が表示されます。再読み込みすると共有が停止するため、その後タブを選び直してください。"
+      "Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards.": "右上のデベロッパーモードを有効にすると、再読み込みアイコン (↻) が表示されます。再読み込みすると共有が停止するため、その後タブを選び直してください。",
+      "Browser use is enabled": "ブラウザー操作は有効です",
+      "Browser use is disabled": "ブラウザー操作は無効です",
+      "Preparing Browser use…": "ブラウザー操作を準備中…",
+      "Disabling Browser use…": "ブラウザー操作を無効化中…",
+      "Disable Browser use and stop sharing. Keep the extension installed.": "ブラウザー操作を無効にして共有を停止します。拡張機能はインストールされたままです。",
+      "Enable Browser use. Choose what to share in the extension.": "ブラウザー操作を有効にします。共有する内容は拡張機能で選択してください。",
+      "Open {browser} Extensions": "{browser} の拡張機能を開く",
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "上の「拡張機能を開く」ボタンで、選択したブラウザーの拡張機能ページを直接開けます。再読み込みボタンはそのページの拡張機能カードにあります。"
     },
     "icons": {
       "folder": "フォルダー",

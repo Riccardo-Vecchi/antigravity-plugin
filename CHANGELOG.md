@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.0
+
+- Add a Browser use activation switch matching Computer use. Disabled pages keep only activation controls and actionable errors; disabling revokes sharing without uninstalling the extension.
+- Keep a browser picker and a direct Open [browser] Extensions action available while enabled. Open the selected Chromium browser’s own extension list for Reload; remove the redundant off command from advanced help.
+
 ## 1.11.1
 
 - Keep connected/shared tabs usable when an older extension omits scope metadata; do not mistake that metadata gap for a mandatory reload.

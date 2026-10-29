@@ -291,3 +291,20 @@ test("Linux host setup uses existing profiles and refuses to overwrite a foreign
   await assert.rejects(adapter.install(options), /another installation/);
   assert.equal(await fs.readFile(file, "utf8"), foreign);
 });
+
+test("Browser use enable/disable preserves the extension and other MCP servers, revokes sharing and never regrants tabs", async t => {
+  if(process.platform!=="linux")return t.skip();
+  const root=await directory(t),configDir=path.join(root,"config"),mcp=path.join(root,".gemini/config/mcp_config.json");
+  const previous=process.env.XDG_CONFIG_HOME;process.env.XDG_CONFIG_HOME=path.join(root,"xdg");
+  t.after(()=>{if(previous===undefined)delete process.env.XDG_CONFIG_HOME;else process.env.XDG_CONFIG_HOME=previous;});
+  await fs.mkdir(path.dirname(mcp),{recursive:true});await fs.writeFile(mcp,JSON.stringify({mcpServers:{other:{command:"kept"}}}));
+  const broker=await createCompanion({home:root,configDir});t.after(()=>broker.close());
+  await broker.perform("setupBrowser",true);
+  const browser=await connect("browser",()=>{},undefined,configDir);t.after(()=>browser.close());
+  await browser.request("announce",{id:crypto.randomUUID(),label:"Test"});await browser.request("tabs",[{id:1,title:"Test",url:"https://example.test/"}]);
+  const enabled=await broker.snapshot();assert.equal(enabled.browser.enabled,true);assert.equal(enabled.browser.connections[0].tabs,1);
+  const disabled=await broker.perform("disableBrowser",true);assert.equal(disabled.browser.enabled,false);assert.equal(disabled.browser.registered,false);assert.equal(disabled.browser.connections.length,0);
+  assert.ok((await fs.stat(path.join(disabled.browser.extensionPath,"manifest.json"))).isFile());
+  assert.equal(JSON.parse(await fs.readFile(mcp)).mcpServers.other.command,"kept");
+  const again=await broker.perform("setupBrowser",true);assert.equal(again.browser.enabled,true);assert.equal(again.browser.registered,true);assert.equal(again.browser.connections.length,0);
+});

@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.11.1](https://img.shields.io/badge/version-1.11.1-blue)](CHANGELOG.md)
+[![Version 1.12.0](https://img.shields.io/badge/version-1.12.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -94,7 +94,7 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 **Computer use:** open **Settings → Computer use** and enable it. Reuses saved access, or starts with **Entire desktop** on first setup; choose **Selected apps** to limit access. When disabled, only its activation controls remain visible. Works with the native Antigravity agent. On GNOME/Wayland, first setup may require a Linux logout/login. [Setup and troubleshooting](docs/COMPUTER_USE.md).
 
-**Browser use:** open **Settings → Browser use** and follow the extension setup guide. Releases also include an [extension ZIP](https://github.com/Riccardo-Vecchi/antigravity-plugin/releases/latest/download/antigravity-browser.zip); browser installation approval is still required. [Packaging and installation limits](docs/BROWSER_USE.md#-packaged-extension-and-installation-approval).
+**Browser use:** open **Settings → Browser use** and enable its switch. When disabled, only activation controls remain visible. **Open [browser] Extensions** opens the selected browser’s Extensions page for installation or Reload. Releases also include an [extension ZIP](https://github.com/Riccardo-Vecchi/antigravity-plugin/releases/latest/download/antigravity-browser.zip); browser installation approval is still required. [Packaging and installation limits](docs/BROWSER_USE.md#-packaged-extension-and-installation-approval).
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Plugin updates → Plugin customizations** contains status and recovery.
 
