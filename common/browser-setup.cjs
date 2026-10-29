@@ -10,7 +10,7 @@ const BROWSERS=Object.freeze([
 function setupState(browser,selected){
  const prepared=browser.enabled&&browser.registered,connected=browser.connections?.length>0,shared=browser.connections?.some(c=>c.tabs>0);
  if(!prepared)return 'prepare';
- if(browser.needsReload)return 'install';
+ // Legacy scope metadata is optional; shared tabs prove a usable connection.
  if(connected)return shared?'ready':'share';
  return ['installed','disabled'].includes(browser.installations?.[selected]?.status)?'reconnect':'install';
 }

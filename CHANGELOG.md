@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.11.1
+
+- Keep connected/shared tabs usable when an older extension omits scope metadata; do not mistake that metadata gap for a mandatory reload.
+- Put Refresh status in the main Browser use actions and clarify the difference from reloading the browser extension.
+- Call setup/update/recovery pages “browser extension” and explain that Antigravity Browser is the extension bundled with Antigravity Plugin. Open the extension list for Reload, with explicit Developer mode instructions.
+
 ## 1.11.0
 
 - Detect the browser extension’s installation separately from its live connection. Offer reconnect, enable/reload or missing-folder recovery instructions, and open a standard profile containing the installed copy.
