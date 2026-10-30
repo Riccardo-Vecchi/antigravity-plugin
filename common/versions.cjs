@@ -1,14 +1,14 @@
 "use strict";
 module.exports = Object.freeze({
-  suite: "1.15.3",
+  suite: "1.15.4",
   library: "1.2.0",
   workspace: "1.1.1",
   sidebarLayout: "1.0.1",
   companion: "1.6.0",
-  models: "1.1.2",
+  models: "1.1.3",
   modelControls: "1.2.1",
   updates: "1.2.3",
-  appearance: "1.8.1",
+  appearance: "1.8.2",
   geminiSwitch: "1.2.0",
   geminiOrigin: "1.0.0",
   inline: "1.2.0",

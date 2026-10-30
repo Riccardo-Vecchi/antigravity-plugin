@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.15.4
+
+- Keep View Usage visible in the compact sidebar and open native usage details on hover in both sidebar modes.
+- Clean up any remaining experimental context indicator during live updates.
+
 ## 1.15.3
 
 - Anchor the native usage popup beside its sidebar shortcut, including scaled windows.

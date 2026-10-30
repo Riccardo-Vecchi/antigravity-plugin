@@ -1,7 +1,7 @@
 /* Local project appearance. No conversation, project metadata, or tool mutations. */
 (() => {
   'use strict';
-  const VERSION = '1.8.1';
+  const VERSION = '1.8.2';
   const i18n=globalThis.__AGPAI18n;
   const initial = globalThis.__AGPA_CONFIG__ || { projects: {} };
   delete globalThis.__AGPA_CONFIG__;
@@ -151,7 +151,7 @@
     if(!source)return null;
     const button=el('button',{type:'button',class:'agpa-rail-button','aria-label':label,title:label,'data-agpa-native':selector});
     button.append(source.querySelector('svg')?.cloneNode(true)||svg(fallback,19));
-    button.addEventListener('click',()=>nativeControl(selector)?.click());
+    if(selector==='[data-agpa-view-usage]'){const open=()=>globalThis.__AGModelUI?.openUsage(button);button.addEventListener('pointerenter',open);button.addEventListener('click',open);}else button.addEventListener('click',()=>nativeControl(selector)?.click());
     return button;
   }
   function applyRail() {
@@ -164,7 +164,7 @@
     if(rail.hidden===collapsed)rail.hidden=!collapsed;
 
     const projects=[...sidebar.querySelectorAll('[data-testid="project-header"]')].map(projectFrom).filter(Boolean);
-    const signature=JSON.stringify([i18n.language,!!nativeControl('[data-testid=agpa-library-button]'),projects.map(p=>[p.id,p.name,config.projects?.[p.id]])]);
+    const signature=JSON.stringify([i18n.language,!!nativeControl('[data-testid=agpa-library-button]'),!!nativeControl('[data-agpa-view-usage]'),projects.map(p=>[p.id,p.name,config.projects?.[p.id]])]);
     if(signature!==railSignature){
       railSignature=signature;
       const focused=document.activeElement?.getAttribute('data-agpa-project');
@@ -189,7 +189,7 @@
         });
         list.append(button);
       }
-      rail.append(list,railButton('Settings','[data-testid="settings-button"]','settings')||document.createTextNode(''));
+      rail.append(list,railButton('View Usage','[data-agpa-view-usage]')||document.createTextNode(''),railButton('Settings','[data-testid="settings-button"]','settings')||document.createTextNode(''));
       if(focused)rail.querySelector(`[data-agpa-project="${focused}"]`)?.focus();
     }
     const selected=document.querySelector('[data-testid="conversation-row-sidebar"][data-selected="true"]');
