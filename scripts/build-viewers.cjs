@@ -9,10 +9,11 @@ async function build() {
     path.join(root, "node_modules/pdfjs-dist/build/pdf.worker.min.mjs"),
     "utf8",
   );
-  await require("esbuild").build({
+  const result = await require("esbuild").build({
     entryPoints: [path.join(root, "common/viewers.js")],
     outfile: path.join(out, "viewers.js"),
     bundle: true,
+    metafile: true,
     minify: true,
     format: "iife",
     target: "chrome130",
@@ -21,22 +22,31 @@ async function build() {
     define: { AGPA_PDF_WORKER: JSON.stringify(worker) },
     logOverride: { "empty-import-meta": "silent" },
   });
-  const lock = JSON.parse(
-    await fs.readFile(path.join(root, "package-lock.json"), "utf8"),
-  );
+  // Only licenses for code actually included in the shipped bundle. Developer
+  // tools in package-lock.json do not belong in the runtime's vendor notices.
+  const packages = new Map();
+  const modules = path.join(root, "node_modules") + path.sep;
+  for (const input of Object.keys(result.metafile.inputs)) {
+    let dir = path.dirname(path.resolve(root, input));
+    while (dir.startsWith(modules)) {
+      try {
+        const pkg = JSON.parse(
+          await fs.readFile(path.join(dir, "package.json"), "utf8"),
+        );
+        packages.set(dir, pkg);
+        break;
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+      dir = path.dirname(dir);
+    }
+  }
   let notices =
     "Vendored preview libraries. Plugin source is 0BSD; these packages retain their own licenses.\n";
-  for (const [key, pkg] of Object.entries(lock.packages)) {
-    if (
-      !key ||
-      key.includes("@esbuild") ||
-      key.includes("@napi-rs") ||
-      key.endsWith("/esbuild") ||
-      key.includes("@types")
-    )
-      continue;
-    const dir = path.join(root, key),
-      name = key.slice("node_modules/".length),
+  for (const [dir, pkg] of [...packages].sort((a, b) =>
+    a[1].name.localeCompare(b[1].name, "en"),
+  )) {
+    const name = pkg.name,
       files = (await fs.readdir(dir)).filter((f) =>
         /^licen[sc]e|^copying/i.test(f),
       );

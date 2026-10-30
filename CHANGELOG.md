@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.14.0
+
+- Show trustworthy host-owned origin and accessible names outside Gemini without replacing its guest or disrupting federated sign-in.
+- Load document/3D preview engines only on first use; retry failed reads and discard stale requests.
+- Simplify plugin settings to update controls and the enable/disable switch; remove the technical compatibility checklist. Keep the existing one-click HTML online-resources control without an additional confirmation.
+- Consolidate CDP connection handling, bound CSV column retention and fix update-operation state during DOM changes.
+- Add privacy-preserving operational diagnostics, full JavaScript linting, incremental formatting and strict JSDoc checks.
+- Add real sandboxed parser/browser regression tests, reproducible vendor notices and contributor/developer documentation.
+
+
 ## 1.13.0
 
 - Separate model and reasoning-effort controls on the right of the composer; keep approval permissions on the left without moving native DOM controls.

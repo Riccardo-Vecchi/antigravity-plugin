@@ -122,7 +122,7 @@ async function migrate(options={}){
  const root=await stat(next.configDir);if(root&&(!root.isDirectory()||root.isSymbolicLink()))throw Error('Unsafe migration destination.');
  await fs.mkdir(next.configDir,{recursive:true,mode:0o700});
  const lock=path.join(next.configDir,'migration.lock');let handle;
- try{try{handle=await fs.open(lock,'wx',0o600);}catch(e){if(e.code!=='EEXIST')throw e;const record=JSON.parse((await plain(lock)).toString());if(!Number.isInteger(record.pid)||record.pid<=0)throw Error('An earlier migration needs manual review.');let alive=true;try{process.kill(record.pid,0);}catch(error){if(error.code==='ESRCH')alive=false;else throw error;}if(alive)throw Error('Another migration is already running.');await fs.unlink(lock);handle=await fs.open(lock,'wx',0o600);}
+ try{try{handle=await fs.open(lock,'wx',0o600);}catch(e){if(e.code!=='EEXIST')throw e;const record=JSON.parse((await plain(lock)).toString());if(!Number.isInteger(record.pid)||record.pid<=0)throw Error('An earlier migration needs manual review.',{cause:e});let alive=true;try{process.kill(record.pid,0);}catch(error){if(error.code==='ESRCH')alive=false;else throw error;}if(alive)throw Error('Another migration is already running.',{cause:e});await fs.unlink(lock);handle=await fs.open(lock,'wx',0o600);}
  await handle.writeFile(JSON.stringify({pid:process.pid,at:Date.now()}));return await migrateUnlocked(options);}
  finally{if(handle){await handle.close();await fs.rm(lock,{force:true});}}
 }

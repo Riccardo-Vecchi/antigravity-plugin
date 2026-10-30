@@ -3,15 +3,38 @@
   "private": true,
   "scripts": {
     "build:viewers": "node scripts/build-viewers.cjs",
-    "test": "node --test tests/*.test.cjs"
+    "test": "node --test tests/*.test.cjs",
+    "test:browser": "playwright test",
+    "lint": "eslint common linux windows scripts tests playwright.config.cjs eslint.config.cjs",
+    "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check common/daemon.cjs common/cdp-connection.cjs common/gemini-origin.* common/diagnostics.cjs common/viewer-bundle.cjs common/workspace-ui.js common/library-ui.js scripts/build-viewers.cjs tests/browser tests/cdp-connection.test.cjs tests/diagnostics.test.cjs tests/gemini-origin.test.cjs tests/viewer-bundle.test.cjs playwright.config.cjs eslint.config.cjs tsconfig.json package.json docs/DEVELOPMENT.md CONTRIBUTING.md common/versions.cjs common/gemini-switch.js common/prepare-reload.cjs common/plugin-update-settings.js common/viewers.js docs/REVIEW_NOTES.md tests/runtime-versions.test.cjs common/app-settings.js",
+    "check": "npm run lint && npm run typecheck && npm run format:check && npm test && npm run test:browser",
+    "format": "prettier --write common/daemon.cjs common/cdp-connection.cjs common/gemini-origin.* common/diagnostics.cjs common/viewer-bundle.cjs common/workspace-ui.js common/library-ui.js scripts/build-viewers.cjs tests/browser tests/cdp-connection.test.cjs tests/diagnostics.test.cjs tests/gemini-origin.test.cjs tests/viewer-bundle.test.cjs playwright.config.cjs eslint.config.cjs tsconfig.json package.json docs/DEVELOPMENT.md CONTRIBUTING.md common/versions.cjs common/gemini-switch.js common/prepare-reload.cjs common/plugin-update-settings.js common/viewers.js docs/REVIEW_NOTES.md tests/runtime-versions.test.cjs common/app-settings.js"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
+    "@types/node": "22.20.5",
     "docx-preview": "0.4.1",
     "dompurify": "3.4.17",
     "esbuild": "0.28.2",
+    "eslint": "10.13.0",
     "fflate": "0.8.3",
+    "globals": "17.13.0",
     "marked": "18.1.2",
     "pdfjs-dist": "6.4.299",
-    "three": "0.186.1"
+    "prettier": "3.9.10",
+    "three": "0.186.1",
+    "typescript": "7.0.2"
+  },
+  "version": "1.14.0",
+  "description": "Unofficial local Antigravity customizations for Linux and Windows.",
+  "license": "0BSD",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Riccardo-Vecchi/antigravity-plugin.git"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

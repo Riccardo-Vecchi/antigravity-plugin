@@ -281,7 +281,6 @@
       "Automatic updates support Linux x86-64 and Windows x64.": "Automatic updates support Linux x86-64 and Windows x64.",
       "Share tabs from Chrome, Brave, Edge or any Chromium-based browser. Your existing logins stay in the browser.": "Share tabs from Chrome, Brave, Edge or any Chromium-based browser. Your existing logins stay in the browser.",
       "Open a text editor, type a three-item packing checklist and leave it open for review.": "Open a text editor, type a three-item packing checklist and leave it open for review.",
-      "Plugin customizations": "Plugin customizations",
       "Open the extension and choose Selected tabs or All tabs in this profile.": "Open the extension and choose Selected tabs or All tabs in this profile.",
       "Browser setup": "Browser setup",
       "Connect": "Connect",
@@ -459,7 +458,12 @@
       "Reasoning effort: {effort}": "Reasoning effort: {effort}",
       "Ultra (Teamwork)": "Ultra (Teamwork)",
       "Teamwork for this prompt. Native effort: {effort}": "Teamwork for this prompt. Native effort: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "Could not change Teamwork. Use /teamwork in the message input."
+      "Could not change Teamwork. Use /teamwork in the message input.": "Could not change Teamwork. Use /teamwork in the message input.",
+      "Web page": "Web page",
+      "Google sign-in": "Google sign-in",
+      "External website": "External website",
+      "Origin unavailable": "Origin unavailable",
+      "Return to Gemini": "Return to Gemini"
     },
     "icons": {
       "folder": "Folder",
@@ -794,7 +798,6 @@
       "Automatic updates support Linux x86-64 and Windows x64.": "Gli aggiornamenti automatici supportano Linux x86-64 e Windows x64.",
       "Share tabs from Chrome, Brave, Edge or any Chromium-based browser. Your existing logins stay in the browser.": "Condividi schede da Chrome, Brave, Edge o qualsiasi browser basato su Chromium. Gli accessi esistenti rimangono nel browser.",
       "Open a text editor, type a three-item packing checklist and leave it open for review.": "Apri un editor di testo, scrivi una lista di tre cose da mettere in valigia e lasciala aperta per la revisione.",
-      "Plugin customizations": "Personalizzazioni del plugin",
       "Open the extension and choose Selected tabs or All tabs in this profile.": "Apri l’estensione e scegli Schede selezionate o Tutte le schede di questo profilo.",
       "Browser setup": "Configurazione browser",
       "Connect": "Collega",
@@ -972,7 +975,12 @@
       "Reasoning effort: {effort}": "Livello di ragionamento: {effort}",
       "Ultra (Teamwork)": "Ultra (Teamwork)",
       "Teamwork for this prompt. Native effort: {effort}": "Teamwork per questo prompt. Ragionamento nativo: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "Impossibile modificare Teamwork. Usa /teamwork nel campo del messaggio."
+      "Could not change Teamwork. Use /teamwork in the message input.": "Impossibile modificare Teamwork. Usa /teamwork nel campo del messaggio.",
+      "Web page": "Pagina web",
+      "Google sign-in": "Accesso a Google",
+      "External website": "Sito esterno",
+      "Origin unavailable": "Origine non disponibile",
+      "Return to Gemini": "Torna a Gemini"
     },
     "icons": {
       "folder": "Cartella",
@@ -1307,7 +1315,6 @@
       "Automatic updates support Linux x86-64 and Windows x64.": "Automatische Updates unterstützen Linux x86-64 und Windows x64.",
       "Share tabs from Chrome, Brave, Edge or any Chromium-based browser. Your existing logins stay in the browser.": "Teile Tabs aus Chrome, Brave, Edge oder jedem Chromium-basierten Browser. Bestehende Anmeldungen bleiben im Browser.",
       "Open a text editor, type a three-item packing checklist and leave it open for review.": "Öffne einen Texteditor, schreibe eine Packliste mit drei Punkten und lasse sie zur Prüfung geöffnet.",
-      "Plugin customizations": "Plugin-Anpassungen",
       "Open the extension and choose Selected tabs or All tabs in this profile.": "Öffne die Erweiterung und wähle Ausgewählte Tabs oder Alle Tabs dieses Profils.",
       "Browser setup": "Browser-Einrichtung",
       "Connect": "Verbinden",
@@ -1485,7 +1492,12 @@
       "Reasoning effort: {effort}": "Denkaufwand: {effort}",
       "Ultra (Teamwork)": "Ultra (Teamwork)",
       "Teamwork for this prompt. Native effort: {effort}": "Teamwork für diese Anfrage. Nativer Denkaufwand: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "Teamwork konnte nicht geändert werden. Verwende /teamwork im Nachrichtenfeld."
+      "Could not change Teamwork. Use /teamwork in the message input.": "Teamwork konnte nicht geändert werden. Verwende /teamwork im Nachrichtenfeld.",
+      "Web page": "Webseite",
+      "Google sign-in": "Google-Anmeldung",
+      "External website": "Externe Website",
+      "Origin unavailable": "Herkunft nicht verfügbar",
+      "Return to Gemini": "Zurück zu Gemini"
     },
     "icons": {
       "folder": "Ordner",
@@ -1820,7 +1832,6 @@
       "Automatic updates support Linux x86-64 and Windows x64.": "Las actualizaciones automáticas admiten Linux x86-64 y Windows x64.",
       "Share tabs from Chrome, Brave, Edge or any Chromium-based browser. Your existing logins stay in the browser.": "Comparte pestañas de Chrome, Brave, Edge o cualquier navegador basado en Chromium. Las sesiones existentes permanecen en el navegador.",
       "Open a text editor, type a three-item packing checklist and leave it open for review.": "Abre un editor de texto, escribe una lista de tres cosas para llevar de viaje y déjala abierta para revisarla.",
-      "Plugin customizations": "Personalizaciones del plugin",
       "Open the extension and choose Selected tabs or All tabs in this profile.": "Abre la extensión y elige Pestañas seleccionadas o Todas las pestañas de este perfil.",
       "Browser setup": "Configuración del navegador",
       "Connect": "Conectar",
@@ -1998,7 +2009,12 @@
       "Reasoning effort: {effort}": "Nivel de razonamiento: {effort}",
       "Ultra (Teamwork)": "Ultra (Teamwork)",
       "Teamwork for this prompt. Native effort: {effort}": "Teamwork para este mensaje. Nivel nativo: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "No se pudo cambiar Teamwork. Usa /teamwork en el campo del mensaje."
+      "Could not change Teamwork. Use /teamwork in the message input.": "No se pudo cambiar Teamwork. Usa /teamwork en el campo del mensaje.",
+      "Web page": "Página web",
+      "Google sign-in": "Inicio de sesión en Google",
+      "External website": "Sitio externo",
+      "Origin unavailable": "Origen no disponible",
+      "Return to Gemini": "Volver a Gemini"
     },
     "icons": {
       "folder": "Carpeta",
@@ -2333,7 +2349,6 @@
       "Automatic updates support Linux x86-64 and Windows x64.": "Les mises à jour automatiques prennent en charge Linux x86-64 et Windows x64.",
       "Share tabs from Chrome, Brave, Edge or any Chromium-based browser. Your existing logins stay in the browser.": "Partagez des onglets de Chrome, Brave, Edge ou de tout navigateur basé sur Chromium. Vos sessions existantes restent dans le navigateur.",
       "Open a text editor, type a three-item packing checklist and leave it open for review.": "Ouvre un éditeur de texte, écris une liste de trois affaires à emporter et laisse-la ouverte pour relecture.",
-      "Plugin customizations": "Personnalisations du plugin",
       "Open the extension and choose Selected tabs or All tabs in this profile.": "Ouvrez l’extension et choisissez Onglets sélectionnés ou Tous les onglets de ce profil.",
       "Browser setup": "Configuration du navigateur",
       "Connect": "Connecter",
@@ -2511,7 +2526,12 @@
       "Reasoning effort: {effort}": "Niveau de raisonnement : {effort}",
       "Ultra (Teamwork)": "Ultra (Teamwork)",
       "Teamwork for this prompt. Native effort: {effort}": "Teamwork pour ce message. Niveau natif : {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "Impossible de modifier Teamwork. Utilisez /teamwork dans le champ du message."
+      "Could not change Teamwork. Use /teamwork in the message input.": "Impossible de modifier Teamwork. Utilisez /teamwork dans le champ du message.",
+      "Web page": "Page web",
+      "Google sign-in": "Connexion Google",
+      "External website": "Site externe",
+      "Origin unavailable": "Origine indisponible",
+      "Return to Gemini": "Revenir à Gemini"
     },
     "icons": {
       "folder": "Dossier",
@@ -2846,7 +2866,6 @@
       "Automatic updates support Linux x86-64 and Windows x64.": "自动更新支持 Linux x86-64 和 Windows x64。",
       "Share tabs from Chrome, Brave, Edge or any Chromium-based browser. Your existing logins stay in the browser.": "共享 Chrome、Brave、Edge 或任何基于 Chromium 的浏览器中的标签页。现有登录会话保留在浏览器中。",
       "Open a text editor, type a three-item packing checklist and leave it open for review.": "打开文本编辑器，写一份包含三项物品的出行清单，并保持打开以供检查。",
-      "Plugin customizations": "插件自定义",
       "Open the extension and choose Selected tabs or All tabs in this profile.": "打开扩展程序并选择选定标签页或此配置的所有标签页。",
       "Browser setup": "浏览器设置",
       "Connect": "连接",
@@ -3024,7 +3043,12 @@
       "Reasoning effort: {effort}": "Reasoning effort: {effort}",
       "Ultra (Teamwork)": "Ultra (Teamwork)",
       "Teamwork for this prompt. Native effort: {effort}": "Teamwork for this prompt. Native effort: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "Could not change Teamwork. Use /teamwork in the message input."
+      "Could not change Teamwork. Use /teamwork in the message input.": "Could not change Teamwork. Use /teamwork in the message input.",
+      "Web page": "网页",
+      "Google sign-in": "Google 登录",
+      "External website": "外部网站",
+      "Origin unavailable": "来源不可用",
+      "Return to Gemini": "返回 Gemini"
     },
     "icons": {
       "folder": "文件夹",
@@ -3359,7 +3383,6 @@
       "Automatic updates support Linux x86-64 and Windows x64.": "自動更新は Linux x86-64 と Windows x64 に対応しています。",
       "Share tabs from Chrome, Brave, Edge or any Chromium-based browser. Your existing logins stay in the browser.": "Chrome、Brave、Edge など Chromium ベースのブラウザーのタブを共有します。既存のログインはブラウザーに保持されます。",
       "Open a text editor, type a three-item packing checklist and leave it open for review.": "テキストエディターを開き、持ち物を3つ挙げたチェックリストを入力して、確認できるよう開いたままにしてください。",
-      "Plugin customizations": "プラグインのカスタマイズ",
       "Open the extension and choose Selected tabs or All tabs in this profile.": "拡張機能を開き、選択したタブまたはこのプロファイルのすべてのタブを選んでください。",
       "Browser setup": "ブラウザーの設定",
       "Connect": "接続",
@@ -3537,7 +3560,12 @@
       "Reasoning effort: {effort}": "推論レベル: {effort}",
       "Ultra (Teamwork)": "Ultra（チームワーク）",
       "Teamwork for this prompt. Native effort: {effort}": "このプロンプトでチームワークを使用します。標準の推論レベル: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "チームワークを変更できませんでした。メッセージ入力欄で /teamwork を使用してください。"
+      "Could not change Teamwork. Use /teamwork in the message input.": "チームワークを変更できませんでした。メッセージ入力欄で /teamwork を使用してください。",
+      "Web page": "ウェブページ",
+      "Google sign-in": "Google ログイン",
+      "External website": "外部サイト",
+      "Origin unavailable": "アクセス元が不明です",
+      "Return to Gemini": "Gemini に戻る"
     },
     "icons": {
       "folder": "フォルダー",

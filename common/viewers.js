@@ -203,31 +203,34 @@ function csv(text, delimiter) {
   let row = [],
     cell = "",
     quoted = false,
-    rows = 0;
+    rows = 0,
+    columns = 0;
   const append = () => {
-    row.push(cell);
+    if (columns < 100) row.push(cell);
     cell = "";
+    columns++;
   };
   const finish = () => {
     append();
     const tr = node("tr");
-    for (const value of row.slice(0, 100)) tr.append(node("td", value));
+    for (const value of row) tr.append(node("td", value));
     table.append(tr);
     row = [];
+    columns = 0;
     rows++;
   };
   for (let i = 0; i < text.length && rows < 1000; i++) {
     const c = text[i];
     if (c === '"') {
       if (quoted && text[i + 1] === '"') {
-        cell += '"';
+        if (columns < 100) cell += '"';
         i++;
       } else quoted = !quoted;
     } else if (c === delimiter && !quoted) append();
     else if (c === "\n" && !quoted) finish();
-    else if (c !== "\r") cell += c;
+    else if ((c !== "\r" || quoted) && columns < 100) cell += c;
   }
-  if (cell || row.length) finish();
+  if (rows < 1000 && (cell || columns)) finish();
   const wrap = node("div");
   wrap.className = "sheet-wrap";
   wrap.append(table);

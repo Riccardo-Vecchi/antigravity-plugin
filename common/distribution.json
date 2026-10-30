@@ -120,7 +120,12 @@
     "docs/images/library.png",
     "docs/images/document-preview.png",
     "common/sidebar-layout.cjs",
-    "common/browser-installation.cjs"
+    "common/browser-installation.cjs",
+    "common/gemini-origin.cjs",
+    "common/gemini-origin.js",
+    "common/viewer-bundle.cjs",
+    "common/diagnostics.cjs",
+    "docs/DEVELOPMENT.md"
   ],
   "linux": [
     "linux/desktop.cjs",

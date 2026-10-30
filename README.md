@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.13.0](https://img.shields.io/badge/version-1.13.0-blue)](CHANGELOG.md)
+[![Version 1.14.0](https://img.shields.io/badge/version-1.14.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -34,8 +34,10 @@
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.
 - Fixed Antigravity/Gemini icons or a Dynamic mode, including supported tray integrations.
-- Startup view, Remember last view, desktop autostart, and patch status/recovery controls.
+- Startup view, Remember last view, desktop autostart, and automatic or manual plugin updates.
 - Optional **Library** for generated files and uploads, with search, favorites and local document, media and 3D previews. [Details](docs/LIBRARY.md).
+
+Development and local verification: [Contributing](https://github.com/Riccardo-Vecchi/antigravity-plugin/blob/main/CONTRIBUTING.md) · [Developer guide](docs/DEVELOPMENT.md).
 
 ## 📸 Screenshots
 
@@ -96,7 +98,7 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 **Browser use:** open **Settings → Browser use** and enable its switch. When disabled, only activation controls remain visible. **Open [browser] Extensions** opens the selected browser’s Extensions page for installation or Reload. Releases also include an [extension ZIP](https://github.com/Riccardo-Vecchi/antigravity-plugin/releases/latest/download/antigravity-browser.zip); browser installation approval is still required. [Packaging and installation limits](docs/BROWSER_USE.md#-packaged-extension-and-installation-approval).
 
-**Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Plugin updates → Plugin customizations** contains status and recovery.
+**Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Plugin updates** contains update controls and the plugin enable/disable switch.
 
 **Appearance → Sidebar** selects Expanded, Compact or Expand on hover. **Appearance → Library → Enable Library** shows or hides the library while preserving favorites and added files.
 

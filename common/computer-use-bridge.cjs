@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 // One scope-controlled driver per MCP connection. No HTTP listener or daemon.
-const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const {spawn} = require('node:child_process');

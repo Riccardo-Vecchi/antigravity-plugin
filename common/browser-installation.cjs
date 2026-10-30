@@ -47,7 +47,7 @@ function createProbe({platform=process.platform,home=os.homedir(),env=process.en
       const relative=ROOTS[platform]?.[id];if(!relative){next[id]={status:"unknown",profiles:0};continue;}
       const base=platform==="win32"?(id==="opera"?env.APPDATA:env.LOCALAPPDATA):(env.XDG_CONFIG_HOME||path.join(home,".config"));
       if(!base){next[id]={status:"unknown",profiles:0};continue;}
-      const root=path.join(base,...relative.split("/"));let folders=[],truncated=false;
+      const root=path.join(base,...relative.split("/"));let folders,truncated;
       try {
         const s=await fs.lstat(root);if(!s.isDirectory()||s.isSymbolicLink())throw Error("unreadable");
         const children=await fs.readdir(root,{withFileTypes:true});

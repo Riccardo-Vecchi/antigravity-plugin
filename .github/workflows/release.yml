@@ -7,7 +7,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -21,12 +21,19 @@ jobs:
         run: |
           node -e 'if (process.env.RELEASE_TAG !== "v" + require("./common/versions.cjs").suite) throw Error("Release tag does not match source version")'
           npm ci --ignore-scripts --no-audit --no-fund
+          npm run lint
+          npm run typecheck
+          npm run format:check
           npm run build:viewers
           git diff --exit-code -- assets/viewers
           node --test tests/*.test.cjs
           python3 -m unittest discover -s tests -p 'test_*.py'
           for file in common/*.cjs common/*.js common/browser-extension/*.js linux/*.cjs windows/*.cjs scripts/*.cjs; do node --check "$file"; done
           bash -n linux/install.sh linux/disable.sh
+      - name: Verify sandboxed browser behavior
+        run: |
+          npx playwright install --with-deps --only-shell chromium
+          npm run test:browser
       - name: Build verified update payloads
         run: |
           node scripts/build-update.cjs output/update

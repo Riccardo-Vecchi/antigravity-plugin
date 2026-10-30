@@ -8,7 +8,7 @@ permissions:
 jobs:
   checks:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -19,10 +19,17 @@ jobs:
       - name: Unit and distribution tests
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
+          npm run lint
+          npm run typecheck
+          npm run format:check
           npm run build:viewers
           git diff --exit-code -- assets/viewers
           node --test tests/*.test.cjs
           python3 -m unittest discover -s tests -p 'test_*.py'
+      - name: Sandboxed browser regression tests (temporary profiles)
+        run: |
+          npx playwright install --with-deps --only-shell chromium
+          npm run test:browser
       - name: JavaScript and shell syntax
         run: |
           for file in common/*.cjs common/*.js common/browser-extension/*.js linux/*.cjs windows/*.cjs scripts/*.cjs; do node --check "$file"; done

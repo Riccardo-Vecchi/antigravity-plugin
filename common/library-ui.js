@@ -1,7 +1,7 @@
 /* Artifact library layered over the native pane, preserving its conversation. */
 (() => {
   "use strict";
-  const VERSION = "1.1.0";
+  const VERSION = "1.2.0";
   globalThis.__AGLibrary?.destroy();
   const i18n = globalThis.__AGPAI18n;
   const createPicker = globalThis.__AGPA_LIBRARY_PICKER__;
@@ -10,8 +10,7 @@
   delete globalThis.__AGPA_FILTER_LIBRARY__;
   delete globalThis.__AGPA_LIBRARY_ENABLED__;
   delete globalThis.__AGPA_LIBRARY_PICKER__;
-  let bundle = globalThis.__AGPA_VIEWER_BUNDLE__;
-  delete globalThis.__AGPA_VIEWER_BUNDLE__;
+  let bundlePromise;
   let stopped = false,
     queued = false,
     button = null,
@@ -112,7 +111,12 @@
           pending.delete(requestId);
           reject(Error("unavailable"));
         }, 20000);
-      pending.set(requestId, { resolve, reject, timer, generation: catalogGeneration });
+      pending.set(requestId, {
+        resolve,
+        reject,
+        timer,
+        generation: catalogGeneration,
+      });
       try {
         globalThis.__agpaLibrary(JSON.stringify({ requestId, action, value }));
       } catch (e) {
@@ -338,6 +342,15 @@
         }
         return;
       }
+      // No viewer code is transferred until the first non-HTML preview.
+      // Share concurrent requests, but allow retry after a transient failure.
+      bundlePromise ||= request("viewerBundle", true).catch((error) => {
+        bundlePromise = undefined;
+        throw error;
+      });
+      const bundle = await bundlePromise;
+      if (stopped || generation !== previewGeneration || !viewer) return;
+      if (typeof bundle !== "string" || !bundle) throw Error("unavailable");
       const nonce = crypto.randomUUID().replaceAll("-", ""),
         channel = new MessageChannel();
       const timeout = setTimeout(() => {
@@ -452,17 +465,31 @@
     thumbnailQueue = [];
     const generation = requestGeneration;
     const filtered = filterItems(items, {
-      source: sourceFilter, type: filter, favorites: favoritesOnly, query,
+      source: sourceFilter,
+      type: filter,
+      favorites: favoritesOnly,
+      query,
     });
     grid.replaceChildren();
     count.textContent = String(filtered.length);
     empty.hidden = filtered.length > 0 || loading;
     const description = empty.querySelector("p");
-    i18n.set(empty.querySelector("h2"), query || favoritesOnly || filter !== "all" ? "No matching files" :
-      sourceFilter === "uploaded" ? "Your uploads, together" : "Your creations, together");
-    i18n.set(description, query || favoritesOnly || filter !== "all" ? "Try another search or change the filters." :
-      sourceFilter === "uploaded" ? "Conversation uploads and files you add appear here. Originals stay where they are." :
-      "Saved outputs appear here. Use Uploaded to find conversation attachments and files you add.");
+    i18n.set(
+      empty.querySelector("h2"),
+      query || favoritesOnly || filter !== "all"
+        ? "No matching files"
+        : sourceFilter === "uploaded"
+          ? "Your uploads, together"
+          : "Your creations, together",
+    );
+    i18n.set(
+      description,
+      query || favoritesOnly || filter !== "all"
+        ? "Try another search or change the filters."
+        : sourceFilter === "uploaded"
+          ? "Conversation uploads and files you add appear here. Originals stay where they are."
+          : "Saved outputs appear here. Use Uploaded to find conversation attachments and files you add.",
+    );
     const fragment = document.createDocumentFragment();
     for (const item of filtered.slice(0, limit)) {
       const holder = el(
@@ -480,7 +507,14 @@
           el("strong", { text: item.name }),
           el("small", {
             text:
-              i18n.t(item.source === "generated" ? "Generated" : item.source === "uploaded" ? "Uploaded" : "Added manually") + " · " +
+              i18n.t(
+                item.source === "generated"
+                  ? "Generated"
+                  : item.source === "uploaded"
+                    ? "Uploaded"
+                    : "Added manually",
+              ) +
+              " · " +
               item.extension.toUpperCase() +
               " · " +
               size(item.size) +
@@ -532,8 +566,13 @@
     panel.querySelector("[data-agpa-library-more]").hidden =
       filtered.length <= limit;
     for (const b of panel.querySelectorAll("[data-agpa-library-source]"))
-      b.setAttribute("aria-pressed", String(b.dataset.agpaLibrarySource === sourceFilter));
-    panel.querySelector("[data-agpa-library-favorites]").setAttribute("aria-pressed", String(favoritesOnly));
+      b.setAttribute(
+        "aria-pressed",
+        String(b.dataset.agpaLibrarySource === sourceFilter),
+      );
+    panel
+      .querySelector("[data-agpa-library-favorites]")
+      .setAttribute("aria-pressed", String(favoritesOnly));
     filterControl.setValue(filter);
   }
   async function refresh(force = false) {
@@ -562,7 +601,8 @@
       loading = false;
       refreshButton.disabled = false;
       paint();
-      if (enabled && generation !== catalogGeneration && panel && !panel.hidden) refresh();
+      if (enabled && generation !== catalogGeneration && panel && !panel.hidden)
+        refresh();
     }
   }
   const fileTypes = [
@@ -708,9 +748,16 @@
       filters.append(b);
     }
     const favorites = el("button", {
-      type: "button", "data-agpa-library-favorites": "", "aria-pressed": "false", text: "Favorites",
+      type: "button",
+      "data-agpa-library-favorites": "",
+      "aria-pressed": "false",
+      text: "Favorites",
     });
-    favorites.onclick = () => { favoritesOnly = !favoritesOnly; limit = 60; paint(); };
+    favorites.onclick = () => {
+      favoritesOnly = !favoritesOnly;
+      limit = 60;
+      paint();
+    };
     filters.append(favorites);
     filterControl = makeFilter();
     count = el("span", { class: "agpa-library-count" });
@@ -888,7 +935,8 @@
       clearTimeout(p.timer);
       pending.delete(id);
       ok && enabled && p.generation === catalogGeneration
-        ? p.resolve(result) : p.reject(Error(result?.error || "unavailable"));
+        ? p.resolve(result)
+        : p.reject(Error(result?.error || "unavailable"));
     },
     status: () => ({
       enabled,
@@ -916,7 +964,7 @@
       button?.remove();
       panel?.remove();
       styles.remove();
-      bundle = null;
+      bundlePromise = undefined;
       delete globalThis.__AGLibrary;
     },
   };

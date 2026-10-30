@@ -45,17 +45,9 @@ Use **Settings → Application → Plugin updates → Enable plugin**. Turning i
 
 The platform disable scripts stop the helper entirely and have their existing platform-specific behavior. Use the GUI switch for reversible suspension with preferences retained.
 
-## Patch status and recovery
+## Compatibility and recovery
 
-Open **Settings → Application → Plugin updates → Plugin customizations**:
-
-- **Version** identifies the installed helper code.
-- **Check compatibility** reads the current native interface hooks and checks the project, settings, Gemini, and keyboard integrations. The result and time of the last check are shown for that window.
-- **Reapply patch** restores the integration's controls and styles without navigating the native app or the Gemini guest. Project customizations and app preferences are retained.
-
-Checks distinguish missing helper elements (repairable) from missing native hooks (incompatible). Reapplication is skipped if required native hooks changed, a project editor is open, or an existing Gemini guest lost its original controller. This preserves the current session; a changed upstream interface can require a source update followed by `./linux/install.sh`.
-
-These are local interface checks. A Ready result does not certify every vendor feature, website request, login flow, or future app release. Reapplication repairs the running UI; it does not download updates, overwrite the AppImage, or change your desktop settings.
+The helper checks native interface hooks internally and periodically restores missing controls. The Application page shows update controls and the plugin enable/disable switch; technical readiness checklists are not shown. If an upstream Antigravity update changes its interface, install a compatible plugin release or rerun the platform installer. Updating the plugin preserves preferences and open Gemini sessions.
 
 ## Languages
 

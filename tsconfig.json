@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "types": ["node"],
+    "skipLibCheck": true
+  },
+  "files": [
+    "common/gemini-origin.cjs",
+    "common/viewer-bundle.cjs",
+    "common/diagnostics.cjs"
+  ]
+}

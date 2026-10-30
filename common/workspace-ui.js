@@ -1,7 +1,7 @@
 /* Branding, title and optional hover sidebar. Native documents stay mounted. */
 (() => {
   "use strict";
-  const VERSION = "1.1.0";
+  const VERSION = "1.1.1";
   globalThis.__AGWorkspace?.destroy();
   const i18n = globalThis.__AGPAI18n,
     icon = globalThis.__AGPA_BRAND_ICON__,
@@ -16,7 +16,8 @@
     panel = null,
     menuTitle = null,
     lastExpanded = null,
-    nativeTitle = document.title;
+    nativeTitle = document.title,
+    displayedTitle = null;
   const listeners = [],
     marks = new Set(),
     pending = new Map();
@@ -50,13 +51,19 @@
   const gemini = () => !!document.querySelector("[data-agpa-gemini][open]");
   function title() {
     if (gemini()) {
-      if (document.title !== "Google Gemini") {
-        nativeTitle = document.title;
-        document.title = "Google Gemini";
-      }
-    } else if (document.title === "Google Gemini")
-      document.title = nativeTitle || "Antigravity";
-    else nativeTitle = document.title;
+      const next =
+        globalThis.__AGGeminiOrigin?.status().title || "Google Gemini";
+      if (document.title !== displayedTitle) nativeTitle = document.title;
+      displayedTitle = next;
+      if (document.title !== next) document.title = next;
+      if (menuTitle && menuTitle.textContent !== next)
+        menuTitle.textContent = next;
+    } else {
+      if (displayedTitle && document.title === displayedTitle)
+        document.title = nativeTitle || "Antigravity";
+      else nativeTitle = document.title;
+      displayedTitle = null;
+    }
   }
   function commitMotion() {
     queueMicrotask(() => {
@@ -234,7 +241,9 @@
     const bar = document.querySelector("[data-testid=title-menu-bar]");
     if (bar) {
       if (!menuTitle) {
-        menuTitle = text("span", "Google Gemini");
+        menuTitle = document.createElement("span");
+        menuTitle.textContent =
+          globalThis.__AGGeminiOrigin?.status().title || "Google Gemini";
         menuTitle.setAttribute("data-agpa-gemini-menu-title", "");
       }
       if (menuTitle.parentElement !== bar) bar.append(menuTitle);
@@ -312,16 +321,21 @@
         input.type = "checkbox";
         input.setAttribute("data-agpa-library-enabled", "");
         input.style.accentColor = "#398bdb";
-        on(input, "change", () =>
-          choose(input.checked, "libraryEnabled"),
-        );
+        on(input, "change", () => choose(input.checked, "libraryEnabled"));
         label.append(input, text("span", "Enable Library"));
         const libraryHeading = text("h3", "Library");
-        libraryHeading.style.cssText = "margin-top:20px;border-top:1px solid var(--border,#353535);padding-top:16px";
+        libraryHeading.style.cssText =
+          "margin-top:20px;border-top:1px solid var(--border,#353535);padding-top:16px";
         section.insertBefore(libraryHeading, section.lastChild);
         label.style.marginTop = "8px";
         section.insertBefore(label, section.lastChild);
-        section.insertBefore(text("p", "Show generated files and uploads. Disabling keeps your favorites and added files."), section.lastChild);
+        section.insertBefore(
+          text(
+            "p",
+            "Show generated files and uploads. Disabling keeps your favorites and added files.",
+          ),
+          section.lastChild,
+        );
       }
       if (section.parentElement !== host) host.append(section);
       paint();
@@ -363,6 +377,7 @@
     subtree: true,
   });
   on(document, "pointermove", move, { passive: true });
+  on(document, "agpa:guest-identity", title);
   on(window, "blur", hide);
   on(window, "resize", hide);
   on(document, "keydown", (e) => {
@@ -428,7 +443,8 @@
         n.removeAttribute("data-agpa-brand");
         n.querySelector("[data-agpa-brand-image]")?.remove();
       }
-      if (document.title === "Google Gemini") document.title = nativeTitle;
+      if (displayedTitle && document.title === displayedTitle)
+        document.title = nativeTitle;
       section?.remove();
       style.remove();
       delete globalThis.__AGWorkspace;

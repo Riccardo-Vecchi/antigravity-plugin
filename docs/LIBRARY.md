@@ -21,7 +21,7 @@ Disable **Settings → Appearance → Library → Enable Library** to remove Lib
 | Images, audio and video | Local preview using Chromium-supported codecs |
 | PDF | Offline PDF.js rendering with page navigation and selectable text; complex font/decoder features can differ |
 | GLB, self-contained glTF, STL, OBJ, PLY | Interactive orbit, zoom and pan; external textures, sidecar buffers and compressed decoder extensions are not loaded |
-| HTML | Isolated interactive preview; external resources start blocked; **Allow online resources** enables HTTPS resources for that preview only |
+| HTML | Isolated interactive preview; external resources start blocked; **Allow online resources** enables HTTPS resources for that preview only, with one click |
 | ODT, ODS, ODP, RTF | Listed and revealed in the file manager; open the original in its desktop application |
 
 Files above 25 MiB remain listed but are not loaded into the built-in viewer. **Show in folder** reveals the original. Generated files also offer **Open conversation** when their originating conversation is known.
@@ -30,7 +30,7 @@ Select text in a supported document preview, then choose **Discuss selection**. 
 
 ## 🔒 Local processing
 
-Preview engines ship with the plugin. Documents are not uploaded to an online converter. Viewers run in sandboxed iframes with opaque origins, without Node, native application APIs or agent tools. File contents are loaded only for a requested preview or a small image thumbnail. HTML can run scripts inside its isolated preview; allowing online resources can make network requests from that preview.
+Preview engines ship with the plugin and load on demand. Documents are not uploaded to an online converter. Viewers run in sandboxed iframes with opaque origins, without Node, native application APIs or agent tools. File contents are loaded only for a requested preview or a small image thumbnail. HTML can run scripts inside its isolated preview; allowing online resources enables HTTPS code and requests that can send its content to websites. The online-resources choice resets when the preview closes; there is no additional confirmation dialog. Resource CSP is not a general network-containment guarantee for arbitrary executable HTML.
 
 Only favorites and manually added paths persist in the plugin's private `library.json`. The discovery catalog and extracted transcript references remain in memory. `workspace.json` stores the independent sidebar-mode choice and Library enable/disable preference. Sidebar transitions are always smooth while the plugin is active. Official conversation files and document originals remain read-only.
 

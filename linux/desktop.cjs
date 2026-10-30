@@ -40,10 +40,10 @@ async function desktopWithIcon(choice){
  await resolveInstallation();
  const stat=await fs.lstat(DESKTOP).catch(e=>{if(e.code==='ENOENT')return {mode:0o644,isFile:()=>true};throw e;});if(!stat.isFile())throw Error('The Antigravity launcher is not a regular file.');
  const before=await fs.readFile(DESKTOP,'utf8').catch(e=>{if(e.code==='ENOENT')return installation.text;throw e;});
- const lines=before.split('\n');let inside=false,start=-1,end=lines.length,exec=null,iconLine=-1;
+ const lines=before.split('\n');let inside=false,start=-1,end=lines.length,iconLine=-1;
  for(let i=0;i<lines.length;i++){
   if(/^\[.*\]$/.test(lines[i])){if(inside){end=i;break;}inside=lines[i]==='[Desktop Entry]';if(inside)start=i;}
-  else if(inside){if(lines[i].startsWith('Exec='))exec=lines[i].slice(5);if(lines[i].startsWith('Icon='))iconLine=i;}
+  else if(inside){if(lines[i].startsWith('Icon='))iconLine=i;}
  }
  if(start<0||await fs.realpath(discovery.parseDesktop(before)?.executable||'')!==await fs.realpath(EXECUTABLE))throw Error('The Antigravity launcher changed. Check its configuration before changing the icon.');
  const backupFile=path.join(DIRECTORY,'launcher-original-icons.json');
