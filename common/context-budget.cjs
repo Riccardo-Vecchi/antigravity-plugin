@@ -29,29 +29,30 @@ function estimateImageTokens(width, height) {
 }
 
 function detectActiveModel(doc = document) {
-  if (!doc) return { name: '', ceiling: 200000 };
+  if (!doc) return { name: '', ceiling: 1000000 };
   const trigger = doc.querySelector?.('[data-testid=model-selector-trigger], [data-agpa-footer-model]');
   const rawName = trigger?.querySelector?.(':scope > span:not([data-agpa-model-ui])')?.textContent ||
     trigger?.textContent || '';
   const cleanName = rawName.trim().replace(/\s+/g, ' ');
   const lower = cleanName.toLowerCase();
 
-  let ceiling = 200000;
-  if (lower.includes('gemini')) {
-    if (lower.includes('pro') || lower.includes('1.5-pro') || lower.includes('2.0-pro') || lower.includes('2.5-pro')) {
-      ceiling = 2000000;
-    } else {
-      ceiling = 1000000;
-    }
-  } else if (lower.includes('gpt-4') || lower.includes('gpt-4o')) {
-    ceiling = 128000;
-  } else if (lower.includes('claude') || lower.includes('sonnet') || lower.includes('haiku') || lower.includes('opus') || lower.includes('o1') || lower.includes('o3')) {
-    ceiling = 200000;
-  } else if (lower.includes('deepseek') || lower.includes('llama')) {
-    ceiling = 128000;
+  // 1. OpenAI: GPT-OSS 120B (128k)
+  if (lower.includes('gpt-oss') || lower.includes('120b') || (lower.includes('gpt') && lower.includes('oss'))) {
+    return { name: cleanName || 'GPT-OSS 120B', ceiling: 128000 };
   }
 
-  return { name: cleanName, ceiling };
+  // 2. Claude: Sonnet 4.6 & Opus 4.6 (1M context window)
+  if (lower.includes('sonnet') || lower.includes('opus') || lower.includes('claude')) {
+    return { name: cleanName || 'Claude 4.6', ceiling: 1000000 };
+  }
+
+  // 3. Google Gemini: Gemini 4 Carbon, Gemini 4 Argon, Gemini 3.8 Flash (all Gemini >= 3 have 1M)
+  if (lower.includes('gemini') || lower.includes('carbon') || lower.includes('argon')) {
+    return { name: cleanName || 'Gemini', ceiling: 1000000 };
+  }
+
+  // Default to 1M (standard context window for current Antigravity models)
+  return { name: cleanName, ceiling: 1000000 };
 }
 
 function estimateTokens(chars, turns, imageTokens = 0) {
@@ -61,9 +62,9 @@ function estimateTokens(chars, turns, imageTokens = 0) {
   return Math.max(0, textTokens + turnOverhead + imgTokens);
 }
 
-function budgetLevelFor(tokens, ceiling = 200000) {
+function budgetLevelFor(tokens, ceiling = 1000000) {
   const count = Number(tokens) || 0;
-  const max = Math.max(1000, Number(ceiling) || 200000);
+  const max = Math.max(1000, Number(ceiling) || 1000000);
   const healthyThreshold = Math.round(max * 0.175);
   const moderateThreshold = Math.round(max * 0.425);
   const elevatedThreshold = Math.round(max * 0.80);
@@ -86,6 +87,10 @@ function formatTokens(tokens) {
   const count = Number(tokens) || 0;
   if (count < 1000) return String(count);
   const k = Math.round(count / 1000);
+  if (k >= 1000) {
+    const m = (count / 1000000).toFixed(k % 1000 === 0 ? 0 : 1);
+    return `~${m}M`;
+  }
   return `~${k}k`;
 }
 
@@ -158,7 +163,7 @@ function collectImages(doc) {
 }
 
 function extractConversationStats(doc = document) {
-  if (!doc) return { chars: 0, turns: 0, imageTokens: 0, imageCount: 0, tokens: 0, ceiling: 200000, modelName: '', budget: budgetLevelFor(0, 200000), formatted: '0' };
+  if (!doc) return { chars: 0, turns: 0, imageTokens: 0, imageCount: 0, tokens: 0, ceiling: 1000000, modelName: '', budget: budgetLevelFor(0, 1000000), formatted: '0' };
   const convKey = getConversationKey(doc);
 
   let entry = conversationCache.get(convKey);

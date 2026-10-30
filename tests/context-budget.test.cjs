@@ -24,37 +24,43 @@ test('estimateImageTokens calculates multimodal vision tokens based on resolutio
   assert.equal(rules.estimateImageTokens(3840, 2160), 1105, '4K images scale to bounding box and tile accurately');
 });
 
-test('detectActiveModel identifies model family and sets context ceiling dynamically', () => {
+test('detectActiveModel identifies Antigravity models and sets context ceiling dynamically', () => {
   const makeDoc = name => ({
     querySelector: sel => sel.includes('model-selector-trigger') ? { textContent: name } : null
   });
 
-  assert.equal(rules.detectActiveModel(makeDoc('Gemini 2.5 Pro')).ceiling, 2000000);
-  assert.equal(rules.detectActiveModel(makeDoc('Gemini 2.0 Flash')).ceiling, 1000000);
-  assert.equal(rules.detectActiveModel(makeDoc('Claude 3.5 Sonnet')).ceiling, 200000);
-  assert.equal(rules.detectActiveModel(makeDoc('GPT-4o')).ceiling, 128000);
-  assert.equal(rules.detectActiveModel(makeDoc('DeepSeek R1')).ceiling, 128000);
-  assert.equal(rules.detectActiveModel(null).ceiling, 200000);
+  // Google Gemini models (Gemini 4 Carbon/Argon, Gemini 3.8 Flash, all >= 3 have 1M)
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 4 Carbon (high)')).ceiling, 1000000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 4 Argon (high)')).ceiling, 1000000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (high)')).ceiling, 1000000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (medium)')).ceiling, 1000000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (low)')).ceiling, 1000000);
+
+  // Anthropic Claude (Sonnet 4.6 and Opus 4.6 both have 1M)
+  assert.equal(rules.detectActiveModel(makeDoc('Claude Sonnet 4.6')).ceiling, 1000000);
+  assert.equal(rules.detectActiveModel(makeDoc('Claude Opus 4.6')).ceiling, 1000000);
+
+  // OpenAI (GPT-OSS 120B has 128k)
+  assert.equal(rules.detectActiveModel(makeDoc('GPT-OSS 120B')).ceiling, 128000);
+
+  // Default fallback for current Antigravity models
+  assert.equal(rules.detectActiveModel(null).ceiling, 1000000);
 });
 
-test('budgetLevelFor categorizes tokens into healthy, moderate, elevated, and saturated', () => {
-  assert.equal(rules.budgetLevelFor(5000).level, 'healthy');
-  assert.equal(rules.budgetLevelFor(40000).level, 'moderate');
-  assert.equal(rules.budgetLevelFor(100000).level, 'elevated');
-  assert.equal(rules.budgetLevelFor(200000).level, 'saturated');
-  assert.equal(rules.budgetLevelFor(200000).color, '#ff666a');
+test('budgetLevelFor categorizes tokens into healthy, moderate, elevated, and saturated on 1M default', () => {
+  assert.equal(rules.budgetLevelFor(50000).level, 'healthy');
+  assert.equal(rules.budgetLevelFor(250000).level, 'moderate');
+  assert.equal(rules.budgetLevelFor(500000).level, 'elevated');
+  assert.equal(rules.budgetLevelFor(900000).level, 'saturated');
+  assert.equal(rules.budgetLevelFor(900000).color, '#ff666a');
 });
 
 test('budgetLevelFor scales thresholds dynamically based on model ceiling', () => {
-  // 100k tokens on standard Claude (200k max) is elevated (50%)
-  assert.equal(rules.budgetLevelFor(100000, 200000).level, 'elevated');
-  assert.equal(rules.budgetLevelFor(100000, 200000).percentage, 50);
-
-  // 100k tokens on Gemini Flash (1M max) is healthy (10%)
+  // 100k tokens on Gemini 4 / Claude 4.6 (1M max) is healthy (10%)
   assert.equal(rules.budgetLevelFor(100000, 1000000).level, 'healthy');
   assert.equal(rules.budgetLevelFor(100000, 1000000).percentage, 10);
 
-  // 100k tokens on GPT-4o (128k max) is elevated (78%)
+  // 100k tokens on GPT-OSS 120B (128k max) is elevated (78%)
   assert.equal(rules.budgetLevelFor(100000, 128000).level, 'elevated');
   assert.equal(rules.budgetLevelFor(100000, 128000).percentage, 78);
 });
@@ -64,6 +70,7 @@ test('formatTokens formats token counts cleanly', () => {
   assert.equal(rules.formatTokens(1240), '~1k');
   assert.equal(rules.formatTokens(45200), '~45k');
   assert.equal(rules.formatTokens(185000), '~185k');
+  assert.equal(rules.formatTokens(1000000), '~1M');
 });
 
 test('extractConversationStats extracts chars, turns, and budget from document', () => {
@@ -383,7 +390,7 @@ test('context budget component attaches pill, reflects levels and allows inserti
   assert.equal(body.querySelector('.agpa-context-popup'), null, 'close button dismisses popup');
 
   // Saturated test
-  viewport.textContent = 'Large conversation '.repeat(40000); // 760,000 chars
+  viewport.textContent = 'Large conversation '.repeat(180000); // 3,420,000 chars -> 855k tokens (saturated on 1M)
   context.__AGContextBudget.refresh();
 
   assert.equal(pill.getAttribute('data-level'), 'saturated');
