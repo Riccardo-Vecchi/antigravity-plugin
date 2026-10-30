@@ -15,6 +15,49 @@ test('estimateTokens calculates text tokens and turn overhead accurately', () =>
   assert.equal(rules.estimateTokens(4000, 5, 1105), 1000 + 600 + 1105);
 });
 
+test('estimateTokens factors in higher density for code blocks (2.8 chars per token)', () => {
+  // 4000 total chars, 2800 of which are code:
+  // prose: 1200 / 4 = 300 tokens
+  // code: 2800 / 2.8 = 1000 tokens
+  // turns: 2 * 120 = 240 tokens
+  // expected: 300 + 1000 + 240 = 1540 tokens
+  assert.equal(rules.estimateTokens(4000, 2, 0, 2800), 1540);
+});
+
+test('collectTurnBlocks extracts code characters without double counting nested elements', () => {
+  const codeText = 'const x = 10; function run() { return x * 2; }';
+  const item = {
+    textContent: 'Explanation before code: ' + codeText,
+    querySelector: sel => sel && sel.includes('user-input-step') ? { textContent: 'Write code' } : null,
+    querySelectorAll: sel => {
+      if (sel && sel.includes('pre')) {
+        const codeNode = { textContent: codeText };
+        const preNode = { textContent: codeText };
+        codeNode.parentElement = { closest: s => s && s.includes('pre') ? preNode : null };
+        return [preNode, codeNode];
+      }
+      return [];
+    }
+  };
+
+  const doc = {
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') {
+        return {
+          querySelector: () => null,
+          firstElementChild: { children: [item] }
+        };
+      }
+      return null;
+    }
+  };
+
+  const blocks = rules.collectTurnBlocks(doc);
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].codeChars, codeText.length, 'nested code node not double counted');
+  assert.ok(blocks[0].length > blocks[0].codeChars, 'total length includes both prose and code');
+});
+
 test('estimateImageTokens calculates multimodal vision tokens based on resolution', () => {
   assert.equal(rules.estimateImageTokens(0, 0), 0);
   assert.equal(rules.estimateImageTokens(32, 32), 0, 'avatars and icons under 40px are ignored');

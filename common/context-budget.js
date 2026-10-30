@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.0.6';
+  const VERSION = '1.0.7';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 

@@ -111,11 +111,15 @@ function detectActiveModel(doc = document) {
   return { name: cleanName, ceiling: 1000000 };
 }
 
-function estimateTokens(chars, turns, imageTokens = 0) {
-  const textTokens = Math.round((Number(chars) || 0) / 4);
+function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0) {
+  const totalChars = Math.max(0, Number(chars) || 0);
+  const code = Math.min(totalChars, Math.max(0, Number(codeChars) || 0));
+  const prose = Math.max(0, totalChars - code);
+  const proseTokens = Math.round(prose / 4);
+  const codeTokens = Math.round(code / 2.8);
   const turnOverhead = (Number(turns) || 0) * 120;
   const imgTokens = Math.max(0, Number(imageTokens) || 0);
-  return Math.max(0, textTokens + turnOverhead + imgTokens);
+  return Math.max(0, proseTokens + codeTokens + turnOverhead + imgTokens);
 }
 
 function budgetLevelFor(tokens, ceiling = 1000000) {
@@ -185,7 +189,18 @@ function collectTurnBlocks(doc) {
     const text = item.textContent || '';
     if (prompt || text.length > 50) {
       const key = prompt ? 'p:' + prompt : 't:' + text.slice(0, 60);
-      blocks.push({ key, length: text.length });
+
+      let codeChars = 0;
+      const codeNodes = item.querySelectorAll?.('pre, [data-testid*="code-block"], [class*="code-block"]') || [];
+      for (const node of codeNodes) {
+        if (node.parentElement?.closest?.('pre, [data-testid*="code-block"], [class*="code-block"]')) {
+          continue;
+        }
+        codeChars += node.textContent?.length || 0;
+      }
+      codeChars = Math.min(text.length, codeChars);
+
+      blocks.push({ key, length: text.length, codeChars });
     }
   }
   return blocks;
@@ -219,7 +234,7 @@ function collectImages(doc) {
 }
 
 function extractConversationStats(doc = document, storage = undefined) {
-  if (!doc) return { chars: 0, turns: 0, imageTokens: 0, imageCount: 0, tokens: 0, ceiling: 1000000, modelName: '', budget: budgetLevelFor(0, 1000000), formatted: '0' };
+  if (!doc) return { chars: 0, codeChars: 0, turns: 0, imageTokens: 0, imageCount: 0, tokens: 0, ceiling: 1000000, modelName: '', budget: budgetLevelFor(0, 1000000), formatted: '0' };
   const convKey = getConversationKey(doc);
   const store = storage !== undefined ? storage : getStorage(doc);
 
@@ -231,6 +246,7 @@ function extractConversationStats(doc = document, storage = undefined) {
         blocks: new Map(stored.blocks || []),
         images: new Map(stored.images || []),
         maxChars: stored.maxChars || 0,
+        maxCodeChars: stored.maxCodeChars || 0,
         maxTurns: stored.maxTurns || 0,
         maxImageTokens: stored.maxImageTokens || 0,
         ceiling: stored.ceiling || 1000000,
@@ -246,11 +262,12 @@ function extractConversationStats(doc = document, storage = undefined) {
       const oldest = conversationCache.keys().next().value;
       conversationCache.delete(oldest);
     }
-    entry = { blocks: new Map(), images: new Map(), maxChars: 0, maxTurns: 0, maxImageTokens: 0 };
+    entry = { blocks: new Map(), images: new Map(), maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0 };
     conversationCache.set(convKey, entry);
   }
   if (!entry.images) entry.images = new Map();
   if (typeof entry.maxImageTokens !== 'number') entry.maxImageTokens = 0;
+  if (typeof entry.maxCodeChars !== 'number') entry.maxCodeChars = 0;
 
   const viewport = doc.querySelector?.('[data-testid=autoscroll-viewport]') || doc.querySelector?.('[data-testid=conversation-view]');
 
@@ -263,6 +280,7 @@ function extractConversationStats(doc = document, storage = undefined) {
     entry.blocks.clear();
     entry.images.clear();
     entry.maxChars = 0;
+    entry.maxCodeChars = 0;
     entry.maxTurns = 0;
     entry.maxImageTokens = 0;
     entry.compacted = true;
@@ -272,7 +290,7 @@ function extractConversationStats(doc = document, storage = undefined) {
   // Discover newly mounted turn blocks in viewport
   const currentBlocks = collectTurnBlocks(doc);
   for (const b of currentBlocks) {
-    entry.blocks.set(b.key, b.length);
+    entry.blocks.set(b.key, { length: b.length, codeChars: b.codeChars || 0 });
   }
 
   // Discover newly mounted images in viewport
@@ -282,7 +300,13 @@ function extractConversationStats(doc = document, storage = undefined) {
   }
 
   let blockSum = 0;
-  for (const len of entry.blocks.values()) blockSum += len;
+  let codeSum = 0;
+  for (const blockVal of entry.blocks.values()) {
+    const len = typeof blockVal === 'number' ? blockVal : (blockVal?.length || 0);
+    const code = typeof blockVal === 'object' ? (blockVal?.codeChars || 0) : 0;
+    blockSum += len;
+    codeSum += code;
+  }
 
   let imageSum = 0;
   for (const t of entry.images.values()) imageSum += t;
@@ -302,6 +326,9 @@ function extractConversationStats(doc = document, storage = undefined) {
   const chars = Math.max(blockSum, currentChars, entry.maxChars);
   entry.maxChars = chars;
 
+  const codeChars = Math.max(codeSum, entry.maxCodeChars || 0);
+  entry.maxCodeChars = codeChars;
+
   const navTurns = countTurns(doc);
   const turns = Math.max(entry.blocks.size, navTurns, entry.maxTurns);
   entry.maxTurns = turns;
@@ -315,6 +342,7 @@ function extractConversationStats(doc = document, storage = undefined) {
       blocks: [...entry.blocks.entries()],
       images: [...entry.images.entries()],
       maxChars: entry.maxChars,
+      maxCodeChars: entry.maxCodeChars,
       maxTurns: entry.maxTurns,
       maxImageTokens: entry.maxImageTokens,
       ceiling,
@@ -327,10 +355,11 @@ function extractConversationStats(doc = document, storage = undefined) {
   const budgetFn = typeof budgetLevelFor === 'function' ? budgetLevelFor : (this?.budgetLevelFor || budgetLevelFor);
   const formatFn = typeof formatTokens === 'function' ? formatTokens : (this?.formatTokens || formatTokens);
 
-  const tokens = estimateFn(chars, turns, imageTokens);
+  const tokens = estimateFn(chars, turns, imageTokens, codeChars);
   const budget = budgetFn(tokens, ceiling);
   return {
     chars,
+    codeChars,
     turns,
     imageTokens,
     imageCount,
