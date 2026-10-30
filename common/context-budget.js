@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.0.4';
+  const VERSION = '1.0.5';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -88,7 +88,15 @@
           : t('Context budget is saturated. /compact recommended.')
     });
 
-    popup.append(header, desc, statusNote);
+    const ceilingFmt = rules.formatTokens ? rules.formatTokens(stats.ceiling || 200000) : '~200k';
+    const modelNote = element('div', {
+      class: 'agpa-context-model-note',
+      text: stats.modelName
+        ? `${stats.modelName} · ${stats.budget.percentage}% (${ceilingFmt} max)`
+        : `${stats.budget.percentage}% (${ceilingFmt} max)`
+    });
+
+    popup.append(header, desc, modelNote, statusNote);
 
     if (stats.budget.level === 'elevated' || stats.budget.level === 'saturated') {
       const action = element('button', {
@@ -135,7 +143,10 @@
     const labelText = stats.budget.level === 'saturated' ? `⚠️ ${tokenLabel} · /compact` : tokenLabel;
 
     if (pill.textContent !== labelText) pill.textContent = labelText;
-    const titleText = t('Context: {tokens}', { tokens: tokenLabel });
+    const ceilingFormatted = rules.formatTokens ? rules.formatTokens(stats.ceiling || 200000) : '~200k';
+    const titleText = stats.modelName
+      ? (t('Context: {tokens}', { tokens: tokenLabel }) + ' / ' + ceilingFormatted + ' (' + stats.budget.percentage + '%) · ' + stats.modelName)
+      : (t('Context: {tokens}', { tokens: tokenLabel }) + ' / ' + ceilingFormatted + ' (' + stats.budget.percentage + '%)');
     if (pill.getAttribute('title') !== titleText) pill.setAttribute('title', titleText);
     const ariaText = t('Context budget: {tokens} tokens ({turns} turns)', {
       tokens: stats.formatted,
@@ -296,6 +307,11 @@
       margin: 0 0 8px;
       font-size: 11px;
       color: var(--muted-foreground, #aaa);
+    }
+    .agpa-context-model-note {
+      font-size: 11px;
+      color: var(--secondary-foreground, #aaa);
+      margin: 2px 0 8px 0;
     }
     .agpa-context-status {
       font-size: 11px;

@@ -28,6 +28,32 @@ function estimateImageTokens(width, height) {
   return 85 + (tilesX * tilesY * 170);
 }
 
+function detectActiveModel(doc = document) {
+  if (!doc) return { name: '', ceiling: 200000 };
+  const trigger = doc.querySelector?.('[data-testid=model-selector-trigger], [data-agpa-footer-model]');
+  const rawName = trigger?.querySelector?.(':scope > span:not([data-agpa-model-ui])')?.textContent ||
+    trigger?.textContent || '';
+  const cleanName = rawName.trim().replace(/\s+/g, ' ');
+  const lower = cleanName.toLowerCase();
+
+  let ceiling = 200000;
+  if (lower.includes('gemini')) {
+    if (lower.includes('pro') || lower.includes('1.5-pro') || lower.includes('2.0-pro') || lower.includes('2.5-pro')) {
+      ceiling = 2000000;
+    } else {
+      ceiling = 1000000;
+    }
+  } else if (lower.includes('gpt-4') || lower.includes('gpt-4o')) {
+    ceiling = 128000;
+  } else if (lower.includes('claude') || lower.includes('sonnet') || lower.includes('haiku') || lower.includes('opus') || lower.includes('o1') || lower.includes('o3')) {
+    ceiling = 200000;
+  } else if (lower.includes('deepseek') || lower.includes('llama')) {
+    ceiling = 128000;
+  }
+
+  return { name: cleanName, ceiling };
+}
+
 function estimateTokens(chars, turns, imageTokens = 0) {
   const textTokens = Math.round((Number(chars) || 0) / 4);
   const turnOverhead = (Number(turns) || 0) * 120;
@@ -35,18 +61,25 @@ function estimateTokens(chars, turns, imageTokens = 0) {
   return Math.max(0, textTokens + turnOverhead + imgTokens);
 }
 
-function budgetLevelFor(tokens) {
+function budgetLevelFor(tokens, ceiling = 200000) {
   const count = Number(tokens) || 0;
-  if (count < 35000) {
-    return { level: 'healthy', color: '#6ba9ff', label: 'Healthy', percentage: Math.min(100, Math.round((count / 200000) * 100)) };
+  const max = Math.max(1000, Number(ceiling) || 200000);
+  const healthyThreshold = Math.round(max * 0.175);
+  const moderateThreshold = Math.round(max * 0.425);
+  const elevatedThreshold = Math.round(max * 0.80);
+
+  const percentage = Math.min(100, Math.round((count / max) * 100));
+
+  if (count < healthyThreshold) {
+    return { level: 'healthy', color: '#6ba9ff', label: 'Healthy', percentage, ceiling: max };
   }
-  if (count < 85000) {
-    return { level: 'moderate', color: '#41c878', label: 'Moderate', percentage: Math.min(100, Math.round((count / 200000) * 100)) };
+  if (count < moderateThreshold) {
+    return { level: 'moderate', color: '#41c878', label: 'Moderate', percentage, ceiling: max };
   }
-  if (count < 160000) {
-    return { level: 'elevated', color: '#ffd647', label: 'Elevated', percentage: Math.min(100, Math.round((count / 200000) * 100)) };
+  if (count < elevatedThreshold) {
+    return { level: 'elevated', color: '#ffd647', label: 'Elevated', percentage, ceiling: max };
   }
-  return { level: 'saturated', color: '#ff666a', label: 'Saturated', percentage: Math.min(100, Math.round((count / 200000) * 100)) };
+  return { level: 'saturated', color: '#ff666a', label: 'Saturated', percentage, ceiling: max };
 }
 
 function formatTokens(tokens) {
@@ -125,7 +158,7 @@ function collectImages(doc) {
 }
 
 function extractConversationStats(doc = document) {
-  if (!doc) return { chars: 0, turns: 0, imageTokens: 0, imageCount: 0, tokens: 0, budget: budgetLevelFor(0), formatted: '0' };
+  if (!doc) return { chars: 0, turns: 0, imageTokens: 0, imageCount: 0, tokens: 0, ceiling: 200000, modelName: '', budget: budgetLevelFor(0, 200000), formatted: '0' };
   const convKey = getConversationKey(doc);
 
   let entry = conversationCache.get(convKey);
@@ -193,13 +226,26 @@ function extractConversationStats(doc = document) {
   const turns = Math.max(entry.blocks.size, navTurns, entry.maxTurns);
   entry.maxTurns = turns;
 
+  const activeModel = detectActiveModel(doc);
+  const ceiling = activeModel.ceiling;
+
   const estimateFn = typeof estimateTokens === 'function' ? estimateTokens : (this?.estimateTokens || estimateTokens);
   const budgetFn = typeof budgetLevelFor === 'function' ? budgetLevelFor : (this?.budgetLevelFor || budgetLevelFor);
   const formatFn = typeof formatTokens === 'function' ? formatTokens : (this?.formatTokens || formatTokens);
 
   const tokens = estimateFn(chars, turns, imageTokens);
-  const budget = budgetFn(tokens);
-  return { chars, turns, imageTokens, imageCount, tokens, budget, formatted: formatFn(tokens) };
+  const budget = budgetFn(tokens, ceiling);
+  return {
+    chars,
+    turns,
+    imageTokens,
+    imageCount,
+    tokens,
+    ceiling,
+    modelName: activeModel.name,
+    budget,
+    formatted: formatFn(tokens)
+  };
 }
 
 function clearCache(key) {
@@ -210,6 +256,7 @@ function clearCache(key) {
 module.exports = {
   estimateTokens,
   estimateImageTokens,
+  detectActiveModel,
   budgetLevelFor,
   formatTokens,
   countTurns,
