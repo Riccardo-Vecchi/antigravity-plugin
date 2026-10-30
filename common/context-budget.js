@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.0.5';
+  const VERSION = '1.0.6';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -167,7 +167,9 @@
 
     const triggers = document.querySelectorAll('[data-testid=model-selector-trigger]');
     if (!triggers.length) {
-      const footers = document.querySelectorAll('[data-agpa-composer-footer], [class*="input-footer"]');
+      const footers = document.querySelectorAll(
+        '[data-agpa-composer-footer], [class*="input-footer"], [class*="composer-actions"], [class*="surface-composer"], [data-testid*="remote-control"]'
+      );
       for (const footer of footers) {
         let pill = footer.querySelector('[data-agpa-context-budget]');
         if (stats.turns === 0 && stats.chars < 100) {
@@ -370,6 +372,11 @@
   };
   document.addEventListener('pointerdown', onPointerDown, true);
 
+  const onStorage = e => {
+    if (e && e.key && e.key.startsWith('agpa_context_budget_')) schedule();
+  };
+  window.addEventListener?.('storage', onStorage);
+
   const unsubscribe = i18n?.subscribe ? i18n.subscribe(() => schedule(true)) : () => {};
 
   globalThis.__AGContextBudget = {
@@ -386,6 +393,7 @@
       observer.disconnect();
       unsubscribe();
       document.removeEventListener('pointerdown', onPointerDown, true);
+      window.removeEventListener?.('storage', onStorage);
       style.remove();
       document.querySelectorAll('[data-agpa-context-budget], [data-agpa-context-ui]').forEach(n => n.remove());
       delete globalThis.__AGContextBudget;

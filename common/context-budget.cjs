@@ -2,6 +2,62 @@
 
 const conversationCache = new Map();
 
+function getStorage(doc) {
+  try {
+    if (doc?.defaultView?.localStorage) return doc.defaultView.localStorage;
+  } catch {}
+  try {
+    if (typeof globalThis !== 'undefined' && globalThis.localStorage) return globalThis.localStorage;
+  } catch {}
+  return null;
+}
+
+function saveConversationState(convKey, data, storage) {
+  if (!convKey || !data) return false;
+  try {
+    const store = storage !== undefined ? storage : getStorage();
+    if (store && typeof store.setItem === 'function') {
+      const key = 'agpa_context_budget_' + convKey;
+      store.setItem(key, JSON.stringify(data));
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+function loadConversationState(convKey, storage) {
+  if (!convKey) return null;
+  try {
+    const store = storage !== undefined ? storage : getStorage();
+    if (store && typeof store.getItem === 'function') {
+      const key = 'agpa_context_budget_' + convKey;
+      const raw = store.getItem(key);
+      if (raw) return JSON.parse(raw);
+    }
+  } catch {}
+  return null;
+}
+
+function clearConversationState(convKey, storage) {
+  try {
+    const store = storage !== undefined ? storage : getStorage();
+    if (store && typeof store.removeItem === 'function') {
+      if (convKey) {
+        store.removeItem('agpa_context_budget_' + convKey);
+      } else if (typeof store.length === 'number') {
+        const toRemove = [];
+        for (let i = 0; i < store.length; i++) {
+          const k = store.key?.(i);
+          if (k && k.startsWith('agpa_context_budget_')) toRemove.push(k);
+        }
+        for (const k of toRemove) store.removeItem(k);
+      }
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
 function estimateImageTokens(width, height) {
   let w = Math.max(0, Number(width) || 0);
   let h = Math.max(0, Number(height) || 0);
@@ -162,11 +218,29 @@ function collectImages(doc) {
   return images;
 }
 
-function extractConversationStats(doc = document) {
+function extractConversationStats(doc = document, storage = undefined) {
   if (!doc) return { chars: 0, turns: 0, imageTokens: 0, imageCount: 0, tokens: 0, ceiling: 1000000, modelName: '', budget: budgetLevelFor(0, 1000000), formatted: '0' };
   const convKey = getConversationKey(doc);
+  const store = storage !== undefined ? storage : getStorage(doc);
 
   let entry = conversationCache.get(convKey);
+  if (!entry) {
+    const stored = loadConversationState(convKey, store);
+    if (stored) {
+      entry = {
+        blocks: new Map(stored.blocks || []),
+        images: new Map(stored.images || []),
+        maxChars: stored.maxChars || 0,
+        maxTurns: stored.maxTurns || 0,
+        maxImageTokens: stored.maxImageTokens || 0,
+        ceiling: stored.ceiling || 1000000,
+        modelName: stored.modelName || '',
+        updatedAt: stored.updatedAt || Date.now()
+      };
+      conversationCache.set(convKey, entry);
+    }
+  }
+
   if (!entry) {
     if (conversationCache.size > 100) {
       const oldest = conversationCache.keys().next().value;
@@ -192,6 +266,7 @@ function extractConversationStats(doc = document) {
     entry.maxTurns = 0;
     entry.maxImageTokens = 0;
     entry.compacted = true;
+    clearConversationState(convKey, store);
   }
 
   // Discover newly mounted turn blocks in viewport
@@ -232,7 +307,21 @@ function extractConversationStats(doc = document) {
   entry.maxTurns = turns;
 
   const activeModel = detectActiveModel(doc);
-  const ceiling = activeModel.ceiling;
+  const ceiling = activeModel.name ? activeModel.ceiling : (entry.ceiling || activeModel.ceiling);
+  const modelName = activeModel.name || entry.modelName || '';
+
+  if (chars > 0 || turns > 0 || imageTokens > 0) {
+    saveConversationState(convKey, {
+      blocks: [...entry.blocks.entries()],
+      images: [...entry.images.entries()],
+      maxChars: entry.maxChars,
+      maxTurns: entry.maxTurns,
+      maxImageTokens: entry.maxImageTokens,
+      ceiling,
+      modelName,
+      updatedAt: Date.now()
+    }, store);
+  }
 
   const estimateFn = typeof estimateTokens === 'function' ? estimateTokens : (this?.estimateTokens || estimateTokens);
   const budgetFn = typeof budgetLevelFor === 'function' ? budgetLevelFor : (this?.budgetLevelFor || budgetLevelFor);
@@ -247,15 +336,20 @@ function extractConversationStats(doc = document) {
     imageCount,
     tokens,
     ceiling,
-    modelName: activeModel.name,
+    modelName,
     budget,
     formatted: formatFn(tokens)
   };
 }
 
-function clearCache(key) {
-  if (key) conversationCache.delete(key);
-  else conversationCache.clear();
+function clearCache(key, storage) {
+  if (key) {
+    conversationCache.delete(key);
+    clearConversationState(key, storage);
+  } else {
+    conversationCache.clear();
+    clearConversationState(null, storage);
+  }
 }
 
 module.exports = {
@@ -269,5 +363,8 @@ module.exports = {
   collectTurnBlocks,
   collectImages,
   extractConversationStats,
+  saveConversationState,
+  loadConversationState,
+  clearConversationState,
   clearCache
 };

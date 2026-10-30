@@ -186,6 +186,114 @@ test('extractConversationStats accounts for image resolution and retains images 
   assert.equal(afterScroll.tokens, initial.tokens, 'overall token budget remains stable');
 });
 
+test('saveConversationState, loadConversationState and clearConversationState persist state reliably', () => {
+  const storeMap = new Map();
+  const mockStorage = {
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    getItem: k => storeMap.get(k) || null,
+    removeItem: k => storeMap.delete(k)
+  };
+
+  const sample = {
+    maxChars: 45000,
+    maxTurns: 8,
+    maxImageTokens: 1105,
+    ceiling: 1000000,
+    modelName: 'Gemini 4 Carbon (high)'
+  };
+
+  assert.equal(rules.saveConversationState('/c/test-persist', sample, mockStorage), true);
+  const loaded = rules.loadConversationState('/c/test-persist', mockStorage);
+  assert.equal(loaded.maxChars, 45000);
+  assert.equal(loaded.maxTurns, 8);
+  assert.equal(loaded.maxImageTokens, 1105);
+  assert.equal(loaded.modelName, 'Gemini 4 Carbon (high)');
+
+  rules.clearConversationState('/c/test-persist', mockStorage);
+  assert.equal(rules.loadConversationState('/c/test-persist', mockStorage), null);
+});
+
+test('extractConversationStats restores conversation memory on startup without scrolling up', () => {
+  rules.clearCache();
+  const storeMap = new Map();
+  const mockStorage = {
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    getItem: k => storeMap.get(k) || null,
+    removeItem: k => storeMap.delete(k)
+  };
+
+  const convPath = '/c/test-reopen-startup';
+  rules.saveConversationState(convPath, {
+    maxChars: 240000,
+    maxTurns: 18,
+    maxImageTokens: 2210,
+    ceiling: 1000000,
+    modelName: 'Gemini 4 Carbon (high)',
+    blocks: [['p:old turn 1', 1000], ['p:old turn 2', 2000]],
+    images: [['img:1', 1105], ['img:2', 1105]]
+  }, mockStorage);
+
+  const doc = {
+    location: { pathname: convPath },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') {
+        return { textContent: 'Recent bottom message only (500 chars)' };
+      }
+      return null;
+    },
+    querySelectorAll: sel => {
+      if (sel === '[data-testid=conversation-navigator-turn]') {
+        return [{}];
+      }
+      return [];
+    }
+  };
+
+  const restored = rules.extractConversationStats(doc, mockStorage);
+  assert.equal(restored.chars, 240000, 'full cumulative characters restored from storage');
+  assert.equal(restored.turns, 18, 'all 18 turns restored without scrolling up');
+  assert.equal(restored.imageTokens, 2210, 'image tokens preserved from storage');
+  assert.equal(restored.ceiling, 1000000);
+  assert.equal(restored.modelName, 'Gemini 4 Carbon (high)');
+  assert.ok(restored.tokens >= 60000 + 2160 + 2210, 'true token count available on startup');
+});
+
+test('remote control mode displays accurate context budget even when main chat viewport is unmounted', () => {
+  rules.clearCache();
+  const storeMap = new Map();
+  const mockStorage = {
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    getItem: k => storeMap.get(k) || null,
+    removeItem: k => storeMap.delete(k)
+  };
+
+  const convPath = '/c/test-remote-control';
+  rules.saveConversationState(convPath, {
+    maxChars: 80000,
+    maxTurns: 12,
+    maxImageTokens: 1105,
+    ceiling: 128000,
+    modelName: 'GPT-OSS 120B'
+  }, mockStorage);
+
+  const doc = {
+    location: { pathname: convPath },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]' || sel === '[data-testid=conversation-view]') return null;
+      if (sel.includes('remote-control')) return { textContent: 'remote control bar' };
+      return null;
+    },
+    querySelectorAll: () => []
+  };
+
+  const stats = rules.extractConversationStats(doc, mockStorage);
+  assert.equal(stats.chars, 80000);
+  assert.equal(stats.turns, 12);
+  assert.equal(stats.ceiling, 128000);
+  assert.equal(stats.modelName, 'GPT-OSS 120B');
+  assert.ok(stats.tokens > 20000);
+});
+
 test('context budget component attaches pill, reflects levels and allows inserting /compact', async () => {
   class FakeClassList {
     constructor() { this.classes = new Set(); }
