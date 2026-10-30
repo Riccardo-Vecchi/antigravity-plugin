@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.15.3
+
+- Anchor the native usage popup beside its sidebar shortcut, including scaled windows.
+
 ## 1.15.2
 
 - Move **View Usage** from the model menu to the sidebar above Settings, keeping the native live quota information.
