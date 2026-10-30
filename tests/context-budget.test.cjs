@@ -594,6 +594,118 @@ test('extractConversationStats accounts for system baseline overhead and preserv
   assert.equal(coldStats.systemTokens, 2940, 'system baseline restored from storage on cold restart');
 });
 
+test('getConversationKey resolves key from pathname, hash, query params, sidebar rows, and containers', () => {
+  // Pathname
+  assert.equal(rules.getConversationKey({ location: { pathname: '/c/uuid-1' } }), '/c/uuid-1');
+
+  // Hash
+  assert.equal(rules.getConversationKey({ location: { pathname: '/', hash: '#/c/uuid-hash' } }), '/c/uuid-hash');
+
+  // Query search
+  assert.equal(rules.getConversationKey({ location: { pathname: '/', search: '?conversation=uuid-search' } }), '/c/uuid-search');
+
+  // Sidebar selected row with data-conversation-id
+  const sidebarDoc = {
+    location: { pathname: '/' },
+    querySelector: sel => {
+      if (sel && sel.includes('conversation-row-sidebar')) {
+        return {
+          getAttribute: attr => attr === 'data-conversation-id' ? 'uuid-sidebar' : null,
+          querySelector: () => null
+        };
+      }
+      return null;
+    }
+  };
+  assert.equal(rules.getConversationKey(sidebarDoc), '/c/uuid-sidebar');
+
+  // Sidebar selected row with anchor link
+  const sidebarLinkDoc = {
+    location: { pathname: '/' },
+    querySelector: sel => {
+      if (sel && sel.includes('conversation-row-sidebar')) {
+        return {
+          getAttribute: () => null,
+          querySelector: s => s && s.includes('a[href*="/c/"]') ? { getAttribute: () => '/c/uuid-link' } : null
+        };
+      }
+      return null;
+    }
+  };
+  assert.equal(rules.getConversationKey(sidebarLinkDoc), '/c/uuid-link');
+
+  // Sidebar selected row with title
+  const sidebarTitleDoc = {
+    location: { pathname: '/' },
+    querySelector: sel => {
+      if (sel && sel.includes('conversation-row-sidebar')) {
+        return {
+          getAttribute: () => null,
+          querySelector: () => null,
+          textContent: '  Project Architecture Discussion  '
+        };
+      }
+      return null;
+    }
+  };
+  assert.equal(rules.getConversationKey(sidebarTitleDoc), 'conv:Project Architecture Discussion');
+
+  // Viewport container attribute
+  const containerDoc = {
+    location: { pathname: '/' },
+    querySelector: sel => {
+      if (sel && sel.includes('conversation-view')) {
+        return { getAttribute: attr => attr === 'data-conversation-id' ? 'uuid-container' : null };
+      }
+      return null;
+    }
+  };
+  assert.equal(rules.getConversationKey(containerDoc), '/c/uuid-container');
+
+  // Fallback
+  assert.equal(rules.getConversationKey(null), 'default');
+  assert.equal(rules.getConversationKey({ location: { pathname: '/' } }), 'default');
+});
+
+test('extractConversationStats projects proportional characters on frame 1 when chat has unmounted turns', () => {
+  rules.clearCache();
+  const convPath = '/c/test-proportional-projection';
+
+  // 1 mounted block of 1000 chars, but 10 navigator turns total
+  const item = {
+    textContent: 'User prompt: ' + 'x'.repeat(1000),
+    querySelector: () => ({ textContent: 'Do task' }),
+    querySelectorAll: () => []
+  };
+
+  const doc = {
+    location: { pathname: convPath },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') {
+        return {
+          textContent: item.textContent,
+          querySelector: () => null,
+          firstElementChild: { children: [item] }
+        };
+      }
+      return null;
+    },
+    querySelectorAll: sel => {
+      if (sel === '[data-testid=conversation-navigator-turn]') {
+        return Array(10).fill({});
+      }
+      return [];
+    }
+  };
+
+  const stats = rules.extractConversationStats(doc);
+  assert.equal(stats.turns, 10, 'turns reflect total turns from navigator');
+  // Proportional projection: 1 block = 1000 chars, 10 turns -> ~10000 chars
+  assert.ok(stats.chars >= 10000, 'characters projected proportionally to total turns before scrolling');
+  // Tokens reflect the whole projected conversation rather than only 1 turn
+  assert.ok(stats.tokens >= 2500 + 1200, 'tokens realistically projected on frame 1 without manual scroll');
+});
+
 test('context budget component attaches pill, reflects levels and allows inserting /compact', async () => {
   class FakeClassList {
     constructor() { this.classes = new Set(); }

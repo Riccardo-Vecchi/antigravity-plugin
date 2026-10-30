@@ -7,7 +7,7 @@ module.exports = Object.freeze({
   companion: "1.6.0",
   models: "1.1.6",
   modelControls: "1.2.1",
-  contextBudget: "1.0.9",
+  contextBudget: "1.0.10",
   teamworkBadge: "1.0.2",
   updates: "1.2.3",
   appearance: "1.8.2",

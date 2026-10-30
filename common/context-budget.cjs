@@ -348,9 +348,58 @@ function countTurns(doc) {
 }
 
 function getConversationKey(doc) {
-  const path = doc?.defaultView?.location?.pathname || globalThis?.location?.pathname || doc?.location?.pathname || '';
+  if (!doc) return 'default';
+
+  // 1. Check URL pathname (e.g. /c/01ed90cd-c026-4190-bfd8-5bb6444c0719)
+  const loc = doc?.defaultView?.location || globalThis?.location || doc?.location;
+  const path = loc?.pathname || '';
   if (path.startsWith('/c/')) return path;
-  if (path && path !== '/') return path;
+  const matchPath = path.match(/\/c\/[a-zA-Z0-9_-]+/);
+  if (matchPath) return matchPath[0];
+
+  // 2. Check URL hash (e.g. #/c/01ed90cd-c026-4190-bfd8-5bb6444c0719)
+  const hash = loc?.hash || '';
+  if (hash.includes('/c/')) {
+    const matchHash = hash.match(/\/c\/[a-zA-Z0-9_-]+/);
+    if (matchHash) return matchHash[0];
+  }
+
+  // 3. Check URL query parameters (e.g. ?conversation=... or ?c=... or ?id=...)
+  const search = loc?.search || '';
+  if (search) {
+    try {
+      const params = new URLSearchParams(search);
+      const cId = params.get('c') || params.get('conversation') || params.get('conversationId') || params.get('id');
+      if (cId) return '/c/' + cId;
+    } catch {}
+  }
+
+  // 4. Check selected conversation row in Antigravity's sidebar
+  const selectedRow = doc.querySelector?.(
+    '[data-testid="conversation-row-sidebar"][data-selected="true"], [data-testid*="conversation-item"][data-selected="true"], [data-testid*="conversation-row"][aria-selected="true"], [class*="conversation-row"][data-selected="true"]'
+  );
+  if (selectedRow) {
+    const rowId = selectedRow.getAttribute('data-conversation-id') || selectedRow.getAttribute('data-id');
+    if (rowId) return '/c/' + rowId;
+    const rowLink = selectedRow.querySelector?.('a[href*="/c/"]')?.getAttribute('href');
+    if (rowLink) {
+      const match = rowLink.match(/\/c\/[a-zA-Z0-9_-]+/);
+      if (match) return match[0];
+    }
+    const rowTitle = selectedRow.textContent?.trim()?.slice(0, 60);
+    if (rowTitle) return 'conv:' + rowTitle;
+  }
+
+  // 5. Check conversation container
+  const convView = doc.querySelector?.('[data-testid="conversation-view"], [data-testid="autoscroll-viewport"]');
+  const viewId = convView?.getAttribute('data-conversation-id') || convView?.getAttribute('data-id');
+  if (viewId) return '/c/' + viewId;
+
+  // 6. Check first user turn prompt
+  const firstPrompt = doc.querySelector?.('[data-testid=autoscroll-viewport] [data-testid=user-input-step]')?.textContent?.trim()?.slice(0, 50);
+  if (firstPrompt) return 'conv:' + firstPrompt;
+
+  if (path && path !== '/' && !path.endsWith('.html')) return path;
   return 'default';
 }
 
@@ -523,15 +572,29 @@ function extractConversationStats(doc = document, storage = undefined) {
     }
   }
 
-  const chars = Math.max(blockSum, currentChars, entry.maxChars);
-  entry.maxChars = chars;
-
-  const codeChars = Math.max(codeSum, entry.maxCodeChars || 0);
-  entry.maxCodeChars = codeChars;
-
   const navTurns = countTurns(doc);
   const turns = Math.max(entry.blocks.size, navTurns, entry.maxTurns);
   entry.maxTurns = turns;
+
+  let chars = Math.max(blockSum, currentChars, entry.maxChars);
+  let codeChars = Math.max(codeSum, entry.maxCodeChars || 0);
+
+  // Proportional projection for unhydrated conversations (navTurns > mountedBlocks)
+  const mountedBlocksCount = entry.blocks.size;
+  if (navTurns > mountedBlocksCount && mountedBlocksCount > 0 && entry.maxChars <= blockSum) {
+    const avgCharsPerBlock = blockSum / mountedBlocksCount;
+    const projectedChars = Math.round(avgCharsPerBlock * navTurns);
+    if (projectedChars > chars) {
+      chars = projectedChars;
+      if (codeSum > 0) {
+        const avgCodePerBlock = codeSum / mountedBlocksCount;
+        codeChars = Math.min(chars, Math.round(avgCodePerBlock * navTurns));
+      }
+    }
+  }
+
+  entry.maxChars = chars;
+  entry.maxCodeChars = codeChars;
 
   const activeModel = detectActiveModel(doc);
   const ceiling = activeModel.name ? activeModel.ceiling : (entry.ceiling || activeModel.ceiling);
