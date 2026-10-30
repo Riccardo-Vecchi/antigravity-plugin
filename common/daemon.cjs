@@ -5,6 +5,8 @@ const fsp = require("node:fs/promises");
 const path = require("node:path");
 const BASE = __dirname;
 const { connect } = require("./cdp-connection.cjs");
+const { createGeminiLinks, externalURL } = require("./gemini-links.cjs");
+const { createContextReader } = require("./context-usage.cjs");
 const diagnostic = require("./diagnostics.cjs").createDiagnostics();
 const legacyBootstrap =
   path.resolve(BASE, "..") ===
@@ -291,6 +293,7 @@ class Client {
     this.busy = false;
     this.initialized = false;
     this.connection = null;
+    this.geminiLinks = null;
     this.catalogUpdated = false;
     this.healthSignature = null;
     this.patchStatus = { version: VERSION, state: "unchecked", checks: [] };
@@ -348,6 +351,8 @@ class Client {
       },
       onClose: () => {
         this.contexts.clear();
+        this.geminiLinks?.destroy();
+        this.geminiLinks = null;
         if (clients.get(this.key) === this) clients.delete(this.key);
       },
       onListenerError: (error) =>
@@ -492,7 +497,7 @@ class Client {
       ) {
         await this.evaluate("globalThis.__AGGeminiInline?.destroy()");
         await this.evaluate(
-          `globalThis.__AGPA_INLINE_ICON__=${JSON.stringify(SWITCH_ASSETS.antigravity)};\n${INLINE}`,
+          `globalThis.__AGPA_EXTERNAL_URL__=${externalURL.toString()};globalThis.__AGPA_INLINE_ICON__=${JSON.stringify(SWITCH_ASSETS.antigravity)};\n${INLINE}`,
         );
         log("gemini.inline_applied");
       }
@@ -503,6 +508,18 @@ class Client {
         await this.evaluate(
           `globalThis.__AGPAClassifyGuestURL=${classifyGuestURL.toString()};\n${GEMINI_ORIGIN}`,
         );
+      if (!this.geminiLinks)
+        this.geminiLinks = createGeminiLinks({
+          nativeCall: (method, params) => this.call(method, params),
+          endpoint: this.target.webSocketDebuggerUrl,
+          openExternal: (url) =>
+            this.evaluate(
+              `globalThis.electronNative?.openExternal(${JSON.stringify(url)})`,
+            ),
+          report: (error) =>
+            diagnostic("warn", "gemini.external_link_failed", error),
+        });
+      await this.geminiLinks.sync();
       if (
         (await this.evaluate("globalThis.__AGAppSettings?.version")) !==
         APP_SETTINGS_VERSION
@@ -546,7 +563,7 @@ class Client {
         versions.modelControls
       )
         await this.evaluate(
-          `globalThis.__AGPA_TEAMWORK_FACTORY__=${createTeamworkBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${modelControlRules.selectionFor.toString()},optionsFor:${modelControlRules.optionsFor.toString()},layoutFor:${modelControlRules.layoutFor.toString()}};\n${MODEL_CONTROLS}`,
+          `globalThis.__AGPA_CONTEXT_FACTORY__=${createContextReader.toString()};globalThis.__AGPA_TEAMWORK_FACTORY__=${createTeamworkBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${modelControlRules.selectionFor.toString()},optionsFor:${modelControlRules.optionsFor.toString()},layoutFor:${modelControlRules.layoutFor.toString()}};\n${MODEL_CONTROLS}`,
         );
       if (
         (await this.evaluate("globalThis.__AGCompanion?.version")) !==
@@ -584,6 +601,8 @@ class Client {
     }
   }
   async pauseFeatures() {
+    this.geminiLinks?.destroy();
+    this.geminiLinks = null;
     await this.evaluate(`(async()=>{
    globalThis.__AGPA_STARTUP_APPLIED__=true;
    document.body.setAttribute('data-agpa-plugin-disabled','');
@@ -1023,6 +1042,8 @@ class Client {
     }
   }
   async destroy() {
+    this.geminiLinks?.destroy();
+    this.geminiLinks = null;
     try {
       await this.evaluate(
         '(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGLibrary?.destroy();globalThis.__AGWorkspace?.destroy();globalThis.__AGModelControls?.destroy();globalThis.__AGModelUI?.destroy();globalThis.__AGCompanion?.destroy();globalThis.__AGPluginUpdates?.destroy();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGHeaderPlacement?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)globalThis.__AGGeminiOrigin?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()',

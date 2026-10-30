@@ -1,8 +1,9 @@
 /* Layout extension for the existing Gemini guest; no session or native API bridge. */
 (() => {
   'use strict';
-  const VERSION='1.1.0';
+  const VERSION='1.2.0';
   const i18n=globalThis.__AGPAI18n;
+  const externalURL=globalThis.__AGPA_EXTERNAL_URL__;delete globalThis.__AGPA_EXTERNAL_URL__;
   const icon=globalThis.__AGPA_INLINE_ICON__;
   delete globalThis.__AGPA_INLINE_ICON__;
   if(globalThis.__AGGeminiInline?.version===VERSION)return;
@@ -28,9 +29,9 @@
   const label=document.createElement('span');label.textContent='Antigravity';fallback.append(image,label);
   function returnToApp(){document.querySelector('[data-agpa-return-antigravity]')?.click();}
   fallback.addEventListener('click',returnToApp);
-  function installInGuest(settings,createRules){
+  function installInGuest(settings,createRules,validateExternal){
     const rules=createRules();
-    const VERSION='1.1.0';
+    const VERSION='1.2.0';
     const old=globalThis.__agpaInlineReturn;
     if(old?.version===VERSION){old.configure(settings);return old.status();}
     old?.destroy();
@@ -53,6 +54,19 @@
     const shortcut=e=>{if(rules.matches(e,current.toggleShortcut))activate(e);};
     window.addEventListener('keydown',shortcut,true);
     button.addEventListener('click',activate);
+    function externalLink(event){
+      if(!event.isTrusted||!([0,1].includes(event.button))||typeof validateExternal!=='function')return;
+      const link=event.composedPath().find(node=>node?.tagName==='A'&&node.href);
+      if(!link)return;
+      const url=validateExternal(link.href);if(!url)return;
+      const parsed=new URL(url);
+      // Sign-in redirects need the embedded session; other outbound links use
+      // the system browser. Button-driven window.open is handled by the daemon.
+      if(link.target!=='_blank'&&['https://accounts.google.com','https://consent.google.com'].includes(parsed.origin))return;
+      event.preventDefault();event.stopImmediatePropagation();
+      console.info(current.signal+':external:'+JSON.stringify(url));
+    }
+    document.addEventListener('click',externalLink,true);document.addEventListener('auxclick',externalLink,true);
     function anchor(){
       const element=document.querySelector('temp-chat-button');
       if(element)return element;
@@ -103,7 +117,7 @@
     try{
       const url=new URL(tracked.getURL());
       if(url.origin!=='https://gemini.google.com'){installed=false;fallback.hidden=false;return;}
-      const result=await isolated(`(${installInGuest.toString()})(${JSON.stringify({icon,signal,returnLabel:i18n.t('Return to Antigravity'),toggleShortcut})},${shortcutFactory.toString()})`);
+      const result=await isolated(`(${installInGuest.toString()})(${JSON.stringify({icon,signal,returnLabel:i18n.t('Return to Antigravity'),toggleShortcut})},${shortcutFactory.toString()},${externalURL.toString()})`);
       installed=!!result?.installed;fallback.hidden=installed;
     }catch{installed=false;fallback.hidden=false;}
     finally{busy=false;if(rerun&&!destroyed){rerun=false;queueMicrotask(inject);}}
@@ -119,7 +133,14 @@
     tracked=guest;installed=false;fallback.hidden=false;
     const listen=(type,fn)=>{guest.addEventListener(type,fn);unbind.push(()=>guest.removeEventListener(type,fn));};
     listen('dom-ready',inject);listen('did-navigate',inject);listen('did-navigate-in-page',inject);
-    listen('console-message',event=>{if(event.message===signal)returnToApp();});
+    listen('console-message',event=>{
+      if(event.message===signal){returnToApp();return;}
+      if(!event.message.startsWith(signal+':external:'))return;
+      try{if(new URL(guest.getURL()).origin!=='https://gemini.google.com')return;
+        const url=externalURL(JSON.parse(event.message.slice((signal+':external:').length)));
+        if(url)Promise.resolve(globalThis.electronNative?.openExternal(url)).catch(()=>{});
+      }catch{}
+    });
     inject();
   }
   const observer=new MutationObserver(track);observer.observe(document.body,{subtree:true,childList:true});

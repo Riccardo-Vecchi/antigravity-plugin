@@ -29,13 +29,15 @@ Open **Settings → Shortcuts** for the configurable window-local switch between
 
 ## Models, reasoning effort and approvals
 
-Open the native model menu and use the star beside a model to pin it. **Manage models** provides keyboard-accessible Favorite/Hidden checkboxes. Favorites appear first; **Show hidden models** restores hidden entries in the menu. The selected model and native availability/notice badges are preserved. Gemini effort groups are organized as one family; their native effort submenu stays available. Preferences live in the plugin's private `models.json`, separate from Antigravity model configuration.
+Open the native model menu and use the star beside a model to pin it. **Manage models** provides keyboard-accessible Favorite/Hidden checkboxes. Favorites appear first; **Show hidden models** restores hidden entries in the menu. The selected model and native availability/notice badges are preserved. Gemini effort groups are organized as one family; the duplicate simple effort submenu is hidden while the custom slider is available. Complex context-window menus keep their native controls. Preferences live in the plugin's private `models.json`, separate from Antigravity model configuration.
 
 The composer keeps approval permissions on the left and model/effort controls on the right. Open the effort control for a stepped slider using only the selected model’s enabled native levels. Dragging previews a value; releasing commits it through Antigravity’s native selection. Arrow keys, Home/End and Escape work too. The plugin remembers the last chosen native effort per model in `models.json` and restores it when you select that model again. Unavailable saved levels fall back to native selection. Models without adjustable effort do not show this control; complex context-window submenus retain the full native menu. No model calls or approval changes are made when opening or adjusting these controls.
 
-**Ultra (Teamwork)** appears after native High. Selecting it chooses High and inserts `/teamwork` through the native command picker, preserving the draft and existing context. It is a task mode, not an invented model reasoning level. A violet bar and selector indicate the current draft contains Teamwork; the brief activation burst respects reduced-motion preferences. Manually adding or removing the native Teamwork command updates the selector too, without overriding your native effort. Choosing a normal level removes only Teamwork. The mode ends when its command is removed or the draft is sent/cleared; it is not automatically added to later prompts. If the command is unavailable, the plugin reports that and preserves the draft.
+**Ultra (Teamwork)** appears after native High in the slider and is shortened to **Ultra** in the composer. Selecting it chooses High and inserts `/teamwork` through the native command picker, preserving the draft and existing context. It is a task mode, not an invented model reasoning level. A violet bar and selector indicate the current draft contains Teamwork; the brief activation burst respects reduced-motion preferences. Manually adding or removing the native Teamwork command updates the selector too, without overriding your native effort. Choosing a normal level removes only Teamwork. The mode ends when its command is removed or the draft is sent/cleared; it is not automatically added to later prompts. If the command is unavailable, the plugin reports that and preserves the draft.
 
 Anthropic, Google and OpenAI icons identify recognized providers in the menu and selected-model button. Unknown providers keep their native presentation. Approval colors indicate Request Review (blue), Default (green), Auto (amber) and Turbo (red); they do not change native approval rules.
+
+The context indicator beside the model uses only metadata reported by the current native conversation. When an estimated context size and maximum are both reported, it shows a percentage. Otherwise the tooltip lists the last request's input, cache-read and cache-write counts separately; these are not added together or presented as a context percentage. Missing data hides the indicator. Counts describe the last reported request, not an estimate of unsent text. Provider and model semantics can differ.
 
 ## Enable or pause the plugin
 
@@ -59,7 +61,7 @@ The initial localization inspection on Antigravity 2.26.0 found an English inter
 
 ## Gemini sessions and switching
 
-Gemini runs in an isolated persistent webview session. Returning to Antigravity keeps that guest mounted, preserving the page and unsent draft. The native app stays mounted as well.
+Gemini runs in an isolated persistent webview session. User-initiated external links open in the default system browser; sign-in redirects remain in the embedded session. This does not enable popups or copy browser credentials. Returning to Antigravity keeps that guest mounted, preserving the page and unsent draft. The native app stays mounted as well.
 
 Sign in to Google inside the embedded website on first use. Browser cookies and passwords are not imported, and native Antigravity credentials are not reused. Google controls website availability, account checks, and whether embedded sign-in is accepted. A Google prompt may need the normal **Resend** action; this project does not bypass authentication.
 

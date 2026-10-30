@@ -104,3 +104,9 @@ Use a prerelease suite version for unpublished local changes. The updater pauses
 automatic replacement of preview builds, and release packaging rejects them.
 Publishing, tagging, CI execution and actual desktop verification are separate
 steps; local checks do not establish that a release has shipped.
+
+## Context metadata and outbound Gemini links
+
+`context-usage.cjs` reads only numeric fields from the current native conversation provider. Its guarded React-context discovery is an internal compatibility adapter, not a public Antigravity API. If that shape changes, the indicator stays hidden. It subscribes to the provider and disposes subscriptions on conversation changes and cleanup. `estimatedTokensUsed` and `maxContextTokens` produce a percentage only together; per-request input/cache counters are kept separate because provider accounting differs.
+
+`gemini-links.cjs` observes `Page.windowOpen` only for the owned Gemini webview. The native scoped isolated-world API writes a random, temporary challenge, and matching the challenge in a remote target proves ownership before popup observation is enabled. Discovery by URL, title or numeric ID alone is insufficient. No privileged binding is installed in a guest, no popup permission is enabled, and only user-gesture HTTP(S) destinations without credentials are forwarded. The inline isolated-world controller similarly routes trusted outbound anchor clicks; embedded sign-in links retain their session. Both paths clean up on pause/restart and leave Google page-world JavaScript untouched.

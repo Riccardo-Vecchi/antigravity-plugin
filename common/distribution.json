@@ -125,7 +125,9 @@
     "common/gemini-origin.js",
     "common/viewer-bundle.cjs",
     "common/diagnostics.cjs",
-    "docs/DEVELOPMENT.md"
+    "docs/DEVELOPMENT.md",
+    "common/context-usage.cjs",
+    "common/gemini-links.cjs"
   ],
   "linux": [
     "linux/desktop.cjs",

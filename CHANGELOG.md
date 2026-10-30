@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.15.0
+
+- Keep the closed effort label compact as **Ultra**, retaining **Ultra (Teamwork)** inside the slider. Match the native upward chevron and emphasize the model over the effort label.
+- Hide duplicate simple native effort submenus while preserving the native model list and complex context-window options.
+- Add a context indicator from reported native metadata; display last-request input/cache counts separately when context usage or capacity is unavailable.
+- Open user-initiated external Gemini links in the default browser, including button-driven new-window requests, without enabling popups or replacing the guest.
+- Refresh the first README screenshot with the current real interface.
+
 ## 1.14.0
 
 - Show trustworthy host-owned origin and accessible names outside Gemini without replacing its guest or disrupting federated sign-in.
