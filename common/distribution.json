@@ -103,6 +103,7 @@
     "assets/browsers/CHROMIUM-LICENSE.txt",
     "common/model-controls.js",
     "common/model-controls.cjs",
+    "common/teamwork.cjs",
     "common/model-ui.js",
     "common/model-preferences.cjs",
     "assets/labs/anthropic.png",

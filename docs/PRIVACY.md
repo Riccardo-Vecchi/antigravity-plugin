@@ -38,4 +38,4 @@ Library reads saved local artifact metadata, supported local conversation attach
 
 ## Model preferences
 
-Favorites, hidden-model flags and the last chosen native reasoning effort per model are kept in the plugin’s private `models.json`. The slider invokes existing native model-menu items; it does not call a model, record prompts, or change approval permissions.
+Favorites, hidden-model flags and the last chosen native reasoning effort per model are kept in the plugin’s private `models.json`. Ultra inserts/removes only the native Teamwork command in the current unsent draft and keeps no separate Teamwork history or persistent task-mode setting. It never submits a prompt. The slider invokes existing native model-menu items; it does not call a model, record prompts, or change approval permissions.

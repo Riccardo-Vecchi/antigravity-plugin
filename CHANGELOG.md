@@ -4,6 +4,7 @@
 
 - Separate model and reasoning-effort controls on the right of the composer; keep approval permissions on the left without moving native DOM controls.
 - Add a keyboard-accessible stepped effort slider driven by enabled native options, with per-model memory and a safe fallback for unavailable levels or complex context-window menus. Fixed-effort models keep their native presentation.
+- Add **Ultra (Teamwork)** after High: select native High and prepend the native `/teamwork` command once. Keep the violet slider/selector synchronized with manual command insertion/removal, with a brief burst honoring reduced-motion preferences. Teamwork is scoped to the current draft and never submits it.
 - Add isolated real-renderer regression checks for preview/commit, keyboard use, model switching, narrow layouts and complete cleanup.
 
 ## 1.12.0

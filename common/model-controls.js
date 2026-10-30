@@ -1,14 +1,16 @@
 /* Separate model/effort controls, delegating selection to native menu items. */
 (() => {
   'use strict';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   if (globalThis.__AGModelControls?.version === VERSION) return;
   globalThis.__AGModelControls?.destroy();
   const rules = globalThis.__AGPA_MODEL_CONTROLS__;
+  const teamwork = globalThis.__AGPA_TEAMWORK_FACTORY__();
   delete globalThis.__AGPA_MODEL_CONTROLS__;
+  delete globalThis.__AGPA_TEAMWORK_FACTORY__;
   const i18n = globalThis.__AGPAI18n;
-  const controls = new Map(), unsupported = new Set();
-  let session = null, stopped = false, scheduled = false, bypass = false;
+  const controls = new Map(), unsupported = new Set(), teamworkStates = new WeakMap();
+  let session = null, stopped = false, scheduled = false, bypass = false, modeBusy = false, modeError = '';
   const attributes = ['data-agpa-composer-footer', 'data-agpa-footer-flat', 'data-agpa-footer-model', 'data-agpa-footer-permission', 'data-agpa-footer-tail', 'data-agpa-effort-suffix'];
   const mark = (node, attribute) => { if (!node.hasAttribute(attribute)) node.setAttribute(attribute, ''); };
   const t = (key, values) => i18n.t(key, values);
@@ -58,21 +60,32 @@
   async function commit(current, index) {
     if (session !== current || current.committing) return;
     const option = current.options[index];
-    if (!option?.row.isConnected || !current.trigger.isConnected) { close(); return; }
+    if (!option || (!option.taskOnly && !option.row?.isConnected) || !current.trigger.isConnected) { close(); return; }
     const before = rules.selectionFor(current.trigger);
     if (before?.base !== current.origin.base || before.effortLabel !== current.origin.effortLabel) { close(); return; }
-    if (current.base === before.base && option.label === before.effortLabel) { close({focus: true}); return; }
+    const nativeLabel = option.nativeLabel || option.label;
+    const sameNative = option.taskOnly || (current.base === before.base && nativeLabel === before.effortLabel);
+    const desiredTask = current.preferred ? teamwork.active(current.trigger) : !!option.teamwork;
+    const sameTask = teamwork.active(current.trigger) === desiredTask;
+    if (sameNative && sameTask) { close({focus: true}); return; }
     current.committing = true;
     if (current.range) current.range.disabled = true;
-    option.row.click();
     try {
-      await until(() => {
-        const selected = rules.selectionFor(current.trigger);
-        return selected?.base === current.base && selected.effortLabel === option.label;
-      }, current);
-      close({focus: !current.preferred});
-      await remember(current.base, option.value);
+      if (!sameNative) {
+        option.row.click();
+        await until(() => {
+          const selected = rules.selectionFor(current.trigger);
+          return selected?.base === current.base && selected.effortLabel === nativeLabel;
+        }, current);
+      }
+      close({focus: !current.preferred && sameTask});
+      if (!sameTask) {
+        modeBusy = true; modeError = ''; schedule();
+        if (!await teamwork.set(current.trigger, desiredTask)) modeError = 'Could not change Teamwork. Use /teamwork in the message input.';
+      }
+      if (!option.taskOnly) await remember(current.base, option.nativeValue || option.value);
     } finally {
+      modeBusy = false;
       if (session === current) close({focus: !current.preferred});
       schedule();
     }
@@ -88,6 +101,12 @@
     const option = current.options[index];
     current.value.textContent = option.label;
     current.range.setAttribute('aria-valuetext', option.label);
+    current.range.style.setProperty('--effort-color', option.teamwork ? '#a464f6' : '#347df1');
+    current.popup.toggleAttribute('data-ultra', !!option.teamwork);
+    current.value.title = option.teamwork ? t('Teamwork for this prompt. Native effort: {effort}', {effort: option.nativeLabel || current.origin.effortLabel || t('Default')}) : '';
+    if (option.teamwork && current.previewIndex !== undefined && current.previewIndex !== index && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+      current.range.animate([{boxShadow:'0 0 0 0 #ba86ff80'}, {boxShadow:'0 0 18px 8px #a464f670'}, {boxShadow:'0 0 0 16px #a464f600'}], {duration:500,easing:'ease-out'});
+    current.previewIndex = index;
     current.range.style.setProperty('--effort-fill', (index / (current.options.length - 1) * 100) + '%');
     for (const [n, dot] of [...current.dots.children].entries()) dot.toggleAttribute('data-active', n <= index);
   }
@@ -112,7 +131,8 @@
     // Keeping this a DOM descendant of the native submenu preserves its focus /
     // outside-dismiss behavior. The top layer paints it above the cloaked menus.
     current.menu.append(popup);
-    const index = Math.max(0, current.options.findIndex(option => option.selected || option.label === current.origin.effortLabel));
+    const chosen = current.options.findIndex(option => option.selected);
+    const index = Math.max(0, chosen < 0 ? current.options.findIndex(option => option.label === current.origin.effortLabel) : chosen);
     current.range.value = String(index);
     paintValue(current, index);
     current.range.addEventListener('input', () => paintValue(current, Number(current.range.value)));
@@ -123,11 +143,18 @@
     current.button.setAttribute('aria-expanded', 'true');
   }
   async function open(trigger, button, preferred, group) {
+    if (modeBusy) return;
     close();
     const origin = rules.selectionFor(trigger);
     if (!origin || !trigger.isConnected) return;
     const current = {trigger, button, origin, base: group?.querySelector('[data-testid=model-selector-effort-group]')?.dataset.modelBase || origin.base, preferred, group};
     session = current;
+    if (!origin.effortLabel && teamwork.active(trigger) && !preferred) {
+      current.taskOnly = true;
+      current.menu = document.body;
+      current.options = [{value:'default',label:t('Default'),taskOnly:true}, {value:'teamwork',label:t('Ultra (Teamwork)'),teamwork:true,taskOnly:true,selected:true}];
+      showSlider(current); return;
+    }
     document.documentElement.setAttribute('data-agpa-effort-bridge', '');
     try {
       if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
@@ -146,7 +173,18 @@
         const index = current.options.findIndex(option => option.value === preferred);
         if (index < 0) { fallback(current, false); return; }
         await commit(current, index);
-      } else showSlider(current);
+      } else {
+        const active = teamwork.active(trigger);
+        const high = current.options.find(option => option.value === 'high');
+        const target = high || (active && current.options.find(option => option.selected));
+        if (target && teamwork.editorFor(trigger)) {
+          current.options = current.options.map(option => ({...option, selected: !active && option.selected}));
+          const ultra = {...target,value:'teamwork',label:t('Ultra (Teamwork)'),nativeValue:target.value,nativeLabel:target.label,teamwork:true,selected:active};
+          const index = high ? current.options.findIndex(option => option.value === 'high') + 1 : current.options.length;
+          current.options.splice(index,0,ultra);
+        }
+        showSlider(current);
+      }
     } catch {
       fallback(current);
     }
@@ -156,11 +194,11 @@
     if (stopped) return;
     if (session && !session.committing) {
       const selected = rules.selectionFor(session.trigger);
-      if (!session.trigger.isConnected || (session.popup && (!session.menu.isConnected || session.trigger.getAttribute('aria-expanded') !== 'true' || selected?.base !== session.origin.base || selected.effortLabel !== session.origin.effortLabel))) close({native: false});
+      if (!session.trigger.isConnected || (session.popup && (!session.menu.isConnected || (!session.taskOnly && session.trigger.getAttribute('aria-expanded') !== 'true') || selected?.base !== session.origin.base || selected.effortLabel !== session.origin.effortLabel))) close({native: false});
     }
     for (const [trigger, button] of controls) {
       const selection = trigger.isConnected && rules.selectionFor(trigger);
-      if (!selection?.effortLabel || unsupported.has(selection.base)) {
+      if (!selection || (!selection.effortLabel && !teamwork.active(trigger)) || unsupported.has(selection.base)) {
         button.remove(); controls.delete(trigger);
         trigger.querySelector('[data-agpa-effort-suffix]')?.removeAttribute('data-agpa-effort-suffix');
       }
@@ -180,7 +218,8 @@
         mark(trigger, 'data-agpa-footer-model');
         mark(permission, 'data-agpa-footer-permission');
       }
-      if (!selection?.effortLabel || unsupported.has(selection.base)) continue;
+      const active = teamwork.active(trigger);
+      if (!selection || (!selection.effortLabel && !active) || unsupported.has(selection.base)) continue;
       let button = controls.get(trigger);
       if (!button) {
         button = element('button', {type: 'button', class: 'agpa-effort-trigger', 'aria-haspopup': 'dialog', 'aria-expanded': 'false'});
@@ -189,14 +228,29 @@
         trigger.after(button);
         controls.set(trigger, button);
       }
-      if (button.textContent !== selection.effortLabel + ' ⌄') button.textContent = selection.effortLabel + ' ⌄';
-      button.setAttribute('aria-label', t('Reasoning effort: {effort}', {effort: selection.effortLabel}));
+      const label = active ? t('Ultra (Teamwork)') : selection.effortLabel;
+      if (button.textContent !== label + ' ⌄') button.textContent = label + ' ⌄';
+      button.setAttribute('aria-label', t('Reasoning effort: {effort}', {effort: label}));
+      button.toggleAttribute('data-teamwork', active);
+      if (active && teamworkStates.get(trigger) === false) celebrate(button);
+      teamworkStates.set(trigger, active);
       button.title = t('Reasoning effort');
-      button.disabled = trigger.disabled;
-      mark(selection.suffix, 'data-agpa-effort-suffix');
+      button.disabled = trigger.disabled || modeBusy;
+      if (selection.suffix) mark(selection.suffix, 'data-agpa-effort-suffix');
+      let error = button.parentElement.querySelector('[data-agpa-teamwork-error]');
+      if (modeError && !error) {error = element('span', {'data-agpa-teamwork-error':'',role:'status',class:'agpa-teamwork-error'});button.after(error);}
+      if (error) { if (modeError) error.textContent = t(modeError); else error.remove(); }
     }
   }
   function schedule() { if (!scheduled && !stopped) { scheduled = true; queueMicrotask(apply); } }
+  function celebrate(button) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const rect = button.getBoundingClientRect();
+    const burst = element('span', {'aria-hidden':'true',class:'agpa-teamwork-burst'});
+    burst.style.left = rect.left + rect.width / 2 + 'px'; burst.style.top = rect.top + rect.height / 2 + 'px';
+    document.body.append(burst);
+    burst.animate([{transform:'translate(-50%,-50%) scale(.2)',opacity:1}, {transform:'translate(-50%,-50%) scale(2.5)',opacity:.7,offset:.4}, {transform:'translate(-50%,-50%) scale(4)',opacity:0}],{duration:650,easing:'cubic-bezier(.2,.7,.3,1)'}).finished.finally(()=>burst.remove());
+  }
   function click(event) {
     if (bypass || session || event.target.closest?.('[data-agpa-model-ui],[data-agpa-effort-ui]')) return;
     const option = event.target.closest?.('[data-testid=model-selector-effort-option]') || event.target.closest?.('[role=menuitemradio]')?.querySelector('[data-testid=model-selector-effort-option]');
@@ -255,11 +309,13 @@
   .agpa-effort-trigger{order:21;height:28px;flex-shrink:0;border:0;border-radius:999px;background:transparent;color:var(--secondary-foreground,#aaa);font:inherit;font-size:12px;padding:0 8px;cursor:pointer;white-space:nowrap}
   .agpa-effort-trigger:hover,.agpa-effort-trigger[aria-expanded=true]{background:var(--secondary,#303030);color:var(--foreground,#eee)}
   .agpa-effort-trigger:focus-visible{outline:2px solid #398bdb;outline-offset:2px}.agpa-effort-trigger:disabled{opacity:.5;cursor:default}
+  .agpa-effort-trigger[data-teamwork]{color:#d4b1ff;background:#8f46df26;box-shadow:inset 0 0 0 1px #9e5bef45}.agpa-teamwork-burst{position:fixed;z-index:2147483647;pointer-events:none;width:14px;height:14px;border:1px solid #c595ff;border-radius:50%;box-shadow:0 -12px 0 -5px #d6b4ff,11px -5px 0 -5px #ba7cff,10px 8px 0 -5px #e5caff,0 13px 0 -5px #af67ff,-11px 6px 0 -5px #ddbbff,-11px -7px 0 -5px #ae5fff}.agpa-teamwork-error{order:50;color:#f3a4aa;font-size:11px;flex-basis:100%;padding:4px 8px}
   :root[data-agpa-effort-bridge] [role=menu]{opacity:0!important;pointer-events:none!important}
   .agpa-effort-popup{position:fixed;inset:auto;margin:0;width:252px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:12px;border:1px solid var(--border,#444);border-radius:16px;background:var(--card,#252525);color:var(--foreground,#eee);font:12px/1.4 system-ui,sans-serif;box-shadow:0 10px 30px #0005;pointer-events:auto!important;opacity:1!important}
   .agpa-effort-popup::backdrop{background:transparent}
+  .agpa-effort-popup[data-ultra]{border-color:#9c65df80}.agpa-effort-popup[data-ultra] .agpa-effort-labels strong{color:#d4afff}.agpa-effort-popup[data-ultra] .agpa-effort-dots span[data-active]{background:#dfbdff}
   .agpa-effort-heading{display:grid;grid-template-columns:22px minmax(0,1fr) 22px;align-items:center;gap:6px;margin-bottom:9px}.agpa-effort-labels{grid-column:2;min-width:0;text-align:center;display:grid;gap:1px}.agpa-effort-labels strong{font-size:13px;font-weight:500;color:#6ba9ff}.agpa-effort-model{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--secondary-foreground,#aaa);font-size:11px}.agpa-effort-close{grid-column:3;border:0;background:transparent;color:var(--secondary-foreground,#aaa);font:18px/1 system-ui;cursor:pointer;padding:3px;border-radius:4px}.agpa-effort-close:focus-visible{outline:2px solid #398bdb}
-  .agpa-effort-track{position:relative;height:28px;display:flex;align-items:center}.agpa-effort-track input{appearance:none;width:100%;height:24px;margin:0;border:0;border-radius:999px;background:linear-gradient(to right,#347df1 0 var(--effort-fill),#454545 var(--effort-fill) 100%);cursor:pointer;position:relative;z-index:1;outline:none}.agpa-effort-track input::-webkit-slider-thumb{appearance:none;width:25px;height:25px;border-radius:50%;background:#fff;border:1px solid #ddd;box-shadow:0 1px 3px #0003}.agpa-effort-track input:focus-visible{outline:2px solid #90baff;outline-offset:3px}.agpa-effort-track input:disabled{cursor:wait}
+  .agpa-effort-track{position:relative;height:28px;display:flex;align-items:center}.agpa-effort-track input{appearance:none;width:100%;height:24px;margin:0;border:0;border-radius:999px;background:linear-gradient(to right,var(--effort-color,#347df1) 0 var(--effort-fill),#454545 var(--effort-fill) 100%);cursor:pointer;position:relative;z-index:1;outline:none}.agpa-effort-track input::-webkit-slider-thumb{appearance:none;width:25px;height:25px;border-radius:50%;background:#fff;border:1px solid #ddd;box-shadow:0 1px 3px #0003}.agpa-effort-track input:focus-visible{outline:2px solid #90baff;outline-offset:3px}.agpa-effort-track input:disabled{cursor:wait}
   .agpa-effort-dots{position:absolute;inset:0 12px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;z-index:2}.agpa-effort-dots span{width:4px;height:4px;border-radius:50%;background:#858585}.agpa-effort-dots span[data-active]{background:#9cbeff}.agpa-effort-extremes{display:flex;justify-content:space-between;color:var(--secondary-foreground,#aaa);font-size:10px;margin-top:4px}
   `;
   document.head.append(style);
@@ -269,11 +325,13 @@
       if (target?.closest('[data-agpa-effort-ui]')) return false;
       const nodes = [...record.addedNodes, ...record.removedNodes];
       if (nodes.length && nodes.every(node => node.nodeType === 1 && node.hasAttribute('data-agpa-effort-ui'))) return false;
-      return target?.closest('[data-testid=model-selector-trigger],[data-testid=model-selector-panel],[role=menu]') || nodes.some(node => node.nodeType === 1 && (node.matches('[data-testid=model-selector-trigger],[data-testid=permissions-selector-trigger],[role=menu]') || node.querySelector('[data-testid=model-selector-trigger],[data-testid=permissions-selector-trigger]')));
+      return target?.closest('[data-testid=model-selector-trigger],[data-testid=model-selector-panel],[role=menu],[contenteditable=true]') || nodes.some(node => node.nodeType === 1 && (node.matches('[data-testid=model-selector-trigger],[data-testid=permissions-selector-trigger],[role=menu]') || node.querySelector('[data-testid=model-selector-trigger],[data-testid=permissions-selector-trigger]')));
     })) schedule();
   });
   observer.observe(document.body, {subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-expanded', 'aria-label', 'disabled']});
   document.addEventListener('click', click, true);
+  const outside = event => { if (session?.taskOnly && !session.popup.contains(event.target) && event.target !== session.button) close({native:false}); };
+  document.addEventListener('pointerdown', outside, true);
   window.addEventListener('keydown', keyboard, true);
   window.addEventListener('keyup', keyup, true);
   const reposition = () => session && position(session);
@@ -282,13 +340,15 @@
   const unsubscribe = i18n.subscribe(schedule);
   globalThis.__AGModelControls = {
     version: VERSION,
-    status: () => ({controls: controls.size, open: !!session?.popup, unsupported: [...unsupported]}),
+    status: () => ({controls: controls.size, open: !!session?.popup, unsupported: [...unsupported],modeBusy,modeError}),
     destroy() {
-      stopped = true; close(); observer.disconnect(); unsubscribe();
+      stopped = true; close(); teamwork.destroy(); observer.disconnect(); unsubscribe();
       document.removeEventListener('click', click, true);
+      document.removeEventListener('pointerdown', outside, true);
       window.removeEventListener('keydown', keyboard, true); window.removeEventListener('keyup', keyup, true);
       window.removeEventListener('resize', reposition); window.removeEventListener('scroll', reposition, true);
       for (const button of controls.values()) button.remove(); controls.clear(); style.remove();
+      for (const node of document.querySelectorAll('.agpa-teamwork-burst,[data-agpa-teamwork-error]')) node.remove();
       for (const attribute of attributes) for (const node of document.querySelectorAll('[' + attribute + ']')) node.removeAttribute(attribute);
       delete globalThis.__AGModelControls;
     }

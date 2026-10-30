@@ -456,7 +456,10 @@
       "Open {browser} Extensions": "Open {browser} Extensions",
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.",
       "Reasoning effort": "Reasoning effort",
-      "Reasoning effort: {effort}": "Reasoning effort: {effort}"
+      "Reasoning effort: {effort}": "Reasoning effort: {effort}",
+      "Ultra (Teamwork)": "Ultra (Teamwork)",
+      "Teamwork for this prompt. Native effort: {effort}": "Teamwork for this prompt. Native effort: {effort}",
+      "Could not change Teamwork. Use /teamwork in the message input.": "Could not change Teamwork. Use /teamwork in the message input."
     },
     "icons": {
       "folder": "Folder",
@@ -966,7 +969,10 @@
       "Open {browser} Extensions": "Apri Estensioni di {browser}",
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Usa il pulsante Apri Estensioni qui sopra: apre direttamente la pagina Estensioni del browser selezionato. Lì trovi Ricarica sulla scheda dell’estensione.",
       "Reasoning effort": "Livello di ragionamento",
-      "Reasoning effort: {effort}": "Livello di ragionamento: {effort}"
+      "Reasoning effort: {effort}": "Livello di ragionamento: {effort}",
+      "Ultra (Teamwork)": "Ultra (Teamwork)",
+      "Teamwork for this prompt. Native effort: {effort}": "Teamwork per questo prompt. Ragionamento nativo: {effort}",
+      "Could not change Teamwork. Use /teamwork in the message input.": "Impossibile modificare Teamwork. Usa /teamwork nel campo del messaggio."
     },
     "icons": {
       "folder": "Cartella",
@@ -1476,7 +1482,10 @@
       "Open {browser} Extensions": "{browser}-Erweiterungen öffnen",
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Verwende oben Erweiterungen öffnen. Der Button öffnet direkt die Erweiterungsseite des gewählten Browsers; dort ist Neuladen auf der Erweiterungskarte.",
       "Reasoning effort": "Denkaufwand",
-      "Reasoning effort: {effort}": "Denkaufwand: {effort}"
+      "Reasoning effort: {effort}": "Denkaufwand: {effort}",
+      "Ultra (Teamwork)": "Ultra (Teamwork)",
+      "Teamwork for this prompt. Native effort: {effort}": "Teamwork für diese Anfrage. Nativer Denkaufwand: {effort}",
+      "Could not change Teamwork. Use /teamwork in the message input.": "Teamwork konnte nicht geändert werden. Verwende /teamwork im Nachrichtenfeld."
     },
     "icons": {
       "folder": "Ordner",
@@ -1986,7 +1995,10 @@
       "Open {browser} Extensions": "Abrir Extensiones de {browser}",
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Usa el botón Abrir Extensiones de arriba. Abre directamente la página Extensiones del navegador seleccionado; allí está Recargar en la tarjeta de la extensión.",
       "Reasoning effort": "Nivel de razonamiento",
-      "Reasoning effort: {effort}": "Nivel de razonamiento: {effort}"
+      "Reasoning effort: {effort}": "Nivel de razonamiento: {effort}",
+      "Ultra (Teamwork)": "Ultra (Teamwork)",
+      "Teamwork for this prompt. Native effort: {effort}": "Teamwork para este mensaje. Nivel nativo: {effort}",
+      "Could not change Teamwork. Use /teamwork in the message input.": "No se pudo cambiar Teamwork. Usa /teamwork en el campo del mensaje."
     },
     "icons": {
       "folder": "Carpeta",
@@ -2496,7 +2508,10 @@
       "Open {browser} Extensions": "Ouvrir les extensions de {browser}",
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Utilisez le bouton Ouvrir les extensions ci-dessus. Il ouvre directement la page Extensions du navigateur sélectionné ; Recharger se trouve sur la fiche de l’extension.",
       "Reasoning effort": "Niveau de raisonnement",
-      "Reasoning effort: {effort}": "Niveau de raisonnement : {effort}"
+      "Reasoning effort: {effort}": "Niveau de raisonnement : {effort}",
+      "Ultra (Teamwork)": "Ultra (Teamwork)",
+      "Teamwork for this prompt. Native effort: {effort}": "Teamwork pour ce message. Niveau natif : {effort}",
+      "Could not change Teamwork. Use /teamwork in the message input.": "Impossible de modifier Teamwork. Utilisez /teamwork dans le champ du message."
     },
     "icons": {
       "folder": "Dossier",
@@ -3006,7 +3021,10 @@
       "Open {browser} Extensions": "打开 {browser} 扩展程序",
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "使用上方的“打开扩展程序”按钮，直接打开所选浏览器的扩展程序页面；重新加载按钮位于该页面的扩展卡片上。",
       "Reasoning effort": "Reasoning effort",
-      "Reasoning effort: {effort}": "Reasoning effort: {effort}"
+      "Reasoning effort: {effort}": "Reasoning effort: {effort}",
+      "Ultra (Teamwork)": "Ultra (Teamwork)",
+      "Teamwork for this prompt. Native effort: {effort}": "Teamwork for this prompt. Native effort: {effort}",
+      "Could not change Teamwork. Use /teamwork in the message input.": "Could not change Teamwork. Use /teamwork in the message input."
     },
     "icons": {
       "folder": "文件夹",
@@ -3516,7 +3534,10 @@
       "Open {browser} Extensions": "{browser} の拡張機能を開く",
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "上の「拡張機能を開く」ボタンで、選択したブラウザーの拡張機能ページを直接開けます。再読み込みボタンはそのページの拡張機能カードにあります。",
       "Reasoning effort": "推論レベル",
-      "Reasoning effort: {effort}": "推論レベル: {effort}"
+      "Reasoning effort: {effort}": "推論レベル: {effort}",
+      "Ultra (Teamwork)": "Ultra（チームワーク）",
+      "Teamwork for this prompt. Native effort: {effort}": "このプロンプトでチームワークを使用します。標準の推論レベル: {effort}",
+      "Could not change Teamwork. Use /teamwork in the message input.": "チームワークを変更できませんでした。メッセージ入力欄で /teamwork を使用してください。"
     },
     "icons": {
       "folder": "フォルダー",
