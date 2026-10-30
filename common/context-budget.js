@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.0.8';
+  const VERSION = '1.0.9';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -104,15 +104,35 @@
       parts.push(`${stats.docCount} ${stats.docCount === 1 ? 'doc' : 'docs'} (~${rules.formatTokens ? rules.formatTokens(stats.docTokens) : stats.docTokens})`);
     }
 
+    popup.append(header, desc, modelNote);
+
+    if (stats.systemTokens > 0) {
+      const sysFmt = rules.formatTokens ? rules.formatTokens(stats.systemTokens) : `${stats.systemTokens}`;
+      const sysDetails = [];
+      if (stats.systemBaseline?.toolsCount > 0) {
+        sysDetails.push(`${stats.systemBaseline.toolsCount} ${stats.systemBaseline.toolsCount === 1 ? 'tool' : 'tools'}`);
+      } else if (stats.systemBaseline?.mcpCount > 0) {
+        sysDetails.push(`${stats.systemBaseline.mcpCount} MCP`);
+      }
+      if (stats.systemBaseline?.rulesCount > 0) {
+        sysDetails.push(`${stats.systemBaseline.rulesCount} ${stats.systemBaseline.rulesCount === 1 ? 'rule' : 'rules'}`);
+      }
+      const label = sysDetails.length > 0 ? `⚙️ System & tools: ${sysFmt} (${sysDetails.join(', ')})` : `⚙️ System overhead: ${sysFmt}`;
+      const sysNode = element('div', {
+        class: 'agpa-context-system-note',
+        text: label
+      });
+      popup.append(sysNode);
+    }
+
     if (parts.length > 0) {
       const attachmentsNote = element('div', {
         class: 'agpa-context-attachments-note',
         text: `📎 ${parts.join(' · ')}`
       });
-      popup.append(header, desc, modelNote, attachmentsNote, statusNote);
-    } else {
-      popup.append(header, desc, modelNote, statusNote);
+      popup.append(attachmentsNote);
     }
+    popup.append(statusNote);
 
     if (stats.budget.level === 'elevated' || stats.budget.level === 'saturated') {
       const action = element('button', {

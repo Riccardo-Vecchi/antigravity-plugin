@@ -485,6 +485,115 @@ test('extractConversationStats accounts for document attachments and preserves t
   assert.equal(coldStats.docTokens, 2580, 'document tokens restored from localStorage on program restart');
 });
 
+test('estimateSystemBaseline calculates cold-start overhead from MCP tools, rules and core prompt', () => {
+  // 1. Text indicators in composer
+  const composerDoc = {
+    body: {
+      querySelectorAll: sel => {
+        if (sel.includes('.surface-composer') || sel.includes('composer')) {
+          return [{ textContent: 'Claude 4.6 · 12 tools active · 2 rules' }];
+        }
+        return [];
+      },
+      querySelector: () => null
+    }
+  };
+  const baseline = rules.estimateSystemBaseline(composerDoc);
+  assert.equal(baseline.toolsCount, 12);
+  assert.equal(baseline.rulesCount, 2);
+  assert.equal(baseline.baseTokens, 1500);
+  assert.equal(baseline.toolTokens, 12 * 180);
+  assert.equal(baseline.ruleTokens, 2 * 350);
+  assert.equal(baseline.tokens, 1500 + 2160 + 700);
+
+  // 2. DOM elements for MCP servers
+  const mcpDoc = {
+    body: {
+      querySelectorAll: sel => {
+        if (sel.includes('mcp-server')) {
+          return [{}, {}]; // 2 MCP servers
+        }
+        return [];
+      },
+      querySelector: () => null
+    }
+  };
+  const mcpBaseline = rules.estimateSystemBaseline(mcpDoc);
+  assert.equal(mcpBaseline.mcpCount, 2);
+  assert.equal(mcpBaseline.toolTokens, 2 * 600);
+  assert.equal(mcpBaseline.tokens, 1500 + 1200);
+
+  // 3. Clean environment without system elements
+  const cleanDoc = {
+    body: {
+      querySelectorAll: () => [],
+      querySelector: () => null
+    }
+  };
+  assert.equal(rules.estimateSystemBaseline(cleanDoc).tokens, 0);
+});
+
+test('estimateTokens combines text, turns, images, code, documents and system overhead', () => {
+  // 4000 total chars, 2800 code chars (prose: 1200 / 4 = 300 tok, code: 2800 / 2.8 = 1000 tok)
+  // turns: 2 * 120 = 240 tok
+  // imageTokens: 1105
+  // docTokens: 2580
+  // systemTokens: 4000
+  // total: 300 + 1000 + 240 + 1105 + 2580 + 4000 = 9225
+  assert.equal(rules.estimateTokens(4000, 2, 1105, 2800, 2580, 4000), 9225);
+});
+
+test('extractConversationStats accounts for system baseline overhead and preserves it across cold restart', () => {
+  rules.clearCache();
+  const storeMap = new Map();
+  const mockStorage = {
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    getItem: k => storeMap.get(k) || null,
+    removeItem: k => storeMap.delete(k)
+  };
+
+  const convPath = '/c/test-system-baseline';
+  const doc = {
+    location: { pathname: convPath },
+    body: {
+      querySelectorAll: sel => {
+        if (sel.includes('.surface-composer') || sel.includes('composer')) {
+          return [{ textContent: 'Gemini 4 Carbon · 8 tools' }];
+        }
+        return [];
+      },
+      querySelector: () => null
+    },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') {
+        return { textContent: 'First prompt from user' };
+      }
+      return null;
+    },
+    querySelectorAll: sel => {
+      if (sel.includes('conversation-navigator-turn')) return [{}];
+      return [];
+    }
+  };
+
+  const stats = rules.extractConversationStats(doc, mockStorage);
+  assert.ok(stats.systemTokens > 0);
+  assert.equal(stats.systemBaseline.toolsCount, 8);
+  assert.equal(stats.systemTokens, 1500 + 8 * 180);
+  assert.ok(stats.tokens >= 2940);
+
+  // Cold restart simulation
+  rules.clearCache();
+  const coldDoc = {
+    location: { pathname: convPath },
+    querySelector: () => null,
+    querySelectorAll: () => []
+  };
+
+  const coldStats = rules.extractConversationStats(coldDoc, mockStorage);
+  assert.equal(coldStats.systemTokens, 2940, 'system baseline restored from storage on cold restart');
+});
+
 test('context budget component attaches pill, reflects levels and allows inserting /compact', async () => {
   class FakeClassList {
     constructor() { this.classes = new Set(); }

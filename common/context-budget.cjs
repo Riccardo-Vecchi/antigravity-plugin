@@ -163,6 +163,105 @@ function collectAttachments(doc) {
   return attachments;
 }
 
+function parseToolCountFromText(text) {
+  if (!text) return 0;
+  const match = text.match(/\b(\d+)\s*(?:active\s+)?tools?\b/i) || text.match(/\btools?:\s*(\d+)\b/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+function parseMcpCountFromText(text) {
+  if (!text) return 0;
+  const match = text.match(/\b(\d+)\s*mcp(?:\s+servers?)?\b/i) || text.match(/\bmcp(?:\s+servers?)?:\s*(\d+)\b/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+function parseRuleCountFromText(text) {
+  if (!text) return 0;
+  const match = text.match(/\b(\d+)\s*(?:workspace\s+)?rules?\b/i) ||
+                text.match(/\brules?:\s*(\d+)\b/i) ||
+                text.match(/\b(\d+)\s*(?:custom\s+)?instructions?\b/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+function estimateSystemBaseline(doc = document) {
+  if (!doc) return { toolsCount: 0, mcpCount: 0, rulesCount: 0, baseTokens: 0, toolTokens: 0, ruleTokens: 0, tokens: 0 };
+
+  const root = doc.body || doc;
+
+  let toolsCount = 0;
+  let mcpCount = 0;
+  let rulesCount = 0;
+
+  // 1. Scan control containers (composer, footer, toolbars)
+  const controlContainers = root.querySelectorAll?.('.surface-composer, [data-testid*="composer"], [data-testid*="footer"], [data-testid*="toolbar"], [class*="toolbar"]') || [];
+  for (const c of controlContainers) {
+    if (c.closest?.('[data-agpa-context-ui], [data-agpa-team-ui]')) continue;
+    const txt = c.textContent || '';
+    const tc = parseToolCountFromText(txt);
+    if (tc > toolsCount) toolsCount = tc;
+    const mc = parseMcpCountFromText(txt);
+    if (mc > mcpCount) mcpCount = mc;
+    const rc = parseRuleCountFromText(txt);
+    if (rc > rulesCount) rulesCount = rc;
+  }
+
+  // 2. Scan individual tool nodes
+  const toolNodes = root.querySelectorAll?.(
+    '[data-testid*="tool-item"], [data-testid*="mcp-tool"], [data-testid*="agent-tool"], [class*="tool-item"], [class*="tool-chip"], [class*="mcp-tool"]'
+  ) || [];
+  let domToolCount = 0;
+  for (const node of toolNodes) {
+    if (node.closest?.('[data-agpa-context-ui], [data-agpa-team-ui]')) continue;
+    domToolCount++;
+  }
+  if (domToolCount > toolsCount) toolsCount = domToolCount;
+
+  // 3. Scan MCP servers
+  const mcpNodes = root.querySelectorAll?.(
+    '[data-testid*="mcp-server"], [data-testid*="mcp-entry"], [class*="mcp-server"], [class*="mcp-entry"]'
+  ) || [];
+  let domMcpCount = 0;
+  for (const node of mcpNodes) {
+    if (node.closest?.('[data-agpa-context-ui], [data-agpa-team-ui]')) continue;
+    domMcpCount++;
+  }
+  if (domMcpCount > mcpCount) mcpCount = domMcpCount;
+
+  // 4. Scan rules
+  const ruleNodes = root.querySelectorAll?.(
+    '[data-testid*="rule-item"], [data-testid*="rule-chip"], [data-testid*="workspace-rule"], [class*="rule-item"], [class*="rule-chip"], [class*="instruction-pill"]'
+  ) || [];
+  let domRuleCount = 0;
+  for (const node of ruleNodes) {
+    if (node.closest?.('[data-agpa-context-ui], [data-agpa-team-ui]')) continue;
+    domRuleCount++;
+  }
+  if (domRuleCount > rulesCount) rulesCount = domRuleCount;
+
+  const hasSystemSignal = toolsCount > 0 || mcpCount > 0 || rulesCount > 0 || Boolean(
+    root.querySelector?.('[data-testid*="system"], [data-testid*="agent-mode"], [data-testid*="agent-status"]')
+  );
+
+  if (!hasSystemSignal) {
+    return { toolsCount: 0, mcpCount: 0, rulesCount: 0, baseTokens: 0, toolTokens: 0, ruleTokens: 0, tokens: 0 };
+  }
+
+  const baseTokens = 1500;
+  const toolTokens = toolsCount > 0 ? (toolsCount * 180) : (mcpCount * 600);
+  const ruleTokens = rulesCount * 350;
+  const totalTokens = Math.min(25000, baseTokens + toolTokens + ruleTokens);
+
+  return {
+    toolsCount,
+    mcpCount,
+    rulesCount,
+    baseTokens,
+    toolTokens,
+    ruleTokens,
+    tokens: totalTokens
+  };
+}
+
 function detectActiveModel(doc = document) {
   if (!doc) return { name: '', ceiling: 1000000 };
   const trigger = doc.querySelector?.('[data-testid=model-selector-trigger], [data-agpa-footer-model]');
@@ -190,7 +289,7 @@ function detectActiveModel(doc = document) {
   return { name: cleanName, ceiling: 1000000 };
 }
 
-function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0, docTokens = 0) {
+function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0, docTokens = 0, systemTokens = 0) {
   const totalChars = Math.max(0, Number(chars) || 0);
   const code = Math.min(totalChars, Math.max(0, Number(codeChars) || 0));
   const prose = Math.max(0, totalChars - code);
@@ -199,7 +298,8 @@ function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0, docTokens 
   const turnOverhead = (Number(turns) || 0) * 120;
   const imgTokens = Math.max(0, Number(imageTokens) || 0);
   const dTokens = Math.max(0, Number(docTokens) || 0);
-  return Math.max(0, proseTokens + codeTokens + turnOverhead + imgTokens + dTokens);
+  const sysTokens = Math.max(0, Number(systemTokens) || 0);
+  return Math.max(0, proseTokens + codeTokens + turnOverhead + imgTokens + dTokens + sysTokens);
 }
 
 function budgetLevelFor(tokens, ceiling = 1000000) {
@@ -314,7 +414,7 @@ function collectImages(doc) {
 }
 
 function extractConversationStats(doc = document, storage = undefined) {
-  if (!doc) return { chars: 0, codeChars: 0, turns: 0, imageTokens: 0, imageCount: 0, docTokens: 0, docCount: 0, tokens: 0, ceiling: 1000000, modelName: '', budget: budgetLevelFor(0, 1000000), formatted: '0' };
+  if (!doc) return { chars: 0, codeChars: 0, turns: 0, imageTokens: 0, imageCount: 0, docTokens: 0, docCount: 0, systemTokens: 0, systemBaseline: null, tokens: 0, ceiling: 1000000, modelName: '', budget: budgetLevelFor(0, 1000000), formatted: '0' };
   const convKey = getConversationKey(doc);
   const store = storage !== undefined ? storage : getStorage(doc);
 
@@ -331,6 +431,8 @@ function extractConversationStats(doc = document, storage = undefined) {
         maxTurns: stored.maxTurns || 0,
         maxImageTokens: stored.maxImageTokens || 0,
         maxDocTokens: stored.maxDocTokens || 0,
+        systemTokens: stored.systemTokens || 0,
+        systemBaseline: stored.systemBaseline || null,
         ceiling: stored.ceiling || 1000000,
         modelName: stored.modelName || '',
         updatedAt: stored.updatedAt || Date.now()
@@ -344,7 +446,7 @@ function extractConversationStats(doc = document, storage = undefined) {
       const oldest = conversationCache.keys().next().value;
       conversationCache.delete(oldest);
     }
-    entry = { blocks: new Map(), images: new Map(), documents: new Map(), maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0, maxDocTokens: 0 };
+    entry = { blocks: new Map(), images: new Map(), documents: new Map(), maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0, maxDocTokens: 0, systemTokens: 0, systemBaseline: null };
     conversationCache.set(convKey, entry);
   }
   if (!entry.images) entry.images = new Map();
@@ -435,7 +537,13 @@ function extractConversationStats(doc = document, storage = undefined) {
   const ceiling = activeModel.name ? activeModel.ceiling : (entry.ceiling || activeModel.ceiling);
   const modelName = activeModel.name || entry.modelName || '';
 
-  if (chars > 0 || turns > 0 || imageTokens > 0 || docTokens > 0) {
+  const systemBaselineRaw = estimateSystemBaseline(doc);
+  const systemBaseline = (systemBaselineRaw && systemBaselineRaw.tokens > 0) ? systemBaselineRaw : (entry.systemBaseline || systemBaselineRaw);
+  const systemTokens = Math.max(systemBaselineRaw?.tokens || 0, entry.systemTokens || 0);
+  entry.systemTokens = systemTokens;
+  entry.systemBaseline = systemBaseline;
+
+  if (chars > 0 || turns > 0 || imageTokens > 0 || docTokens > 0 || systemTokens > 0) {
     saveConversationState(convKey, {
       blocks: [...entry.blocks.entries()],
       images: [...entry.images.entries()],
@@ -445,6 +553,8 @@ function extractConversationStats(doc = document, storage = undefined) {
       maxTurns: entry.maxTurns,
       maxImageTokens: entry.maxImageTokens,
       maxDocTokens: entry.maxDocTokens,
+      systemTokens,
+      systemBaseline,
       ceiling,
       modelName,
       updatedAt: Date.now()
@@ -455,7 +565,7 @@ function extractConversationStats(doc = document, storage = undefined) {
   const budgetFn = typeof budgetLevelFor === 'function' ? budgetLevelFor : (this?.budgetLevelFor || budgetLevelFor);
   const formatFn = typeof formatTokens === 'function' ? formatTokens : (this?.formatTokens || formatTokens);
 
-  const tokens = estimateFn(chars, turns, imageTokens, codeChars, docTokens);
+  const tokens = estimateFn(chars, turns, imageTokens, codeChars, docTokens, systemTokens);
   const budget = budgetFn(tokens, ceiling);
   return {
     chars,
@@ -465,6 +575,8 @@ function extractConversationStats(doc = document, storage = undefined) {
     imageCount,
     docTokens,
     docCount,
+    systemTokens,
+    systemBaseline,
     tokens,
     ceiling,
     modelName,
@@ -487,6 +599,10 @@ module.exports = {
   estimateTokens,
   estimateImageTokens,
   estimateAttachmentTokens,
+  estimateSystemBaseline,
+  parseToolCountFromText,
+  parseMcpCountFromText,
+  parseRuleCountFromText,
   parseAttachmentInfo,
   collectAttachments,
   detectActiveModel,
