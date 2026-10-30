@@ -23,3 +23,16 @@ test('provider identification is specific and unknown labs do not inherit a misl
 test('permission colors classify labels without altering permission data',()=>{
  assert.equal(permissionFor('Request Review'),'review');assert.equal(permissionFor('Default'),'default');assert.equal(permissionFor('Auto (Preview)'),'auto');assert.equal(permissionFor('Turbo'),'turbo');assert.equal(permissionFor('Unknown'),null);
 });
+test('per-model native effort survives favorite/visibility changes and reloads without affecting other models',async t=>{
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-model-effort-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));const file=path.join(root,'models.json'),store=createStore(file);await store.load();
+ await store.update({name:'Gemini Flash',field:'favorite',value:true});
+ await store.update({name:'Gemini Flash',field:'effort',value:'high'});
+ await store.update({name:'Other model',field:'effort',value:'custom_deep'});
+ await store.update({name:'Gemini Flash',field:'favorite',value:false});
+ const reopened=createStore(file);const state=await reopened.load();
+ assert.deepEqual(state.models['Gemini Flash'],{favorite:false,hidden:false,effort:'high'});
+ assert.equal(state.models['Other model'].effort,'custom_deep');
+ const before=await fs.readFile(file,'utf8');
+ for(const value of [true,null,'High','../high','', 'x'.repeat(33)])await assert.rejects(reopened.update({name:'Gemini Flash',field:'effort',value}));
+ assert.equal(await fs.readFile(file,'utf8'),before);
+});

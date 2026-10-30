@@ -454,7 +454,9 @@
       "Disable Browser use and stop sharing. Keep the extension installed.": "Disable Browser use and stop sharing. Keep the extension installed.",
       "Enable Browser use. Choose what to share in the extension.": "Enable Browser use. Choose what to share in the extension.",
       "Open {browser} Extensions": "Open {browser} Extensions",
-      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there."
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.",
+      "Reasoning effort": "Reasoning effort",
+      "Reasoning effort: {effort}": "Reasoning effort: {effort}"
     },
     "icons": {
       "folder": "Folder",
@@ -962,7 +964,9 @@
       "Disable Browser use and stop sharing. Keep the extension installed.": "Disabilita Browser use e interrompi la condivisione. L’estensione resta installata.",
       "Enable Browser use. Choose what to share in the extension.": "Abilita Browser use. Scegli cosa condividere nell’estensione.",
       "Open {browser} Extensions": "Apri Estensioni di {browser}",
-      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Usa il pulsante Apri Estensioni qui sopra: apre direttamente la pagina Estensioni del browser selezionato. Lì trovi Ricarica sulla scheda dell’estensione."
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Usa il pulsante Apri Estensioni qui sopra: apre direttamente la pagina Estensioni del browser selezionato. Lì trovi Ricarica sulla scheda dell’estensione.",
+      "Reasoning effort": "Livello di ragionamento",
+      "Reasoning effort: {effort}": "Livello di ragionamento: {effort}"
     },
     "icons": {
       "folder": "Cartella",
@@ -1470,7 +1474,9 @@
       "Disable Browser use and stop sharing. Keep the extension installed.": "Browser use deaktivieren und die Freigabe beenden. Die Erweiterung bleibt installiert.",
       "Enable Browser use. Choose what to share in the extension.": "Browser use aktivieren. Wähle in der Erweiterung aus, was du freigeben möchtest.",
       "Open {browser} Extensions": "{browser}-Erweiterungen öffnen",
-      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Verwende oben Erweiterungen öffnen. Der Button öffnet direkt die Erweiterungsseite des gewählten Browsers; dort ist Neuladen auf der Erweiterungskarte."
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Verwende oben Erweiterungen öffnen. Der Button öffnet direkt die Erweiterungsseite des gewählten Browsers; dort ist Neuladen auf der Erweiterungskarte.",
+      "Reasoning effort": "Denkaufwand",
+      "Reasoning effort: {effort}": "Denkaufwand: {effort}"
     },
     "icons": {
       "folder": "Ordner",
@@ -1978,7 +1984,9 @@
       "Disable Browser use and stop sharing. Keep the extension installed.": "Desactiva Browser use y detén la compartición. La extensión permanece instalada.",
       "Enable Browser use. Choose what to share in the extension.": "Activa Browser use. Elige qué compartir en la extensión.",
       "Open {browser} Extensions": "Abrir Extensiones de {browser}",
-      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Usa el botón Abrir Extensiones de arriba. Abre directamente la página Extensiones del navegador seleccionado; allí está Recargar en la tarjeta de la extensión."
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Usa el botón Abrir Extensiones de arriba. Abre directamente la página Extensiones del navegador seleccionado; allí está Recargar en la tarjeta de la extensión.",
+      "Reasoning effort": "Nivel de razonamiento",
+      "Reasoning effort: {effort}": "Nivel de razonamiento: {effort}"
     },
     "icons": {
       "folder": "Carpeta",
@@ -2486,7 +2494,9 @@
       "Disable Browser use and stop sharing. Keep the extension installed.": "Désactivez Browser use et arrêtez le partage. L’extension reste installée.",
       "Enable Browser use. Choose what to share in the extension.": "Activez Browser use. Choisissez les éléments à partager dans l’extension.",
       "Open {browser} Extensions": "Ouvrir les extensions de {browser}",
-      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Utilisez le bouton Ouvrir les extensions ci-dessus. Il ouvre directement la page Extensions du navigateur sélectionné ; Recharger se trouve sur la fiche de l’extension."
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Utilisez le bouton Ouvrir les extensions ci-dessus. Il ouvre directement la page Extensions du navigateur sélectionné ; Recharger se trouve sur la fiche de l’extension.",
+      "Reasoning effort": "Niveau de raisonnement",
+      "Reasoning effort: {effort}": "Niveau de raisonnement : {effort}"
     },
     "icons": {
       "folder": "Dossier",
@@ -2994,7 +3004,9 @@
       "Disable Browser use and stop sharing. Keep the extension installed.": "禁用浏览器使用并停止共享。扩展仍保留安装。",
       "Enable Browser use. Choose what to share in the extension.": "启用浏览器使用。在扩展中选择要共享的内容。",
       "Open {browser} Extensions": "打开 {browser} 扩展程序",
-      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "使用上方的“打开扩展程序”按钮，直接打开所选浏览器的扩展程序页面；重新加载按钮位于该页面的扩展卡片上。"
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "使用上方的“打开扩展程序”按钮，直接打开所选浏览器的扩展程序页面；重新加载按钮位于该页面的扩展卡片上。",
+      "Reasoning effort": "Reasoning effort",
+      "Reasoning effort: {effort}": "Reasoning effort: {effort}"
     },
     "icons": {
       "folder": "文件夹",
@@ -3502,7 +3514,9 @@
       "Disable Browser use and stop sharing. Keep the extension installed.": "ブラウザー操作を無効にして共有を停止します。拡張機能はインストールされたままです。",
       "Enable Browser use. Choose what to share in the extension.": "ブラウザー操作を有効にします。共有する内容は拡張機能で選択してください。",
       "Open {browser} Extensions": "{browser} の拡張機能を開く",
-      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "上の「拡張機能を開く」ボタンで、選択したブラウザーの拡張機能ページを直接開けます。再読み込みボタンはそのページの拡張機能カードにあります。"
+      "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "上の「拡張機能を開く」ボタンで、選択したブラウザーの拡張機能ページを直接開けます。再読み込みボタンはそのページの拡張機能カードにあります。",
+      "Reasoning effort": "推論レベル",
+      "Reasoning effort: {effort}": "推論レベル: {effort}"
     },
     "icons": {
       "folder": "フォルダー",

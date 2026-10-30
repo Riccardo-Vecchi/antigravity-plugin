@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.12.0](https://img.shields.io/badge/version-1.12.0-blue)](CHANGELOG.md)
+[![Version 1.13.0](https://img.shields.io/badge/version-1.13.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -30,7 +30,7 @@
 - Gemini in the same window, with an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
 - Optional **Computer Use** with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - **Browser use** with browser detection, one-click folder copy/open, selected tabs or whole-profile web-tab sharing and existing logins. [Setup](docs/BROWSER_USE.md).
-- Model favorites and visibility controls, with Anthropic/Google/OpenAI logos in the menu and selected model. Native model availability and selection stay in Antigravity.
+- Separate model and reasoning-effort controls with a stepped slider and per-model memory, plus favorites, visibility controls and provider logos. Permissions sit on the left; model and effort sit on the right.
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.
 - Fixed Antigravity/Gemini icons or a Dynamic mode, including supported tray integrations.

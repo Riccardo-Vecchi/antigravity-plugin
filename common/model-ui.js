@@ -1,6 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
- 'use strict';const VERSION='1.0.2';
+ 'use strict';const VERSION='1.1.0';
  if(globalThis.__AGModelUI?.version===VERSION)return;
  globalThis.__AGModelUI?.destroy();
  const i=globalThis.__AGPAI18n,providerFor=globalThis.__AGPAProviderFor,permissionFor=globalThis.__AGPAPermissionFor,assets=globalThis.__AGPA_LAB_ICONS__;
@@ -12,11 +12,12 @@
  function mark(e,name){const provider=providerFor(name);let image=e.querySelector(':scope > [data-agpa-lab]');if(!provider){image?.remove();return;}if(image?.dataset.agpaLab===provider)return;image?.remove();image=node('img',{src:assets[provider],alt:'',width:'16',height:'16','aria-hidden':'true',class:'agpa-lab-icon'});image.dataset.agpaLab=provider;e.prepend(image);}
  const choice=name=>preferences.models[name]||{favorite:false,hidden:false};
  async function save(name,field,value){
-  if(saving)return;saving=true;error='';schedule();paintDialog();
+  if(saving)return false;saving=true;error='';schedule();paintDialog();
   const requestId=crypto.randomUUID();
   try{preferences=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(requestId);reject(Error('timeout'));},12000);pending.set(requestId,{resolve,reject,timer});globalThis.__agpaModelPreferences(JSON.stringify({requestId,name,field,value}));});}
   catch{error='Could not save model preferences. Try again.';}
   finally{saving=false;schedule();paintDialog();}
+  return !error;
  }
  function entries(panel){return [...panel.querySelectorAll('[data-testid=model-selector-item],[data-testid=model-selector-effort-group]')].map(e=>({row:e.closest('[role=menuitem]'),name:e.dataset.modelLabel||e.dataset.modelBase})).filter(e=>e.row&&e.name);}
  function permissionColors(){
@@ -72,6 +73,7 @@
  }
  let search='',lastSearch=0;
  function keyboard(event){
+  if(event.target.closest?.('[data-agpa-effort-ui]'))return;
   if(dialog?.open&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();dialog.close();return;}
   if(event.ctrlKey||event.altKey||event.metaKey)return;
   if(['Enter',' '].includes(event.key)&&event.target.matches?.('[data-agpa-model-manage],[data-agpa-model-footer]')){event.preventDefault();event.stopImmediatePropagation();event.target.click();return;}
@@ -104,6 +106,6 @@
   if(records.some(r=>{const target=r.target.nodeType===1?r.target:r.target.parentElement;if(target?.closest('[data-agpa-model-ui]'))return false;const nodes=[...r.addedNodes,...r.removedNodes];if(nodes.length&&nodes.every(n=>n.nodeType===1&&n.hasAttribute('data-agpa-model-ui')))return false;return target?.closest(watched)||nodes.some(n=>n.nodeType===1&&(n.matches(watched)||n.querySelector(watched)));}))schedule();
  });observer.observe(document.body,{subtree:true,childList:true,characterData:true});
  window.addEventListener('keydown',keyboard,true);const unsubscribe=i.subscribe(()=>{schedule();paintDialog();});
- globalThis.__AGModelUI={version:VERSION,setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');}for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
+ globalThis.__AGModelUI={version:VERSION,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');}for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
  schedule();
 })();
