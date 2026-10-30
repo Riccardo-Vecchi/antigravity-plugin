@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.0.10';
+  const VERSION = '1.0.11';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -191,6 +191,80 @@
     if (pill.getAttribute('aria-label') !== ariaText) pill.setAttribute('aria-label', ariaText);
   }
 
+  const hydratedKeys = new Set();
+  let hydrating = false;
+  let hydrateTimer = null;
+
+  function tryAutoHydrate(doc = document) {
+    if (stopped || hydrating) return;
+    const convKey = rules.getConversationKey ? rules.getConversationKey(doc) : 'default';
+    if (!convKey || convKey === 'default' || hydratedKeys.has(convKey)) return;
+
+    const active = doc.activeElement;
+    const isInput = active && (active.getAttribute?.('contenteditable') === 'true' || active.tagName === 'TEXTAREA' || active.tagName === 'INPUT');
+    if (isInput) {
+      const text = (active.textContent || active.value || '').trim();
+      if (text.length > 0) return;
+    }
+
+    const viewport = doc.querySelector?.('[data-testid=autoscroll-viewport]');
+    if (!viewport) return;
+
+    const originalTop = viewport.scrollTop;
+    if (originalTop <= 50 || viewport.scrollHeight <= viewport.clientHeight * 1.15) {
+      hydratedKeys.add(convKey);
+      return;
+    }
+
+    hydratedKeys.add(convKey);
+    hydrating = true;
+
+    const clientHeight = viewport.clientHeight || 800;
+    const scrollStep = Math.max(400, Math.round(clientHeight * 0.75));
+    let currentTop = originalTop;
+
+    const cleanup = () => {
+      window.removeEventListener?.('keydown', onUserCancel, true);
+      window.removeEventListener?.('wheel', onUserCancel, true);
+    };
+
+    const onUserCancel = () => {
+      if (!hydrating) return;
+      if (hydrateTimer) {
+        clearInterval(hydrateTimer);
+        hydrateTimer = null;
+      }
+      hydrating = false;
+      viewport.scrollTop = originalTop;
+      cleanup();
+    };
+
+    window.addEventListener?.('keydown', onUserCancel, true);
+    window.addEventListener?.('wheel', onUserCancel, true);
+
+    hydrateTimer = setInterval(() => {
+      if (stopped) {
+        onUserCancel();
+        return;
+      }
+      currentTop = Math.max(0, currentTop - scrollStep);
+      viewport.scrollTop = currentTop;
+
+      if (currentTop <= 0) {
+        clearInterval(hydrateTimer);
+        hydrateTimer = null;
+        setTimeout(() => {
+          if (!stopped) {
+            viewport.scrollTop = originalTop;
+            hydrating = false;
+            cleanup();
+            schedule(true);
+          }
+        }, 30);
+      }
+    }, 16);
+  }
+
   function apply() {
     if (timer) {
       clearTimeout(timer);
@@ -200,6 +274,7 @@
 
     const stats = rules.extractConversationStats(document);
     activeStats = stats;
+    tryAutoHydrate(document);
 
     const triggers = document.querySelectorAll('[data-testid=model-selector-trigger]');
     if (!triggers.length) {
