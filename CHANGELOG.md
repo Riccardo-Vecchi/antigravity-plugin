@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.15.2
+
+- Move **View Usage** from the model menu to the sidebar above Settings, keeping the native live quota information.
+
 ## 1.15.1
 
 - Reduce the effort chevron to match the model control.
