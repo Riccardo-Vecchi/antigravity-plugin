@@ -21,7 +21,7 @@ async function attachNative(endpoint,paths){
  const client=await connect(endpoint);
  try{
   // Safety timeout also runs if the companion exits before its normal cleanup.
-  await client.call('Runtime.evaluate',{expression:`globalThis.__AGPAInspectorTimer__=setTimeout(()=>process.mainModule.require('node:inspector').close(),90000);globalThis.__AGPAInspectorTimer__.unref();true`,returnByValue:true});
+  await client.call('Runtime.evaluate',{expression:`process.stderr?.on?.('error',e=>{if(e.code==='EPIPE')return;});process.stdout?.on?.('error',e=>{if(e.code==='EPIPE')return;});globalThis.__AGPAInspectorTimer__=setTimeout(()=>process.mainModule.require('node:inspector').close(),90000);globalThis.__AGPAInspectorTimer__.unref();true`,returnByValue:true});
   let tray=null;
   for(let attempt=0;attempt<120&&!tray;attempt++){tray=await trayObject(client);if(!tray)await pause(250);}
   if(!tray)throw Error('The native Antigravity tray is not available.');
