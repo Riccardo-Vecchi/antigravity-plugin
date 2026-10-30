@@ -1,6 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
- 'use strict';const VERSION='1.1.3';
+ 'use strict';const VERSION='1.1.4';
  globalThis.__AGContextBudget?.destroy();
  document.querySelectorAll('[data-agpa-context-budget],[data-agpa-context-ui],#agpa-context-budget-styles').forEach(e=>e.remove());
  delete globalThis.__AGPA_CONTEXT_BUDGET__;
@@ -27,10 +27,18 @@
   for(const e of document.querySelectorAll('[data-testid^="permissions-preset-option-"]')){const id=e.dataset.testid.slice('permissions-preset-option-'.length),mode=id==='request_review'?'review':['default','auto','turbo'].includes(id)?id:null;if(mode)setAttr(e,'data-agpa-permission',mode);}
   for(const e of document.querySelectorAll('[data-testid=permissions-selector-trigger]')){const mode=permissionFor(e.textContent);if(mode)setAttr(e,'data-agpa-permission',mode);else e.removeAttribute('data-agpa-permission');}
  }
- let usageOpening=false,usageButton=null,usageTimer=null;
+ let usageOpening=false,usageButton=null,usageTimer=null,usageCloseTimer=null;
  function usageRow(panel){return [...panel.querySelectorAll('[role=menuitem][aria-haspopup=menu]')].find(e=>e.querySelector('path[d^="M479.04-325.92"]')||e.textContent.trim()==='View Usage');}
- function closeUsage(){document.body.removeAttribute('data-agpa-usage-open');usageButton?.setAttribute('aria-expanded','false');}
+ function closeUsage(){clearTimeout(usageCloseTimer);usageCloseTimer=null;document.body.removeAttribute('data-agpa-usage-open');usageButton?.setAttribute('aria-expanded','false');}
+ function usagePointer(event){
+  if(!document.body.hasAttribute('data-agpa-usage-open'))return;
+  const target=event.type==='pointerout'?event.relatedTarget:event.target;
+  if(target instanceof Node&&(usageButton?.contains(target)||document.querySelector('[data-agpa-usage-menu]')?.contains(target))){clearTimeout(usageCloseTimer);usageCloseTimer=null;return;}
+  if(usageCloseTimer!==null)return;
+  usageCloseTimer=setTimeout(()=>{usageCloseTimer=null;if(stopped||!document.body.hasAttribute('data-agpa-usage-open'))return;clearTimeout(usageTimer);usageOpening=false;if(document.querySelector('[data-testid=model-selector-trigger]')?.getAttribute('aria-expanded')==='true')document.querySelector('[data-testid=model-selector-trigger]').click();closeUsage();},350);
+ }
  function openUsage(button){
+    clearTimeout(usageCloseTimer);usageCloseTimer=null;
     if(usageOpening||document.body.hasAttribute('data-agpa-usage-open'))return;
     const trigger=document.querySelector('[data-testid=model-selector-trigger]');if(!trigger)return;
     usageOpening=true;usageButton=button;button.setAttribute('aria-expanded','true');document.body.setAttribute('data-agpa-usage-open','');
@@ -143,7 +151,8 @@
  const observer=new MutationObserver(records=>{
   if(records.some(r=>{const target=r.target.nodeType===1?r.target:r.target.parentElement;if(target?.closest('[data-agpa-model-ui]'))return false;const nodes=[...r.addedNodes,...r.removedNodes];if(nodes.length&&nodes.every(n=>n.nodeType===1&&n.hasAttribute('data-agpa-model-ui')))return false;return target?.closest(watched)||nodes.some(n=>n.nodeType===1&&(n.matches(watched)||n.querySelector(watched)));}))schedule();
  });observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+ document.addEventListener('pointerover',usagePointer,true);document.addEventListener('pointerout',usagePointer,true);
  window.addEventListener('keydown',keyboard,true);const unsubscribe=i.subscribe(()=>{schedule();paintDialog();});
- globalThis.__AGModelUI={version:VERSION,openUsage,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;clearTimeout(usageTimer);closeUsage();for(const e of document.querySelectorAll('[data-agpa-native-usage],[data-agpa-usage-separator],[data-agpa-usage-root],[data-agpa-usage-menu],[data-agpa-usage-positioner],[data-agpa-usage-anchor]'))for(const attr of ['data-agpa-native-usage','data-agpa-usage-separator','data-agpa-usage-root','data-agpa-usage-menu','data-agpa-usage-positioner','data-agpa-usage-anchor'])e.removeAttribute(attr);document.body.style.removeProperty('--agpa-usage-left');document.body.style.removeProperty('--agpa-usage-bottom');observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');}for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
+ globalThis.__AGModelUI={version:VERSION,openUsage,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;document.removeEventListener('pointerover',usagePointer,true);document.removeEventListener('pointerout',usagePointer,true);clearTimeout(usageTimer);closeUsage();for(const e of document.querySelectorAll('[data-agpa-native-usage],[data-agpa-usage-separator],[data-agpa-usage-root],[data-agpa-usage-menu],[data-agpa-usage-positioner],[data-agpa-usage-anchor]'))for(const attr of ['data-agpa-native-usage','data-agpa-usage-separator','data-agpa-usage-root','data-agpa-usage-menu','data-agpa-usage-positioner','data-agpa-usage-anchor'])e.removeAttribute(attr);document.body.style.removeProperty('--agpa-usage-left');document.body.style.removeProperty('--agpa-usage-bottom');observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');}for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
  schedule();
 })();
