@@ -67,3 +67,16 @@ plugin.json
 # Private Library and sidebar preferences.
 library.json
 workspace.json
+
+# Generated developer reports, caches and editor backup files.
+coverage/
+playwright-report/
+blob-report/
+test-results/
+.cache/
+*.tsbuildinfo
+*.swp
+*.swo
+*~
+Thumbs.db
+Desktop.ini

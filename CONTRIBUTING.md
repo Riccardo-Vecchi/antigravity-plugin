@@ -10,6 +10,10 @@ npm run check
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
+Commit `package-lock.json` alongside dependency changes: CI uses `npm ci` to
+install the same dependency versions. Keep shared formatting, lint, TypeScript
+and Playwright configuration in Git; generated reports and local state stay ignored.
+
 Use temporary browser profiles and fixture documents. Never commit account data,
 local settings, transcripts, captures of personal content, or driver binaries.
 Keep Linux and Windows adapters separate from shared code. Include regression

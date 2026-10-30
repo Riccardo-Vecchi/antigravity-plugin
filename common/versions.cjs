@@ -5,7 +5,7 @@ module.exports = Object.freeze({
   workspace: "1.1.1",
   sidebarLayout: "1.0.1",
   companion: "1.6.0",
-  models: "1.1.4",
+  models: "1.1.5",
   modelControls: "1.2.1",
   updates: "1.2.3",
   appearance: "1.8.2",

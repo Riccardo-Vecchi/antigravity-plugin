@@ -1,6 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
- 'use strict';const VERSION='1.1.4';
+ 'use strict';const VERSION='1.1.5';
  globalThis.__AGContextBudget?.destroy();
  document.querySelectorAll('[data-agpa-context-budget],[data-agpa-context-ui],#agpa-context-budget-styles').forEach(e=>e.remove());
  delete globalThis.__AGPA_CONTEXT_BUDGET__;
@@ -30,6 +30,7 @@
  let usageOpening=false,usageButton=null,usageTimer=null,usageCloseTimer=null;
  function usageRow(panel){return [...panel.querySelectorAll('[role=menuitem][aria-haspopup=menu]')].find(e=>e.querySelector('path[d^="M479.04-325.92"]')||e.textContent.trim()==='View Usage');}
  function closeUsage(){clearTimeout(usageCloseTimer);usageCloseTimer=null;document.body.removeAttribute('data-agpa-usage-open');usageButton?.setAttribute('aria-expanded','false');}
+ function nativeModelClick(event){if(!document.body.hasAttribute('data-agpa-usage-open')&&event.target.closest?.('[data-testid=model-selector-trigger]'))for(const root of document.querySelectorAll('[data-agpa-usage-only]'))root.removeAttribute('data-agpa-usage-only');}
  function usagePointer(event){
   if(!document.body.hasAttribute('data-agpa-usage-open'))return;
   const target=event.type==='pointerout'?event.relatedTarget:event.target;
@@ -60,7 +61,7 @@
   for(const panel of document.querySelectorAll('[data-testid=model-selector-panel]')){
    const row=usageRow(panel);if(!row)continue;setAttr(row,'data-agpa-native-usage','');
    const separator=row.parentElement.previousElementSibling;if(separator?.getAttribute('role')==='separator')setAttr(separator,'data-agpa-usage-separator','');
-   const root=panel.closest('[role=menu]');if(root){setAttr(root,'data-agpa-usage-root','');setAttr(root.parentElement,'data-agpa-usage-anchor','');}
+   const root=panel.closest('[role=menu]');if(root){setAttr(root,'data-agpa-usage-root','');if(document.body.hasAttribute('data-agpa-usage-open'))setAttr(root,'data-agpa-usage-only','');setAttr(root.parentElement,'data-agpa-usage-anchor','');}
    const submenu=row.parentElement.querySelector('[role=menu][data-nested]');if(submenu){setAttr(submenu,'data-agpa-usage-menu','');setAttr(submenu.parentElement,'data-agpa-usage-positioner','');}
   }
   if(!usageOpening&&!document.querySelector('[data-testid=model-selector-panel]'))closeUsage();
@@ -142,7 +143,7 @@
  [data-testid^=permissions-preset-option-][data-agpa-permission]>[data-icon],[data-testid^=permissions-preset-option-][data-agpa-permission]>span.flex.min-w-0>span:first-child{color:color-mix(in srgb,var(--foreground,#eee) 18%,var(--agpa-permission))!important}
  body:not([data-agpa-usage-open]) [data-agpa-native-usage],body:not([data-agpa-usage-open]) [data-agpa-usage-separator]{display:none!important}
  body[data-agpa-usage-open] [data-agpa-usage-anchor]{position:fixed!important;left:0!important;top:0!important;transform:none!important}
- body[data-agpa-usage-open] [data-agpa-usage-root]{visibility:hidden!important;pointer-events:none!important}
+ [data-agpa-usage-only]{visibility:hidden!important;pointer-events:none!important}
  body[data-agpa-usage-open] [data-agpa-usage-menu]{visibility:visible!important;pointer-events:auto!important}
  body[data-agpa-usage-open] [data-agpa-usage-positioner]{position:fixed!important;left:var(--agpa-usage-left)!important;bottom:var(--agpa-usage-bottom)!important;top:auto!important;transform:none!important;max-height:calc(100vh - 16px)}
  @media(max-width:600px){.agpa-model-setting{flex-wrap:wrap}.agpa-model-setting>span{flex-basis:100%}}
@@ -151,8 +152,8 @@
  const observer=new MutationObserver(records=>{
   if(records.some(r=>{const target=r.target.nodeType===1?r.target:r.target.parentElement;if(target?.closest('[data-agpa-model-ui]'))return false;const nodes=[...r.addedNodes,...r.removedNodes];if(nodes.length&&nodes.every(n=>n.nodeType===1&&n.hasAttribute('data-agpa-model-ui')))return false;return target?.closest(watched)||nodes.some(n=>n.nodeType===1&&(n.matches(watched)||n.querySelector(watched)));}))schedule();
  });observer.observe(document.body,{subtree:true,childList:true,characterData:true});
- document.addEventListener('pointerover',usagePointer,true);document.addEventListener('pointerout',usagePointer,true);
+ document.addEventListener('click',nativeModelClick,true);document.addEventListener('pointerover',usagePointer,true);document.addEventListener('pointerout',usagePointer,true);
  window.addEventListener('keydown',keyboard,true);const unsubscribe=i.subscribe(()=>{schedule();paintDialog();});
- globalThis.__AGModelUI={version:VERSION,openUsage,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;document.removeEventListener('pointerover',usagePointer,true);document.removeEventListener('pointerout',usagePointer,true);clearTimeout(usageTimer);closeUsage();for(const e of document.querySelectorAll('[data-agpa-native-usage],[data-agpa-usage-separator],[data-agpa-usage-root],[data-agpa-usage-menu],[data-agpa-usage-positioner],[data-agpa-usage-anchor]'))for(const attr of ['data-agpa-native-usage','data-agpa-usage-separator','data-agpa-usage-root','data-agpa-usage-menu','data-agpa-usage-positioner','data-agpa-usage-anchor'])e.removeAttribute(attr);document.body.style.removeProperty('--agpa-usage-left');document.body.style.removeProperty('--agpa-usage-bottom');observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');}for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
+ globalThis.__AGModelUI={version:VERSION,openUsage,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;document.removeEventListener('click',nativeModelClick,true);document.removeEventListener('pointerover',usagePointer,true);document.removeEventListener('pointerout',usagePointer,true);clearTimeout(usageTimer);closeUsage();for(const e of document.querySelectorAll('[data-agpa-native-usage],[data-agpa-usage-separator],[data-agpa-usage-root],[data-agpa-usage-menu],[data-agpa-usage-positioner],[data-agpa-usage-anchor],[data-agpa-usage-only]'))for(const attr of ['data-agpa-native-usage','data-agpa-usage-separator','data-agpa-usage-root','data-agpa-usage-menu','data-agpa-usage-positioner','data-agpa-usage-anchor','data-agpa-usage-only'])e.removeAttribute(attr);document.body.style.removeProperty('--agpa-usage-left');document.body.style.removeProperty('--agpa-usage-bottom');observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');}for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
  schedule();
 })();
