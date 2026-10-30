@@ -27,7 +27,7 @@
     "three": "0.186.1",
     "typescript": "7.0.2"
   },
-  "version": "1.15.1",
+  "version": "1.16.0",
   "description": "Unofficial local Antigravity customizations for Linux and Windows.",
   "license": "0BSD",
   "repository": {

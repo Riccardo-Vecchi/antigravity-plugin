@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.16.0
+
+- Keep the Usage popup beside its sidebar icon from the first frame, without briefly appearing in the top-left corner.
+
 ## 1.15.1
 
 - Move **View Usage** from the model menu to the sidebar above Settings, keeping the native live quota information.

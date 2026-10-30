@@ -1,6 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
- 'use strict';const VERSION='1.1.5';
+ 'use strict';const VERSION='1.1.6';
  globalThis.__AGContextBudget?.destroy();
  document.querySelectorAll('[data-agpa-context-budget],[data-agpa-context-ui],#agpa-context-budget-styles').forEach(e=>e.remove());
  delete globalThis.__AGPA_CONTEXT_BUDGET__;
@@ -143,6 +143,9 @@
  [data-testid^=permissions-preset-option-][data-agpa-permission]>[data-icon],[data-testid^=permissions-preset-option-][data-agpa-permission]>span.flex.min-w-0>span:first-child{color:color-mix(in srgb,var(--foreground,#eee) 18%,var(--agpa-permission))!important}
  body:not([data-agpa-usage-open]) [data-agpa-native-usage],body:not([data-agpa-usage-open]) [data-agpa-usage-separator]{display:none!important}
  body[data-agpa-usage-open] [data-agpa-usage-anchor]{position:fixed!important;left:0!important;top:0!important;transform:none!important}
+ /* A transformed native menu makes its fixed submenu relative to that menu
+    until the enter transition ends. Keep Usage in the viewport from first paint. */
+ [data-agpa-usage-only],[data-agpa-usage-only] [role=menu][data-nested]{transform:none!important;translate:none!important;scale:none!important;rotate:none!important;animation:none!important;transition:none!important;will-change:auto!important}
  [data-agpa-usage-only]{visibility:hidden!important;pointer-events:none!important}
  body[data-agpa-usage-open] [data-agpa-usage-menu]{visibility:visible!important;pointer-events:auto!important}
  body[data-agpa-usage-open] [data-agpa-usage-positioner]{position:fixed!important;left:var(--agpa-usage-left)!important;bottom:var(--agpa-usage-bottom)!important;top:auto!important;transform:none!important;max-height:calc(100vh - 16px)}
