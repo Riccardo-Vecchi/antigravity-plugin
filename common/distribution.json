@@ -105,6 +105,7 @@
     "common/teamwork.cjs",
     "common/context-budget.cjs",
     "common/context-budget.js",
+    "common/transcript-reader.cjs",
     "common/teamwork-badge.cjs",
     "common/teamwork-badge.js",
     "common/model-ui.js",

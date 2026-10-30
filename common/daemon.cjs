@@ -55,6 +55,7 @@ const CONTEXT_BUDGET = fs.readFileSync(
   path.join(BASE, "context-budget.js"),
   "utf8",
 );
+const transcriptReader = require("./transcript-reader.cjs");
 const CONTEXT_BUDGET_CJS = fs.readFileSync(
   path.join(BASE, "context-budget.cjs"),
   "utf8",
@@ -312,6 +313,7 @@ class Client {
     this.catalogUpdated = false;
     this.healthSignature = null;
     this.patchStatus = { version: VERSION, state: "unchecked", checks: [] };
+    this.lastHydratedKey = null;
   }
   async open() {
     this.connection = await connect(this.target.webSocketDebuggerUrl, {
@@ -353,6 +355,13 @@ class Client {
           );
         if (
           m.method === "Runtime.bindingCalled" &&
+          m.params.name === "__agpaTranscriptRequest"
+        )
+          this.onTranscriptRequest(m.params).catch((e) =>
+            log("transcript.rejected", e),
+          );
+        if (
+          m.method === "Runtime.bindingCalled" &&
           m.params.name === "__agpaCompanion"
         )
           this.onCompanion(m.params).catch(() => log("companion.rejected"));
@@ -383,6 +392,7 @@ class Client {
     await this.call("Runtime.addBinding", { name: "__agpaPluginUpdate" });
     await this.call("Runtime.addBinding", { name: "__agpaComputerUse" });
     await this.call("Runtime.addBinding", { name: "__agpaCompanion" });
+    await this.call("Runtime.addBinding", { name: "__agpaTranscriptRequest" });
     await this.ensure();
     if (pluginControl.enabled) {
       await desktopIcon.ensureTray();
@@ -587,6 +597,23 @@ class Client {
         await this.evaluate(
           `(()=>{const module={exports:{}};${CONTEXT_BUDGET_CJS};globalThis.__AGPA_CONTEXT_BUDGET__=module.exports;})();\n${CONTEXT_BUDGET}`,
         );
+      const activeKey = await this.evaluate(
+        "globalThis.__AGContextBudget?.getActiveKey?.()",
+      );
+      if (activeKey && activeKey !== this.lastHydratedKey) {
+        const needsHydration = await this.evaluate(
+          `globalThis.__AGContextBudget?.needsTranscript?.(${JSON.stringify(activeKey)})`,
+        );
+        if (needsHydration) {
+          const stats = transcriptReader.readTranscriptStats(activeKey);
+          if (stats) {
+            await this.evaluate(
+              `globalThis.__AGContextBudget?.hydrateFromTranscript(${JSON.stringify(activeKey)}, ${JSON.stringify(stats)})`,
+            );
+          }
+        }
+        this.lastHydratedKey = activeKey;
+      }
       if (
         (await this.evaluate("globalThis.__AGTeamworkBadge?.version")) !==
         versions.teamworkBadge
@@ -871,6 +898,33 @@ class Client {
           params.executionContextId,
         ).catch(() => {});
     }
+  }
+  async onTranscriptRequest(params) {
+    const context = this.contexts.get(params.executionContextId);
+    if (
+      !context?.auxData?.isDefault ||
+      context.auxData.frameId !== this.frameId ||
+      context.origin !== this.origin
+    )
+      return;
+    let payload;
+    try {
+      if (params.payload.length > 4096) return;
+      payload = JSON.parse(params.payload);
+    } catch {
+      payload = params.payload;
+    }
+    const convKey =
+      typeof payload === "string"
+        ? payload
+        : payload?.convKey || payload?.conversationId || "";
+    if (!convKey) return;
+    const stats = transcriptReader.readTranscriptStats(convKey);
+    if (!stats) return;
+    await this.evaluate(
+      `globalThis.__AGContextBudget?.hydrateFromTranscript(${JSON.stringify(convKey)}, ${JSON.stringify(stats)})`,
+      params.executionContextId
+    ).catch(() => {});
   }
   async onCompanion(params) {
     if (!pluginControl.enabled || pluginControl.busy) return;

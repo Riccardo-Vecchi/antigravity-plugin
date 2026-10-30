@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.0.11';
+  const VERSION = '1.0.12';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -274,6 +274,17 @@
 
     const stats = rules.extractConversationStats(document);
     activeStats = stats;
+
+    const convKey = rules.getConversationKey ? rules.getConversationKey(document) : 'default';
+    if (convKey && convKey !== 'default') {
+      const stored = rules.loadConversationState ? rules.loadConversationState(convKey) : null;
+      if (!stored || !stored.maxChars) {
+        if (typeof globalThis.__agpaTranscriptRequest === 'function') {
+          globalThis.__agpaTranscriptRequest(JSON.stringify({ convKey }));
+        }
+      }
+    }
+
     tryAutoHydrate(document);
 
     const triggers = document.querySelectorAll('[data-testid=model-selector-trigger]');
@@ -493,6 +504,22 @@
   globalThis.__AGContextBudget = {
     version: VERSION,
     status: () => ({ stats: activeStats, open: !!popup }),
+    getActiveKey: () => (rules.getConversationKey ? rules.getConversationKey(document) : 'default'),
+    needsTranscript: (key) => {
+      const k = key || (rules.getConversationKey ? rules.getConversationKey(document) : 'default');
+      if (!k || k === 'default') return false;
+      const stored = rules.loadConversationState ? rules.loadConversationState(k) : null;
+      if (!stored || !stored.maxChars) return true;
+      const navTurns = rules.countTurns ? rules.countTurns(document) : 0;
+      if (navTurns > (stored.blocks?.length || 0)) return true;
+      return false;
+    },
+    hydrateFromTranscript: (convKey, data) => {
+      if (rules.hydrateFromTranscript) {
+        rules.hydrateFromTranscript(convKey, data);
+        apply();
+      }
+    },
     refresh: () => apply(),
     destroy() {
       stopped = true;

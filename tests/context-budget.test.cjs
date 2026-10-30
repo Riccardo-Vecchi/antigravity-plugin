@@ -594,6 +594,45 @@ test('extractConversationStats accounts for system baseline overhead and preserv
   assert.equal(coldStats.systemTokens, 2940, 'system baseline restored from storage on cold restart');
 });
 
+test('hydrateFromTranscript hydrates conversation stats into cache and storage without scrolling', () => {
+  rules.clearCache();
+  const storeMap = new Map();
+  const mockStorage = {
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    getItem: k => storeMap.get(k) || null,
+    removeItem: k => storeMap.delete(k)
+  };
+
+  const convKey = '/c/test-hydrate-transcript';
+  const data = {
+    maxChars: 120000,
+    maxCodeChars: 15000,
+    maxTurns: 30,
+    maxImageTokens: 516,
+    apiTokens: 35000,
+    blocks: [
+      ['turn-1', { length: 4000, codeChars: 500 }],
+      ['turn-2', { length: 5000, codeChars: 800 }]
+    ],
+    images: [['img-1', 258], ['img-2', 258]]
+  };
+
+  const res = rules.hydrateFromTranscript(convKey, data, mockStorage);
+  assert.equal(res, true);
+
+  const doc = {
+    location: { pathname: convKey },
+    querySelector: () => null,
+    querySelectorAll: () => []
+  };
+
+  const stats = rules.extractConversationStats(doc, mockStorage);
+  assert.equal(stats.turns, 30);
+  assert.equal(stats.chars, 120000);
+  assert.equal(stats.imageTokens, 516);
+  assert.ok(stats.tokens >= 35000);
+});
+
 test('getConversationKey resolves key from pathname, hash, query params, sidebar rows, and containers', () => {
   // Pathname
   assert.equal(rules.getConversationKey({ location: { pathname: '/c/uuid-1' } }), '/c/uuid-1');

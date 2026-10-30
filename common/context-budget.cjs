@@ -58,6 +58,73 @@ function clearConversationState(convKey, storage) {
   return false;
 }
 
+function hydrateFromTranscript(convKey, data, storage) {
+  if (!convKey || !data) return false;
+  const store = storage !== undefined ? storage : getStorage();
+  let entry = conversationCache.get(convKey);
+  if (!entry) {
+    entry = {
+      blocks: new Map(),
+      images: new Map(),
+      documents: new Map(),
+      maxChars: 0,
+      maxCodeChars: 0,
+      maxTurns: 0,
+      maxImageTokens: 0,
+      maxDocTokens: 0,
+      systemTokens: 1500,
+      systemBaseline: null,
+      apiTokens: 0
+    };
+    conversationCache.set(convKey, entry);
+  }
+
+  if (Array.isArray(data.blocks)) {
+    for (const [k, v] of data.blocks) {
+      if (!entry.blocks.has(k)) {
+        entry.blocks.set(k, typeof v === 'number' ? { length: v, codeChars: 0 } : v);
+      }
+    }
+  }
+
+  if (Array.isArray(data.images)) {
+    for (const [k, tokens] of data.images) {
+      if (!entry.images.has(k)) {
+        entry.images.set(k, tokens);
+      }
+    }
+  }
+
+  entry.maxChars = Math.max(entry.maxChars, data.maxChars || 0);
+  entry.maxCodeChars = Math.max(entry.maxCodeChars || 0, data.maxCodeChars || 0);
+  entry.maxTurns = Math.max(entry.maxTurns, data.maxTurns || 0);
+  entry.maxImageTokens = Math.max(entry.maxImageTokens, data.maxImageTokens || 0);
+  if (data.apiTokens && typeof data.apiTokens === 'number') {
+    entry.apiTokens = Math.max(entry.apiTokens || 0, data.apiTokens);
+  }
+  entry.updatedAt = Date.now();
+
+  saveConversationState(convKey, {
+    blocks: Array.from(entry.blocks.entries()),
+    images: Array.from(entry.images.entries()),
+    documents: Array.from(entry.documents.entries()),
+    maxChars: entry.maxChars,
+    maxCodeChars: entry.maxCodeChars,
+    maxTurns: entry.maxTurns,
+    maxImageTokens: entry.maxImageTokens,
+    maxDocTokens: entry.maxDocTokens,
+    systemTokens: entry.systemTokens,
+    systemBaseline: entry.systemBaseline,
+    apiTokens: entry.apiTokens || null,
+    ceiling: entry.ceiling,
+    modelName: entry.modelName,
+    updatedAt: entry.updatedAt
+  }, store);
+
+  return true;
+}
+
+
 function estimateImageTokens(width, height) {
   let w = Math.max(0, Number(width) || 0);
   let h = Math.max(0, Number(height) || 0);
@@ -482,6 +549,7 @@ function extractConversationStats(doc = document, storage = undefined) {
         maxDocTokens: stored.maxDocTokens || 0,
         systemTokens: stored.systemTokens || 0,
         systemBaseline: stored.systemBaseline || null,
+        apiTokens: stored.apiTokens || 0,
         ceiling: stored.ceiling || 1000000,
         modelName: stored.modelName || '',
         updatedAt: stored.updatedAt || Date.now()
@@ -628,7 +696,10 @@ function extractConversationStats(doc = document, storage = undefined) {
   const budgetFn = typeof budgetLevelFor === 'function' ? budgetLevelFor : (this?.budgetLevelFor || budgetLevelFor);
   const formatFn = typeof formatTokens === 'function' ? formatTokens : (this?.formatTokens || formatTokens);
 
-  const tokens = estimateFn(chars, turns, imageTokens, codeChars, docTokens, systemTokens);
+  let tokens = estimateFn(chars, turns, imageTokens, codeChars, docTokens, systemTokens);
+  if (entry.apiTokens && entry.apiTokens > tokens) {
+    tokens = entry.apiTokens;
+  }
   const budget = budgetFn(tokens, ceiling);
   return {
     chars,
@@ -677,6 +748,7 @@ module.exports = {
   collectImages,
   extractConversationStats,
   saveConversationState,
+  hydrateFromTranscript,
   loadConversationState,
   clearConversationState,
   clearCache
