@@ -4,8 +4,7 @@ const { test, expect } = require("@playwright/test"),
   path = require("node:path");
 const models = require("../fixtures/model-controls.cjs"),
   team = require("../fixtures/teamwork.cjs");
-const { createTeamworkBridge } = require("../../common/teamwork.cjs"),
-  { createContextReader } = require("../../common/context-usage.cjs");
+const { createTeamworkBridge } = require("../../common/teamwork.cjs");
 const rules = require("../../common/model-controls.cjs");
 const source = fs.readFileSync(
   path.join(__dirname, "../../common/model-controls.js"),
@@ -19,7 +18,7 @@ async function setup(page, teamwork = false) {
   await page.evaluate(`(${models.setup.toString()})()`);
   if (teamwork) await page.evaluate(`(${team.setup.toString()})()`);
   await page.evaluate(
-    `globalThis.__AGPA_TEAMWORK_FACTORY__=${createTeamworkBridge.toString()};globalThis.__AGPA_CONTEXT_FACTORY__=${createContextReader.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${rules.selectionFor.toString()},optionsFor:${rules.optionsFor.toString()},layoutFor:${rules.layoutFor.toString()}}`,
+    `globalThis.__AGPA_TEAMWORK_FACTORY__=${createTeamworkBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${rules.selectionFor.toString()},optionsFor:${rules.optionsFor.toString()},layoutFor:${rules.layoutFor.toString()}}`,
   );
   await page.evaluate(source);
 }
@@ -65,83 +64,6 @@ test("the duplicate simple native effort submenu is hidden, and disabling restor
   await expect(
     page.locator("[data-testid=model-selector-effort-option]").first(),
   ).toBeVisible();
-});
-test("context metadata updates the indicator, while request counts never fabricate a percentage", async ({
-  page,
-}) => {
-  await setup(page);
-  await page.evaluate(() => {
-    const callbacks = new Set();
-    let state = {
-      trajectorySlice: {
-        generatorMetadatasInSlice: [
-          {
-            metadata: {
-              value: {
-                contextWindowMetadata: {
-                  estimatedTokensUsed: 291000,
-                  maxContextTokens: 475000,
-                },
-              },
-            },
-          },
-        ],
-      },
-    };
-    const provider = {
-      getState: () => state,
-      onDidChange(fn) {
-        callbacks.add(fn);
-        return { dispose: () => callbacks.delete(fn) };
-      },
-    };
-    window.fixture.trigger.__reactFiber$fixture = {
-      dependencies: {
-        firstContext: {
-          memoizedValue: {
-            cascadeContext: { state: { agentStateProvider: provider } },
-          },
-        },
-      },
-    };
-    window.fixture.setContext = (next) => {
-      state = next;
-      for (const fn of callbacks) fn();
-    };
-    window.fixture.contextListeners = callbacks;
-    window.fixture.trigger.setAttribute("aria-label", "Context fixture");
-  });
-  const indicator = page.locator(".agpa-context-trigger");
-  await expect(indicator).toBeVisible();
-  await indicator.hover();
-  await expect(page.getByRole("tooltip")).toContainText(
-    "61% of 475,000 tokens",
-  );
-  await page.evaluate(() =>
-    window.fixture.setContext({
-      trajectorySlice: {
-        stepsInSlice: [
-          {
-            metadata: {
-              modelUsage: { inputTokens: 3036n, cacheReadTokens: 34547n },
-            },
-          },
-        ],
-      },
-    }),
-  );
-  await expect(indicator).not.toHaveAttribute("data-known");
-  await expect(page.getByRole("tooltip")).toContainText(
-    "Current context use is not reported.",
-  );
-  await expect(page.getByRole("tooltip")).toContainText("Input: 3,036 tokens");
-  await expect(page.getByRole("tooltip")).toContainText(
-    "Cache read: 34,547 tokens",
-  );
-  await page.evaluate(() => window.__AGModelControls.destroy());
-  expect(await page.evaluate(() => window.fixture.contextListeners.size)).toBe(
-    0,
-  );
 });
 test("native Teamwork editing, rollback, draft preservation and cleanup still pass", async ({
   page,

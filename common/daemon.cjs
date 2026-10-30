@@ -6,7 +6,6 @@ const path = require("node:path");
 const BASE = __dirname;
 const { connect } = require("./cdp-connection.cjs");
 const { createGeminiLinks, externalURL } = require("./gemini-links.cjs");
-const { createContextReader } = require("./context-usage.cjs");
 const diagnostic = require("./diagnostics.cjs").createDiagnostics();
 const legacyBootstrap =
   path.resolve(BASE, "..") ===
@@ -563,7 +562,7 @@ class Client {
         versions.modelControls
       )
         await this.evaluate(
-          `globalThis.__AGPA_CONTEXT_FACTORY__=${createContextReader.toString()};globalThis.__AGPA_TEAMWORK_FACTORY__=${createTeamworkBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${modelControlRules.selectionFor.toString()},optionsFor:${modelControlRules.optionsFor.toString()},layoutFor:${modelControlRules.layoutFor.toString()}};\n${MODEL_CONTROLS}`,
+          `globalThis.__AGPA_TEAMWORK_FACTORY__=${createTeamworkBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${modelControlRules.selectionFor.toString()},optionsFor:${modelControlRules.optionsFor.toString()},layoutFor:${modelControlRules.layoutFor.toString()}};\n${MODEL_CONTROLS}`,
         );
       if (
         (await this.evaluate("globalThis.__AGCompanion?.version")) !==

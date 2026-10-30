@@ -37,8 +37,6 @@ The composer keeps approval permissions on the left and model/effort controls on
 
 Anthropic, Google and OpenAI icons identify recognized providers in the menu and selected-model button. Unknown providers keep their native presentation. Approval colors indicate Request Review (blue), Default (green), Auto (amber) and Turbo (red); they do not change native approval rules.
 
-The context indicator beside the model uses only metadata reported by the current native conversation. When an estimated context size and maximum are both reported, it shows a percentage. Otherwise the tooltip lists the last request's input, cache-read and cache-write counts separately; these are not added together or presented as a context percentage. Missing data hides the indicator. Counts describe the last reported request, not an estimate of unsent text. Provider and model semantics can differ.
-
 ## Enable or pause the plugin
 
 Use **Settings → Application → Plugin updates → Enable plugin**. Turning it off asks for confirmation, disconnects Computer use and Browser use, removes added controls and restores native icons. Preferences, conversation data, desktop startup choices and existing Gemini web contents are kept. A hidden Gemini view is parked without reloading or deleting its session/draft. A small management layer remains so the same switch can turn customizations back on, including after restarting the app. Desktop/browser access must be enabled separately; it is never silently regranted. The choice is stored in the private `plugin.json` file.

@@ -42,6 +42,6 @@ Daemon operational diagnostics use bounded event codes and known OS error codes.
 
 Favorites, hidden-model flags and the last chosen native reasoning effort per model are kept in the plugin’s private `models.json`. Ultra inserts/removes only the native Teamwork command in the current unsent draft and keeps no separate Teamwork history or persistent task-mode setting. It never submits a prompt. The slider invokes existing native model-menu items; it does not call a model, record prompts, or change approval permissions.
 
-## Context indicator and Gemini external links
+## Gemini external links
 
-Context details read numeric metadata from the active native conversation in memory. Drafts are not sent to a tokenizer, prompts are not copied, and usage history is not stored. Unknown limits or percentages are not invented. External links use the default browser's normal session; no embedded cookies or browser profiles are transferred. Popup observation is restricted to the owned Gemini webview using a temporary isolated-world ownership proof and forwards only user-initiated HTTP(S) destinations. Link URLs and proof values are not logged.
+External links use the default browser's normal session; no embedded cookies or browser profiles are transferred. Popup observation is restricted to the owned Gemini webview using a temporary isolated-world ownership proof and forwards only user-initiated HTTP(S) destinations. Link URLs and proof values are not logged.

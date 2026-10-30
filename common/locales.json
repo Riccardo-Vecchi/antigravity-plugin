@@ -464,16 +464,7 @@
       "External website": "External website",
       "Origin unavailable": "Origin unavailable",
       "Return to Gemini": "Return to Gemini",
-      "Ultra": "Ultra",
-      "Context window": "Context window",
-      "Estimated use: {tokens} tokens": "Estimated use: {tokens} tokens",
-      "{percent}% of {tokens} tokens": "{percent}% of {tokens} tokens",
-      "Context limit not reported.": "Context limit not reported.",
-      "Current context use is not reported.": "Current context use is not reported.",
-      "Last request (reported separately):": "Last request (reported separately):",
-      "Input: {tokens} tokens": "Input: {tokens} tokens",
-      "Cache read: {tokens} tokens": "Cache read: {tokens} tokens",
-      "Cache write: {tokens} tokens": "Cache write: {tokens} tokens"
+      "Ultra": "Ultra"
     },
     "icons": {
       "folder": "Folder",
@@ -991,16 +982,7 @@
       "External website": "Sito esterno",
       "Origin unavailable": "Origine non disponibile",
       "Return to Gemini": "Torna a Gemini",
-      "Ultra": "Ultra",
-      "Context window": "Finestra di contesto",
-      "Estimated use: {tokens} tokens": "Uso stimato: {tokens} token",
-      "{percent}% of {tokens} tokens": "{percent}% di {tokens} token",
-      "Context limit not reported.": "Limite di contesto non riportato.",
-      "Current context use is not reported.": "L’uso attuale del contesto non è riportato.",
-      "Last request (reported separately):": "Ultima richiesta (valori separati):",
-      "Input: {tokens} tokens": "Input: {tokens} token",
-      "Cache read: {tokens} tokens": "Cache letta: {tokens} token",
-      "Cache write: {tokens} tokens": "Cache scritta: {tokens} token"
+      "Ultra": "Ultra"
     },
     "icons": {
       "folder": "Cartella",
@@ -1518,16 +1500,7 @@
       "External website": "Externe Website",
       "Origin unavailable": "Herkunft nicht verfügbar",
       "Return to Gemini": "Zurück zu Gemini",
-      "Ultra": "Ultra",
-      "Context window": "Kontextfenster",
-      "Estimated use: {tokens} tokens": "Geschätzte Nutzung: {tokens} Tokens",
-      "{percent}% of {tokens} tokens": "{percent}% von {tokens} Tokens",
-      "Context limit not reported.": "Kontextlimit nicht angegeben.",
-      "Current context use is not reported.": "Die aktuelle Kontextnutzung ist nicht angegeben.",
-      "Last request (reported separately):": "Letzte Anfrage (getrennte Werte):",
-      "Input: {tokens} tokens": "Eingabe: {tokens} Tokens",
-      "Cache read: {tokens} tokens": "Cache gelesen: {tokens} Tokens",
-      "Cache write: {tokens} tokens": "Cache geschrieben: {tokens} Tokens"
+      "Ultra": "Ultra"
     },
     "icons": {
       "folder": "Ordner",
@@ -2045,16 +2018,7 @@
       "External website": "Sitio externo",
       "Origin unavailable": "Origen no disponible",
       "Return to Gemini": "Volver a Gemini",
-      "Ultra": "Ultra",
-      "Context window": "Ventana de contexto",
-      "Estimated use: {tokens} tokens": "Uso estimado: {tokens} tokens",
-      "{percent}% of {tokens} tokens": "{percent}% de {tokens} tokens",
-      "Context limit not reported.": "Límite de contexto no indicado.",
-      "Current context use is not reported.": "No se indica el uso actual del contexto.",
-      "Last request (reported separately):": "Última solicitud (valores separados):",
-      "Input: {tokens} tokens": "Entrada: {tokens} tokens",
-      "Cache read: {tokens} tokens": "Lectura de caché: {tokens} tokens",
-      "Cache write: {tokens} tokens": "Escritura de caché: {tokens} tokens"
+      "Ultra": "Ultra"
     },
     "icons": {
       "folder": "Carpeta",
@@ -2572,16 +2536,7 @@
       "External website": "Site externe",
       "Origin unavailable": "Origine indisponible",
       "Return to Gemini": "Revenir à Gemini",
-      "Ultra": "Ultra",
-      "Context window": "Fenêtre de contexte",
-      "Estimated use: {tokens} tokens": "Utilisation estimée : {tokens} jetons",
-      "{percent}% of {tokens} tokens": "{percent}% de {tokens} jetons",
-      "Context limit not reported.": "Limite de contexte non indiquée.",
-      "Current context use is not reported.": "L’utilisation actuelle du contexte n’est pas indiquée.",
-      "Last request (reported separately):": "Dernière requête (valeurs séparées) :",
-      "Input: {tokens} tokens": "Entrée : {tokens} jetons",
-      "Cache read: {tokens} tokens": "Cache lu : {tokens} jetons",
-      "Cache write: {tokens} tokens": "Cache écrit : {tokens} jetons"
+      "Ultra": "Ultra"
     },
     "icons": {
       "folder": "Dossier",
@@ -3099,16 +3054,7 @@
       "External website": "外部网站",
       "Origin unavailable": "来源不可用",
       "Return to Gemini": "返回 Gemini",
-      "Ultra": "Ultra",
-      "Context window": "上下文窗口",
-      "Estimated use: {tokens} tokens": "估计用量：{tokens} 个令牌",
-      "{percent}% of {tokens} tokens": "占 {tokens} 个令牌的 {percent}%",
-      "Context limit not reported.": "未报告上下文上限。",
-      "Current context use is not reported.": "未报告当前上下文用量。",
-      "Last request (reported separately):": "上次请求（分别报告）：",
-      "Input: {tokens} tokens": "输入：{tokens} 个令牌",
-      "Cache read: {tokens} tokens": "缓存读取：{tokens} 个令牌",
-      "Cache write: {tokens} tokens": "缓存写入：{tokens} 个令牌"
+      "Ultra": "Ultra"
     },
     "icons": {
       "folder": "文件夹",
@@ -3626,16 +3572,7 @@
       "External website": "外部サイト",
       "Origin unavailable": "アクセス元が不明です",
       "Return to Gemini": "Gemini に戻る",
-      "Ultra": "Ultra",
-      "Context window": "コンテキストウィンドウ",
-      "Estimated use: {tokens} tokens": "推定使用量：{tokens} トークン",
-      "{percent}% of {tokens} tokens": "{tokens} トークンの {percent}%",
-      "Context limit not reported.": "コンテキスト上限は報告されていません。",
-      "Current context use is not reported.": "現在のコンテキスト使用量は報告されていません。",
-      "Last request (reported separately):": "前回のリクエスト（個別の値）：",
-      "Input: {tokens} tokens": "入力：{tokens} トークン",
-      "Cache read: {tokens} tokens": "キャッシュ読み取り：{tokens} トークン",
-      "Cache write: {tokens} tokens": "キャッシュ書き込み：{tokens} トークン"
+      "Ultra": "Ultra"
     },
     "icons": {
       "folder": "フォルダー",

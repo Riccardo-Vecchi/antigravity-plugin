@@ -1,14 +1,11 @@
 /* Separate model/effort controls, delegating selection to native menu items. */
 (() => {
   "use strict";
-  const VERSION = "1.2.0";
+  const VERSION = "1.2.1";
   if (globalThis.__AGModelControls?.version === VERSION) return;
   globalThis.__AGModelControls?.destroy();
   const rules = globalThis.__AGPA_MODEL_CONTROLS__;
   const teamwork = globalThis.__AGPA_TEAMWORK_FACTORY__();
-  const contextReader = globalThis.__AGPA_CONTEXT_FACTORY__();
-  delete globalThis.__AGPA_CONTEXT_FACTORY__;
-  const contexts = new Map();
   delete globalThis.__AGPA_MODEL_CONTROLS__;
   delete globalThis.__AGPA_TEAMWORK_FACTORY__;
   const i18n = globalThis.__AGPAI18n;
@@ -400,110 +397,6 @@
       fallback(current);
     }
   }
-  function syncContext(trigger) {
-    const provider = contextReader.providerFor(trigger);
-    let entry = contexts.get(trigger);
-    if (entry && entry.provider !== provider) {
-      entry.subscription?.dispose();
-      entry.button.remove();
-      entry.tooltip.remove();
-      contexts.delete(trigger);
-      entry = null;
-    }
-    if (!provider) return;
-    if (!entry) {
-      const button = element("button", {
-        type: "button",
-        class: "agpa-context-trigger",
-        "aria-label": t("Context window"),
-      });
-      const tooltip = element("div", {
-        popover: "manual",
-        role: "tooltip",
-        class: "agpa-context-tooltip",
-      });
-      tooltip.id = "agpa-context-" + crypto.randomUUID();
-      button.setAttribute("aria-describedby", tooltip.id);
-      document.body.append(tooltip);
-      trigger.before(button);
-      const hide = () => {
-        if (tooltip.matches(":popover-open")) tooltip.hidePopover();
-      };
-      const show = () => {
-        if (button.hidden) return;
-        tooltip.showPopover();
-        const r = button.getBoundingClientRect(),
-          b = tooltip.getBoundingClientRect();
-        tooltip.style.left =
-          Math.max(
-            12,
-            Math.min(r.left + b.width / 2, innerWidth - b.width - 12),
-          ) + "px";
-        tooltip.style.top = Math.max(12, r.top - b.height - 10) + "px";
-      };
-      button.addEventListener("pointerenter", show);
-      button.addEventListener("pointerleave", hide);
-      button.addEventListener("focus", show);
-      button.addEventListener("blur", hide);
-      button.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") hide();
-      });
-      entry = {
-        provider,
-        button,
-        tooltip,
-        subscription: provider.onDidChange(schedule),
-      };
-      contexts.set(trigger, entry);
-    }
-    let data;
-    try {
-      data = contextReader.snapshot(provider.getState());
-    } catch {
-      data = null;
-    }
-    entry.button.hidden = !data;
-    if (!data) {
-      if (entry.tooltip.matches(":popover-open")) entry.tooltip.hidePopover();
-      return;
-    }
-    const format = (n) =>
-      new Intl.NumberFormat(i18n.language || "en").format(n);
-    const lines = [t("Context window")];
-    if (data.used !== null) {
-      lines.push(
-        t("Estimated use: {tokens} tokens", { tokens: format(data.used) }),
-      );
-      if (data.max !== null)
-        lines.push(
-          t("{percent}% of {tokens} tokens", {
-            percent: Math.round(data.percent),
-            tokens: format(data.max),
-          }),
-        );
-      else lines.push(t("Context limit not reported."));
-    } else {
-      lines.push(t("Current context use is not reported."));
-      lines.push(t("Last request (reported separately):"));
-      for (const [key, label] of [
-        ["input", "Input: {tokens} tokens"],
-        ["cacheRead", "Cache read: {tokens} tokens"],
-        ["cacheWrite", "Cache write: {tokens} tokens"],
-      ])
-        if (data[key] !== null)
-          lines.push(t(label, { tokens: format(data[key]) }));
-    }
-    const text = lines.join("\n");
-    if (entry.tooltip.textContent !== text) entry.tooltip.textContent = text;
-    entry.button.setAttribute("aria-label", text.replaceAll("\n", ". "));
-    const fill =
-      data.percent === null
-        ? "transparent"
-        : `conic-gradient(#8ab4f8 ${Math.min(100, data.percent)}%,#555 ${Math.min(100, data.percent)}%)`;
-    if (entry.button.style.getPropertyValue("--context-fill") !== fill)
-      entry.button.style.setProperty("--context-fill", fill);
-    entry.button.toggleAttribute("data-known", data.percent !== null);
-  }
   function hideNativeEfforts() {
     for (const menu of document.querySelectorAll("[role=menu]")) {
       if (!rules.optionsFor(menu).length) continue;
@@ -550,17 +443,9 @@
           ?.removeAttribute("data-agpa-effort-suffix");
       }
     }
-    for (const [trigger, entry] of contexts)
-      if (!trigger.isConnected) {
-        entry.subscription?.dispose();
-        entry.button.remove();
-        entry.tooltip.remove();
-        contexts.delete(trigger);
-      }
     for (const trigger of document.querySelectorAll(
       "[data-testid=model-selector-trigger]",
     )) {
-      syncContext(trigger);
       const selection = rules.selectionFor(trigger);
       const permission = (() => {
         let root = trigger.parentElement;
@@ -596,8 +481,8 @@
         const label = element("span", { class: "agpa-effort-label" }),
           arrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         for (const [key, value] of Object.entries({
-          width: 14,
-          height: 14,
+          width: 10,
+          height: 10,
           viewBox: "0 0 14 14",
           fill: "none",
           stroke: "currentColor",
@@ -817,8 +702,6 @@
   [data-agpa-effort-suffix]{display:none!important}
   [data-agpa-native-effort-menu]{visibility:hidden!important;pointer-events:none!important}
   [data-agpa-native-model-row] [data-testid=model-selector-effort-group]+span{display:none!important}
-  .agpa-context-trigger{order:19;margin-inline-start:auto;flex:none;width:24px;height:28px;background:transparent;border:0;display:grid;place-items:center;cursor:help;color:var(--muted-foreground,#999)}.agpa-context-trigger[hidden]{display:none}.agpa-context-trigger::before{content:"";box-sizing:border-box;width:13px;height:13px;border:2px dashed #777;border-radius:50%}.agpa-context-trigger[data-known]::before{border:0;background:var(--context-fill);mask:radial-gradient(circle,transparent 43%,#000 46%)}.agpa-context-trigger:not([hidden])~[data-agpa-footer-model]{margin-inline-start:0}.agpa-context-trigger:focus-visible{outline:2px solid #398bdb;border-radius:5px}
-  .agpa-context-tooltip{position:fixed;inset:auto;margin:0;max-width:300px;white-space:pre-line;border:1px solid var(--border,#444);border-radius:10px;padding:10px 14px;background:var(--card,#252525);color:var(--foreground,#eee);font:12px/1.6 system-ui;pointer-events:none;box-shadow:0 8px 20px #0005}
   .agpa-effort-trigger{display:inline-flex;align-items:center;gap:3px;order:21;height:28px;flex-shrink:0;border:0;border-radius:999px;background:transparent;color:var(--muted-foreground,#999);font:inherit;font-size:12px;padding:0 8px;cursor:pointer;white-space:nowrap}
   .agpa-effort-trigger:hover,.agpa-effort-trigger[aria-expanded=true]{background:var(--secondary,#303030);color:var(--foreground,#eee)}
   .agpa-effort-trigger:focus-visible{outline:2px solid #398bdb;outline-offset:2px}.agpa-effort-trigger:disabled{opacity:.5;cursor:default}
@@ -912,12 +795,6 @@
       window.removeEventListener("keyup", keyup, true);
       window.removeEventListener("resize", reposition);
       window.removeEventListener("scroll", reposition, true);
-      for (const entry of contexts.values()) {
-        entry.subscription?.dispose();
-        entry.button.remove();
-        entry.tooltip.remove();
-      }
-      contexts.clear();
       for (const button of controls.values()) button.remove();
       controls.clear();
       style.remove();
