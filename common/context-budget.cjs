@@ -109,12 +109,10 @@ function extractConversationStats(doc = document) {
 
   let currentChars = 0;
   if (viewport) {
-    charsFromVp: {
-      currentChars = viewport.textContent?.length || 0;
-      if (!doc.querySelector?.('[data-testid=autoscroll-viewport]')) {
-        const composer = viewport.querySelector?.('.surface-composer, [data-testid=agent-input-box]');
-        if (composer) currentChars = Math.max(0, currentChars - (composer.textContent?.length || 0));
-      }
+    currentChars = viewport.textContent?.length || 0;
+    if (!doc.querySelector?.('[data-testid=autoscroll-viewport]')) {
+      const composer = viewport.querySelector?.('.surface-composer, [data-testid=agent-input-box]');
+      if (composer) currentChars = Math.max(0, currentChars - (composer.textContent?.length || 0));
     }
   }
 
