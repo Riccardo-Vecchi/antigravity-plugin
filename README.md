@@ -47,7 +47,7 @@ Development and local verification: [Contributing](https://github.com/Riccardo-V
     <th width="50%">Gemini in the same window</th>
   </tr>
   <tr>
-    <td width="50%" align="center" valign="middle"><img src="docs/images/antigravity-demo.png?v=1.15.0" width="560" alt="Antigravity with permissions on the left, model and effort on the right, and colored project icons"></td>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/antigravity-demo.png?v=1.15.1" width="560" alt="Antigravity with permissions on the left, model and effort on the right, and colored project icons"></td>
     <td width="50%" align="center" valign="middle"><img src="docs/images/gemini-demo.png" width="560" alt="Gemini with the in-page Antigravity return button"></td>
   </tr>
   <tr>
