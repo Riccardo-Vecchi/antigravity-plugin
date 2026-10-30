@@ -51,6 +51,22 @@ const MODEL_CONTROLS = fs.readFileSync(
 );
 const modelControlRules = require("./model-controls.cjs");
 const { createTeamworkBridge } = require("./teamwork.cjs");
+const CONTEXT_BUDGET = fs.readFileSync(
+  path.join(BASE, "context-budget.js"),
+  "utf8",
+);
+const CONTEXT_BUDGET_CJS = fs.readFileSync(
+  path.join(BASE, "context-budget.cjs"),
+  "utf8",
+);
+const TEAMWORK_BADGE = fs.readFileSync(
+  path.join(BASE, "teamwork-badge.js"),
+  "utf8",
+);
+const TEAMWORK_BADGE_CJS = fs.readFileSync(
+  path.join(BASE, "teamwork-badge.cjs"),
+  "utf8",
+);
 const LIBRARY_UI = fs.readFileSync(path.join(BASE, "library-ui.js"), "utf8");
 const WORKSPACE_UI = fs.readFileSync(
   path.join(BASE, "workspace-ui.js"),
@@ -565,6 +581,20 @@ class Client {
           `globalThis.__AGPA_TEAMWORK_FACTORY__=${createTeamworkBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${modelControlRules.selectionFor.toString()},optionsFor:${modelControlRules.optionsFor.toString()},layoutFor:${modelControlRules.layoutFor.toString()}};\n${MODEL_CONTROLS}`,
         );
       if (
+        (await this.evaluate("globalThis.__AGContextBudget?.version")) !==
+        versions.contextBudget
+      )
+        await this.evaluate(
+          `(()=>{const module={exports:{}};${CONTEXT_BUDGET_CJS};globalThis.__AGPA_CONTEXT_BUDGET__=module.exports;})();\n${CONTEXT_BUDGET}`,
+        );
+      if (
+        (await this.evaluate("globalThis.__AGTeamworkBadge?.version")) !==
+        versions.teamworkBadge
+      )
+        await this.evaluate(
+          `(()=>{const module={exports:{}};${TEAMWORK_BADGE_CJS};globalThis.__AGPA_TEAMWORK_BADGE__=module.exports;})();\n${TEAMWORK_BADGE}`,
+        );
+      if (
         (await this.evaluate("globalThis.__AGCompanion?.version")) !==
         versions.companion
       )
@@ -608,7 +638,7 @@ class Client {
    document.querySelector('[data-agpa-gemini][open]')?.close();
    globalThis.__AGHeaderPlacement?.destroy();
    globalThis.__AGLibrary?.destroy();globalThis.__AGWorkspace?.destroy();
-   globalThis.__AGCompanion?.destroy();globalThis.__AGModelControls?.destroy();globalThis.__AGModelUI?.destroy();globalThis.__AGComputerUse?.destroy();
+   globalThis.__AGContextBudget?.destroy();globalThis.__AGTeamworkBadge?.destroy();globalThis.__AGCompanion?.destroy();globalThis.__AGModelControls?.destroy();globalThis.__AGModelUI?.destroy();globalThis.__AGComputerUse?.destroy();
    globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();
    await globalThis.__AGGeminiInline?.destroy();
    globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();
