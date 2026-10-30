@@ -2,10 +2,37 @@
 
 const conversationCache = new Map();
 
-function estimateTokens(chars, turns) {
+function estimateImageTokens(width, height) {
+  let w = Math.max(0, Number(width) || 0);
+  let h = Math.max(0, Number(height) || 0);
+  if (w === 0 || h === 0) return 0;
+  if (w <= 40 && h <= 40) return 0;
+
+  if (w <= 512 && h <= 512) return 255;
+
+  if (w > 2048 || h > 2048) {
+    const scale = 2048 / Math.max(w, h);
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
+
+  const minSide = Math.min(w, h);
+  if (minSide > 768) {
+    const scale = 768 / minSide;
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
+
+  const tilesX = Math.ceil(w / 512);
+  const tilesY = Math.ceil(h / 512);
+  return 85 + (tilesX * tilesY * 170);
+}
+
+function estimateTokens(chars, turns, imageTokens = 0) {
   const textTokens = Math.round((Number(chars) || 0) / 4);
   const turnOverhead = (Number(turns) || 0) * 120;
-  return Math.max(0, textTokens + turnOverhead);
+  const imgTokens = Math.max(0, Number(imageTokens) || 0);
+  return Math.max(0, textTokens + turnOverhead + imgTokens);
 }
 
 function budgetLevelFor(tokens) {
@@ -70,8 +97,35 @@ function collectTurnBlocks(doc) {
   return blocks;
 }
 
+function collectImages(doc) {
+  const images = [];
+  if (!doc) return images;
+  const vp = doc.querySelector?.('[data-testid=autoscroll-viewport]') || doc.querySelector?.('[data-testid=conversation-view]');
+  if (!vp) return images;
+
+  const imgElements = vp.querySelectorAll?.('img') || [];
+  for (const img of imgElements) {
+    if (img.closest?.('[data-agpa-context-ui], [data-agpa-team-ui], [data-testid*="avatar"], .avatar')) {
+      continue;
+    }
+    const src = img.currentSrc || img.src || img.getAttribute?.('src') || '';
+    const alt = img.getAttribute?.('alt') || '';
+    if (!src && !alt) continue;
+
+    const w = img.naturalWidth || img.width || parseInt(img.getAttribute?.('width'), 10) || 0;
+    const h = img.naturalHeight || img.height || parseInt(img.getAttribute?.('height'), 10) || 0;
+
+    if (w > 0 && h > 0 && w <= 40 && h <= 40) continue;
+
+    const key = src ? (src.length > 120 ? src.slice(0, 80) + ':' + src.length : src) : 'alt:' + alt;
+    const tokens = (w > 0 && h > 0) ? estimateImageTokens(w, h) : 258;
+    images.push({ key, tokens, width: w, height: h });
+  }
+  return images;
+}
+
 function extractConversationStats(doc = document) {
-  if (!doc) return { chars: 0, turns: 0, tokens: 0, budget: budgetLevelFor(0), formatted: '0' };
+  if (!doc) return { chars: 0, turns: 0, imageTokens: 0, imageCount: 0, tokens: 0, budget: budgetLevelFor(0), formatted: '0' };
   const convKey = getConversationKey(doc);
 
   let entry = conversationCache.get(convKey);
@@ -80,9 +134,11 @@ function extractConversationStats(doc = document) {
       const oldest = conversationCache.keys().next().value;
       conversationCache.delete(oldest);
     }
-    entry = { blocks: new Map(), maxChars: 0, maxTurns: 0 };
+    entry = { blocks: new Map(), images: new Map(), maxChars: 0, maxTurns: 0, maxImageTokens: 0 };
     conversationCache.set(convKey, entry);
   }
+  if (!entry.images) entry.images = new Map();
+  if (typeof entry.maxImageTokens !== 'number') entry.maxImageTokens = 0;
 
   const viewport = doc.querySelector?.('[data-testid=autoscroll-viewport]') || doc.querySelector?.('[data-testid=conversation-view]');
 
@@ -93,8 +149,10 @@ function extractConversationStats(doc = document) {
   );
   if (isCompacted && entry.compacted !== true) {
     entry.blocks.clear();
+    entry.images.clear();
     entry.maxChars = 0;
     entry.maxTurns = 0;
+    entry.maxImageTokens = 0;
     entry.compacted = true;
   }
 
@@ -104,8 +162,20 @@ function extractConversationStats(doc = document) {
     entry.blocks.set(b.key, b.length);
   }
 
+  // Discover newly mounted images in viewport
+  const currentImages = collectImages(doc);
+  for (const img of currentImages) {
+    entry.images.set(img.key, img.tokens);
+  }
+
   let blockSum = 0;
   for (const len of entry.blocks.values()) blockSum += len;
+
+  let imageSum = 0;
+  for (const t of entry.images.values()) imageSum += t;
+  const imageTokens = Math.max(imageSum, entry.maxImageTokens);
+  entry.maxImageTokens = imageTokens;
+  const imageCount = entry.images.size;
 
   let currentChars = 0;
   if (viewport) {
@@ -127,9 +197,9 @@ function extractConversationStats(doc = document) {
   const budgetFn = typeof budgetLevelFor === 'function' ? budgetLevelFor : (this?.budgetLevelFor || budgetLevelFor);
   const formatFn = typeof formatTokens === 'function' ? formatTokens : (this?.formatTokens || formatTokens);
 
-  const tokens = estimateFn(chars, turns);
+  const tokens = estimateFn(chars, turns, imageTokens);
   const budget = budgetFn(tokens);
-  return { chars, turns, tokens, budget, formatted: formatFn(tokens) };
+  return { chars, turns, imageTokens, imageCount, tokens, budget, formatted: formatFn(tokens) };
 }
 
 function clearCache(key) {
@@ -139,11 +209,13 @@ function clearCache(key) {
 
 module.exports = {
   estimateTokens,
+  estimateImageTokens,
   budgetLevelFor,
   formatTokens,
   countTurns,
   getConversationKey,
   collectTurnBlocks,
+  collectImages,
   extractConversationStats,
   clearCache
 };

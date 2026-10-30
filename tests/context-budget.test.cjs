@@ -12,6 +12,16 @@ test('estimateTokens calculates text tokens and turn overhead accurately', () =>
   assert.equal(rules.estimateTokens(0, 0), 0);
   assert.equal(rules.estimateTokens(400, 1), 100 + 120);
   assert.equal(rules.estimateTokens(4000, 5), 1000 + 600);
+  assert.equal(rules.estimateTokens(4000, 5, 1105), 1000 + 600 + 1105);
+});
+
+test('estimateImageTokens calculates multimodal vision tokens based on resolution', () => {
+  assert.equal(rules.estimateImageTokens(0, 0), 0);
+  assert.equal(rules.estimateImageTokens(32, 32), 0, 'avatars and icons under 40px are ignored');
+  assert.equal(rules.estimateImageTokens(300, 200), 255, 'small crops under 512x512 use single-tile detail');
+  assert.equal(rules.estimateImageTokens(512, 512), 255);
+  assert.equal(rules.estimateImageTokens(1920, 1080), 1105, '1080p full HD uses 6 tiles with shortest side scaled to 768');
+  assert.equal(rules.estimateImageTokens(3840, 2160), 1105, '4K images scale to bounding box and tile accurately');
 });
 
 test('budgetLevelFor categorizes tokens into healthy, moderate, elevated, and saturated', () => {
@@ -96,6 +106,50 @@ test('extractConversationStats retains cumulative token knowledge when scrolling
   mountedChars = 15000;
   const other = rules.extractConversationStats(doc);
   assert.equal(other.chars, 15000, 'different conversation uses its own independent measurement');
+});
+
+test('extractConversationStats accounts for image resolution and retains images across virtual scroll', () => {
+  rules.clearCache();
+  const convPath = '/c/test-images-virtualization';
+  let mountedImages = [
+    { src: 'https://example.com/screenshot.png', naturalWidth: 1920, naturalHeight: 1080 },
+    { src: 'https://example.com/crop.png', naturalWidth: 300, naturalHeight: 200 },
+    { src: 'https://example.com/avatar.png', naturalWidth: 32, naturalHeight: 32 }
+  ];
+
+  const doc = {
+    location: { pathname: convPath },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') {
+        return {
+          textContent: 'Image analysis text '.repeat(100),
+          querySelectorAll: s => {
+            if (s === 'img') return mountedImages;
+            return [];
+          }
+        };
+      }
+      return null;
+    },
+    querySelectorAll: sel => {
+      if (sel === '[data-testid=conversation-navigator-turn]') {
+        return [{}, {}];
+      }
+      return [];
+    }
+  };
+
+  const initial = rules.extractConversationStats(doc);
+  assert.equal(initial.imageCount, 2, '2 real images counted (avatar ignored)');
+  assert.equal(initial.imageTokens, 1105 + 255, '1080p and crop tokens summed');
+  assert.ok(initial.tokens > initial.imageTokens, 'total tokens combines text, turns and images');
+
+  // Images virtualized out as user scrolls
+  mountedImages = [];
+  const afterScroll = rules.extractConversationStats(doc);
+  assert.equal(afterScroll.imageCount, 2, 'image count retained after unmounting');
+  assert.equal(afterScroll.imageTokens, 1105 + 255, 'image tokens retained after unmounting');
+  assert.equal(afterScroll.tokens, initial.tokens, 'overall token budget remains stable');
 });
 
 test('context budget component attaches pill, reflects levels and allows inserting /compact', async () => {
