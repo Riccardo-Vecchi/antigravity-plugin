@@ -84,6 +84,85 @@ function estimateImageTokens(width, height) {
   return 85 + (tilesX * tilesY * 170);
 }
 
+function estimateAttachmentTokens(meta = {}) {
+  const name = String(meta.name || '').toLowerCase();
+  const pages = Math.max(0, Number(meta.pages) || 0);
+  const sizeKb = Math.max(0, Number(meta.sizeKb) || 0);
+
+  // Ignore image extensions, handled by estimateImageTokens
+  if (/\.(png|jpe?g|webp|gif|svg|bmp|ico)\b/i.test(name)) return 0;
+
+  // PDF handling (multimodal vision rate per page: 258 tokens/page)
+  if (/\.pdf\b/i.test(name)) {
+    if (pages > 0) return pages * 258;
+    if (sizeKb > 0) {
+      const estimatedPages = Math.min(100, Math.max(1, Math.round(sizeKb / 60)));
+      return estimatedPages * 258;
+    }
+    return 774; // default ~3 pages
+  }
+
+  // Text-based documents (CSV, JSON, TXT, LOG, MD, PY, JS, HTML, etc.)
+  if (sizeKb > 0) {
+    if (/\.(csv|tsv|json|txt|log|md|py|js|ts|html|xml|yaml|yml|sh)\b/i.test(name)) {
+      return Math.round((sizeKb * 1024) / 4);
+    }
+    // Generic documents (DOCX, XLSX, etc.): compressed format
+    return Math.min(15000, Math.max(258, Math.round((sizeKb * 1024) / 8)));
+  }
+
+  if (pages > 0) return pages * 258;
+  return 500;
+}
+
+function parseAttachmentInfo(el) {
+  if (!el) return null;
+  const text = el.textContent || '';
+  const attrName = el.getAttribute?.('data-filename') || el.getAttribute?.('title') || el.getAttribute?.('aria-label') || '';
+  const nameEl = el.querySelector?.('[data-testid*="name"], [class*="name"], [class*="filename"], [class*="title"]');
+  const rawName = (nameEl ? nameEl.textContent : attrName).trim();
+  const fileMatch = (rawName || text).match(/\b([\w\-.]+\.[a-zA-Z0-9]{1,8})\b/);
+  const name = fileMatch ? fileMatch[1] : (rawName || text.slice(0, 40).trim());
+
+  if (/\.(png|jpe?g|webp|gif|svg|bmp|ico)$/i.test(name)) return null;
+
+  const pageMatch = text.match(/\b(\d+)\s*(?:pages?|pagine?|pag\.|p\.)\b/i);
+  const pages = pageMatch ? parseInt(pageMatch[1], 10) : 0;
+
+  const sizeMatch = text.match(/\b([\d.]+)\s*(KB|MB)\b/i);
+  let sizeKb = 0;
+  if (sizeMatch) {
+    const val = parseFloat(sizeMatch[1]);
+    sizeKb = sizeMatch[2].toUpperCase() === 'MB' ? val * 1024 : val;
+  }
+
+  const tokens = estimateAttachmentTokens({ name, pages, sizeKb });
+  const key = `doc:${name}:${pages}p:${sizeKb}kb`;
+  return { key, name, pages, sizeKb, tokens };
+}
+
+function collectAttachments(doc) {
+  const attachments = [];
+  if (!doc) return attachments;
+  const root = doc.querySelector?.('[data-testid=autoscroll-viewport]') || doc.querySelector?.('[data-testid=conversation-view]') || doc.body || doc;
+  if (!root) return attachments;
+
+  const selector = '[data-testid*="attachment"], [data-testid*="file-pill"], [data-testid*="document"], [class*="attachment"], [class*="file-chip"], [class*="file-card"], [class*="document-chip"], a[download]';
+  const nodes = (root.querySelectorAll ? root.querySelectorAll(selector) : (doc.querySelectorAll ? doc.querySelectorAll(selector) : [])) || [];
+
+  const seen = new Set();
+  for (const node of nodes) {
+    if (node.closest?.('[data-agpa-context-ui], [data-agpa-team-ui]')) continue;
+    if (node.parentElement?.closest?.('[data-testid*="attachment"], [class*="attachment"], [class*="file-chip"], [class*="document-chip"]')) continue;
+    const info = parseAttachmentInfo(node);
+    if (info && info.tokens > 0 && !seen.has(info.key)) {
+      seen.add(info.key);
+      attachments.push(info);
+    }
+  }
+  return attachments;
+}
+
 function detectActiveModel(doc = document) {
   if (!doc) return { name: '', ceiling: 1000000 };
   const trigger = doc.querySelector?.('[data-testid=model-selector-trigger], [data-agpa-footer-model]');
@@ -111,7 +190,7 @@ function detectActiveModel(doc = document) {
   return { name: cleanName, ceiling: 1000000 };
 }
 
-function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0) {
+function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0, docTokens = 0) {
   const totalChars = Math.max(0, Number(chars) || 0);
   const code = Math.min(totalChars, Math.max(0, Number(codeChars) || 0));
   const prose = Math.max(0, totalChars - code);
@@ -119,7 +198,8 @@ function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0) {
   const codeTokens = Math.round(code / 2.8);
   const turnOverhead = (Number(turns) || 0) * 120;
   const imgTokens = Math.max(0, Number(imageTokens) || 0);
-  return Math.max(0, proseTokens + codeTokens + turnOverhead + imgTokens);
+  const dTokens = Math.max(0, Number(docTokens) || 0);
+  return Math.max(0, proseTokens + codeTokens + turnOverhead + imgTokens + dTokens);
 }
 
 function budgetLevelFor(tokens, ceiling = 1000000) {
@@ -234,7 +314,7 @@ function collectImages(doc) {
 }
 
 function extractConversationStats(doc = document, storage = undefined) {
-  if (!doc) return { chars: 0, codeChars: 0, turns: 0, imageTokens: 0, imageCount: 0, tokens: 0, ceiling: 1000000, modelName: '', budget: budgetLevelFor(0, 1000000), formatted: '0' };
+  if (!doc) return { chars: 0, codeChars: 0, turns: 0, imageTokens: 0, imageCount: 0, docTokens: 0, docCount: 0, tokens: 0, ceiling: 1000000, modelName: '', budget: budgetLevelFor(0, 1000000), formatted: '0' };
   const convKey = getConversationKey(doc);
   const store = storage !== undefined ? storage : getStorage(doc);
 
@@ -245,10 +325,12 @@ function extractConversationStats(doc = document, storage = undefined) {
       entry = {
         blocks: new Map(stored.blocks || []),
         images: new Map(stored.images || []),
+        documents: new Map(stored.documents || []),
         maxChars: stored.maxChars || 0,
         maxCodeChars: stored.maxCodeChars || 0,
         maxTurns: stored.maxTurns || 0,
         maxImageTokens: stored.maxImageTokens || 0,
+        maxDocTokens: stored.maxDocTokens || 0,
         ceiling: stored.ceiling || 1000000,
         modelName: stored.modelName || '',
         updatedAt: stored.updatedAt || Date.now()
@@ -262,11 +344,13 @@ function extractConversationStats(doc = document, storage = undefined) {
       const oldest = conversationCache.keys().next().value;
       conversationCache.delete(oldest);
     }
-    entry = { blocks: new Map(), images: new Map(), maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0 };
+    entry = { blocks: new Map(), images: new Map(), documents: new Map(), maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0, maxDocTokens: 0 };
     conversationCache.set(convKey, entry);
   }
   if (!entry.images) entry.images = new Map();
+  if (!entry.documents) entry.documents = new Map();
   if (typeof entry.maxImageTokens !== 'number') entry.maxImageTokens = 0;
+  if (typeof entry.maxDocTokens !== 'number') entry.maxDocTokens = 0;
   if (typeof entry.maxCodeChars !== 'number') entry.maxCodeChars = 0;
 
   const viewport = doc.querySelector?.('[data-testid=autoscroll-viewport]') || doc.querySelector?.('[data-testid=conversation-view]');
@@ -279,10 +363,12 @@ function extractConversationStats(doc = document, storage = undefined) {
   if (isCompacted && entry.compacted !== true) {
     entry.blocks.clear();
     entry.images.clear();
+    entry.documents.clear();
     entry.maxChars = 0;
     entry.maxCodeChars = 0;
     entry.maxTurns = 0;
     entry.maxImageTokens = 0;
+    entry.maxDocTokens = 0;
     entry.compacted = true;
     clearConversationState(convKey, store);
   }
@@ -299,6 +385,12 @@ function extractConversationStats(doc = document, storage = undefined) {
     entry.images.set(img.key, img.tokens);
   }
 
+  // Discover newly mounted documents in viewport/chat
+  const currentDocs = collectAttachments(doc);
+  for (const d of currentDocs) {
+    entry.documents.set(d.key, d.tokens);
+  }
+
   let blockSum = 0;
   let codeSum = 0;
   for (const blockVal of entry.blocks.values()) {
@@ -313,6 +405,12 @@ function extractConversationStats(doc = document, storage = undefined) {
   const imageTokens = Math.max(imageSum, entry.maxImageTokens);
   entry.maxImageTokens = imageTokens;
   const imageCount = entry.images.size;
+
+  let docSum = 0;
+  for (const t of entry.documents.values()) docSum += t;
+  const docTokens = Math.max(docSum, entry.maxDocTokens);
+  entry.maxDocTokens = docTokens;
+  const docCount = entry.documents.size;
 
   let currentChars = 0;
   if (viewport) {
@@ -337,14 +435,16 @@ function extractConversationStats(doc = document, storage = undefined) {
   const ceiling = activeModel.name ? activeModel.ceiling : (entry.ceiling || activeModel.ceiling);
   const modelName = activeModel.name || entry.modelName || '';
 
-  if (chars > 0 || turns > 0 || imageTokens > 0) {
+  if (chars > 0 || turns > 0 || imageTokens > 0 || docTokens > 0) {
     saveConversationState(convKey, {
       blocks: [...entry.blocks.entries()],
       images: [...entry.images.entries()],
+      documents: [...entry.documents.entries()],
       maxChars: entry.maxChars,
       maxCodeChars: entry.maxCodeChars,
       maxTurns: entry.maxTurns,
       maxImageTokens: entry.maxImageTokens,
+      maxDocTokens: entry.maxDocTokens,
       ceiling,
       modelName,
       updatedAt: Date.now()
@@ -355,7 +455,7 @@ function extractConversationStats(doc = document, storage = undefined) {
   const budgetFn = typeof budgetLevelFor === 'function' ? budgetLevelFor : (this?.budgetLevelFor || budgetLevelFor);
   const formatFn = typeof formatTokens === 'function' ? formatTokens : (this?.formatTokens || formatTokens);
 
-  const tokens = estimateFn(chars, turns, imageTokens, codeChars);
+  const tokens = estimateFn(chars, turns, imageTokens, codeChars, docTokens);
   const budget = budgetFn(tokens, ceiling);
   return {
     chars,
@@ -363,6 +463,8 @@ function extractConversationStats(doc = document, storage = undefined) {
     turns,
     imageTokens,
     imageCount,
+    docTokens,
+    docCount,
     tokens,
     ceiling,
     modelName,
@@ -384,6 +486,9 @@ function clearCache(key, storage) {
 module.exports = {
   estimateTokens,
   estimateImageTokens,
+  estimateAttachmentTokens,
+  parseAttachmentInfo,
+  collectAttachments,
   detectActiveModel,
   budgetLevelFor,
   formatTokens,

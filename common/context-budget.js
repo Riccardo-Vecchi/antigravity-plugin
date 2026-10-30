@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.0.7';
+  const VERSION = '1.0.8';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -96,7 +96,23 @@
         : `${stats.budget.percentage}% (${ceilingFmt} max)`
     });
 
-    popup.append(header, desc, modelNote, statusNote);
+    const parts = [];
+    if (stats.imageCount > 0) {
+      parts.push(`${stats.imageCount} ${stats.imageCount === 1 ? 'image' : 'images'} (~${rules.formatTokens ? rules.formatTokens(stats.imageTokens) : stats.imageTokens})`);
+    }
+    if (stats.docCount > 0) {
+      parts.push(`${stats.docCount} ${stats.docCount === 1 ? 'doc' : 'docs'} (~${rules.formatTokens ? rules.formatTokens(stats.docTokens) : stats.docTokens})`);
+    }
+
+    if (parts.length > 0) {
+      const attachmentsNote = element('div', {
+        class: 'agpa-context-attachments-note',
+        text: `📎 ${parts.join(' · ')}`
+      });
+      popup.append(header, desc, modelNote, attachmentsNote, statusNote);
+    } else {
+      popup.append(header, desc, modelNote, statusNote);
+    }
 
     if (stats.budget.level === 'elevated' || stats.budget.level === 'saturated') {
       const action = element('button', {

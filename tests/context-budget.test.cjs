@@ -337,6 +337,154 @@ test('remote control mode displays accurate context budget even when main chat v
   assert.ok(stats.tokens > 20000);
 });
 
+test('estimateAttachmentTokens calculates tokens for PDFs, text documents and binary files', () => {
+  // PDF page rate (258 tok/page)
+  assert.equal(rules.estimateAttachmentTokens({ name: 'report.pdf', pages: 5 }), 5 * 258);
+  assert.equal(rules.estimateAttachmentTokens({ name: 'document.pdf', sizeKb: 180 }), 3 * 258, 'approximates pages from size');
+  assert.equal(rules.estimateAttachmentTokens({ name: 'manual.pdf' }), 774, 'defaults to ~3 pages when no size/pages');
+
+  // Text documents: (sizeKb * 1024) / 4
+  assert.equal(rules.estimateAttachmentTokens({ name: 'data.csv', sizeKb: 10 }), 2560);
+  assert.equal(rules.estimateAttachmentTokens({ name: 'config.json', sizeKb: 4 }), 1024);
+  assert.equal(rules.estimateAttachmentTokens({ name: 'notes.md', sizeKb: 2 }), 512);
+
+  // Compressed binary documents: min(15000, max(258, (sizeKb * 1024) / 8))
+  assert.equal(rules.estimateAttachmentTokens({ name: 'brief.docx', sizeKb: 100 }), 12800);
+
+  // Images should be ignored (handled by estimateImageTokens)
+  assert.equal(rules.estimateAttachmentTokens({ name: 'screenshot.png', sizeKb: 400 }), 0);
+  assert.equal(rules.estimateAttachmentTokens({ name: 'photo.jpg', sizeKb: 800 }), 0);
+});
+
+test('parseAttachmentInfo and collectAttachments extract metadata without double counting', () => {
+  const pdfNode = {
+    textContent: 'annual_report.pdf 4 pages (240 KB)',
+    querySelector: sel => sel && sel.includes('name') ? { textContent: 'annual_report.pdf' } : null,
+    getAttribute: () => null,
+    closest: () => null,
+    parentElement: null
+  };
+
+  const info = rules.parseAttachmentInfo(pdfNode);
+  assert.ok(info);
+  assert.equal(info.name, 'annual_report.pdf');
+  assert.equal(info.pages, 4);
+  assert.equal(info.sizeKb, 240);
+  assert.equal(info.tokens, 4 * 258);
+
+  // Image chip should return null
+  const imgNode = {
+    textContent: 'preview.png 500 KB',
+    querySelector: () => null,
+    getAttribute: () => null,
+    closest: () => null,
+    parentElement: null
+  };
+  assert.equal(rules.parseAttachmentInfo(imgNode), null);
+
+  // collectAttachments scanning DOM
+  const csvNode = {
+    textContent: 'metrics.csv (20 KB)',
+    querySelector: () => null,
+    getAttribute: () => null,
+    closest: () => null,
+    parentElement: null
+  };
+  const ignoredPluginNode = {
+    textContent: 'internal.pdf 2 pages',
+    querySelector: () => null,
+    getAttribute: () => null,
+    closest: sel => sel && sel.includes('agpa-context-ui') ? {} : null,
+    parentElement: null
+  };
+
+  const doc = {
+    querySelector: sel => sel === '[data-testid=autoscroll-viewport]' ? {
+      querySelectorAll: () => [pdfNode, csvNode, ignoredPluginNode]
+    } : null
+  };
+
+  const attachments = rules.collectAttachments(doc);
+  assert.equal(attachments.length, 2, 'plugin UI attachment ignored');
+  assert.equal(attachments[0].name, 'annual_report.pdf');
+  assert.equal(attachments[1].name, 'metrics.csv');
+});
+
+test('extractConversationStats accounts for document attachments and preserves them across scroll and restart', () => {
+  rules.clearCache();
+  const storeMap = new Map();
+  const mockStorage = {
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    getItem: k => storeMap.get(k) || null,
+    removeItem: k => storeMap.delete(k)
+  };
+
+  const pdfNode = {
+    textContent: 'spec.pdf 10 pages',
+    querySelector: () => ({ textContent: 'spec.pdf' }),
+    getAttribute: () => null,
+    closest: () => null,
+    parentElement: null
+  };
+
+  const convPath = '/c/test-attachments-scroll';
+  const doc = {
+    location: { pathname: convPath },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') {
+        return {
+          textContent: 'Here is the specification document for the project.',
+          querySelector: () => null,
+          firstElementChild: { children: [] }
+        };
+      }
+      return null;
+    },
+    querySelectorAll: sel => {
+      if (sel.includes('attachment') || sel.includes('file-pill')) {
+        return [pdfNode];
+      }
+      return [];
+    }
+  };
+
+  const initialStats = rules.extractConversationStats(doc, mockStorage);
+  assert.equal(initialStats.docCount, 1);
+  assert.equal(initialStats.docTokens, 10 * 258);
+  assert.ok(initialStats.tokens >= 2580);
+
+  // Now simulate scrolling down: PDF node is unmounted from DOM
+  const scrolledDoc = {
+    location: { pathname: convPath },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') {
+        return {
+          textContent: 'Following up on section 3 of the spec.',
+          querySelector: () => null,
+          firstElementChild: { children: [] }
+        };
+      }
+      return null;
+    },
+    querySelectorAll: () => []
+  };
+
+  const scrolledStats = rules.extractConversationStats(scrolledDoc, mockStorage);
+  assert.equal(scrolledStats.docCount, 1, 'attachment count retained across virtual scroll');
+  assert.equal(scrolledStats.docTokens, 2580, 'attachment tokens retained across virtual scroll');
+
+  // Verify restart from cold storage
+  rules.clearCache();
+  const coldDoc = {
+    location: { pathname: convPath },
+    querySelector: sel => sel === '[data-testid=autoscroll-viewport]' ? { textContent: 'bottom' } : null,
+    querySelectorAll: () => []
+  };
+
+  const coldStats = rules.extractConversationStats(coldDoc, mockStorage);
+  assert.equal(coldStats.docTokens, 2580, 'document tokens restored from localStorage on program restart');
+});
+
 test('context budget component attaches pill, reflects levels and allows inserting /compact', async () => {
   class FakeClassList {
     constructor() { this.classes = new Set(); }
