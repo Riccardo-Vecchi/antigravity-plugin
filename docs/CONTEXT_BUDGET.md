@@ -16,6 +16,7 @@ The **Context Budget Subsystem** of `antigravity-plugin` provides a real-time, n
 2. **Context ceiling and utilization percentage** adapted dynamically to the active AI model (e.g., 1M for Gemini Flash, 200k for Claude 3.5 Sonnet, 128k for GPT-4o).
 3. **Multimodal token breakdown** (images, attachments, and system baseline overhead).
 4. **Proactive action prompts** (one-click `/compact` trigger when context reaches saturation).
+5. **Turn-by-turn token impact telemetry** (inline badges attached to each assistant response showing exact footprint, net context delta, tool call count, multimodal vision weight, and compaction history with pre-compaction peak preservation).
 
 The subsystem is architected as an **out-of-process daemon and in-page renderer bridge**, maintaining **100% mathematical fidelity** with official API counters while requiring **zero external npm dependencies** and **zero manual actions** (such as scrolling) from the user.
 
@@ -45,22 +46,26 @@ flowchart TD
     end
 
     subgraph UI Surface
-        Pill["Context Pill (.agpa-context-pill)<br/>~40k tok · Healthy"]
+        Pill["Context Pill (.agpa-context-pill)<br/>~90k tok · Healthy"]
         Modal["Detailed Breakdown Modal (.agpa-context-popup)<br/>Budget, Turns, Images, Overhead"]
+        TurnBadge["Turn Badges (.agpa-turn-token-badge)<br/>~4.7k tok / Compacting"]
+        TurnTip["Turn Tooltip (.agpa-turn-tooltip)<br/>Footprint, Delta, Cached, Tools, Window"]
     end
 
     TLog -->|mtime invalidation| Watcher
     Watcher --> TReader
-    TReader -->|Parse API tokens, turns, images| CDPClient
+    TReader -->|Parse API tokens, turns, images, turnsList| CDPClient
     DevPort --> CDPClient
     CDPClient -->|hydrateFromTranscript(key, stats)| CJSModule
     
-    DOMView -.->|Turn Navigator Gating| CJSModule
+    DOMView -.->|Turn Navigator Gating & Neighbor Propagation| CJSModule
     Composer -.->|MMSLE Real-Time Delta| CJSModule
     CJSModule <--> Storage
     CJSModule --> UIRenderer
     UIRenderer --> Pill
+    UIRenderer --> TurnBadge
     Pill -->|Click| Modal
+    TurnBadge -->|Hover| TurnTip
 ```
 
 ---
@@ -71,10 +76,10 @@ The subsystem spans four primary modules:
 
 | Module | Location | Primary Responsibility |
 | :--- | :--- | :--- |
-| **`transcript-reader.cjs`** | `common/` | Node.js host-side reader. Scans `%USERPROFILE%/.gemini/antigravity/brain/<id>/.system_generated/logs/transcript_full.jsonl`. Extracts official API tokens (`input_tokens`, `cache_read_tokens`, `output_tokens`), `thinking` tokens, user prompt turns, images, and unrecorded steps. |
+| **`transcript-reader.cjs`** | `common/` | Node.js host-side reader. Scans `%USERPROFILE%/.gemini/antigravity/brain/<id>/.system_generated/logs/transcript_full.jsonl`. Extracts official API tokens (`input_tokens`, `cache_read_tokens`, `output_tokens`), `thinking` tokens, user prompt turns, per-turn footprint metrics, tool calls, images, and unrecorded steps. |
 | **`daemon.cjs`** | `common/` | Host daemon background service. Discovers active Antigravity Electron windows via CDP (`127.0.0.1:25500`), injects scripts, monitors active chat pathname, tracks transcript file `mtime`, and dispatches hydration events. |
-| **`context-budget.cjs`** | `common/` | Isomorphic mathematical calculation engine. Implements the Dual-Anchor Hybrid Calibration, MMSLE tokenizer, multimodal vision resolutions, document attachment models, and virtual scroll protection. |
-| **`context-budget.js`** | `common/` | DOM presentation component. Injects the footer pill button (`.agpa-context-pill`), renders color-coded health status, handles popups, localized strings (`i18n`), and keyboard interactions. |
+| **`context-budget.cjs`** | `common/` | Isomorphic mathematical calculation engine. Implements the Dual-Anchor Hybrid Calibration, MMSLE tokenizer, multimodal vision resolutions, document attachment models, turn-level delta computation, and virtual scroll protection. |
+| **`context-budget.js`** | `common/` | DOM presentation component. Injects the footer pill button (`.agpa-context-pill`), attaches turn token badges (`.agpa-turn-token-badge`) with micro-spinners, renders rich diagnostic tooltips (`.agpa-turn-tooltip`), handles popups, localized strings (`i18n`), and keyboard interactions. |
 
 ---
 
@@ -133,6 +138,24 @@ Images are evaluated by `estimateImageTokens(width, height, modelName)` accordin
 * **Workspace Rules**: $350$ tokens per active instruction rule.
 $$\text{systemTokens} = \min(25000,\, 1500 + \text{toolTokens} + \text{ruleTokens})$$
 
+### 4.6 Turn-Level Footprint & Net Delta ($\Delta_{\text{net}}$)
+For each conversational turn $t$, the system computes both the discrete turn cost and the overall context window impact:
+
+$$\text{Footprint}_t = \text{promptTokens}_t + \text{outputTokens}_t + \text{toolTokens}_t + \text{visionTokens}_t$$
+$$\Delta_{\text{net}} = \text{totalTokens}_t - \text{totalTokens}_{t-1}$$
+
+* **Turn Footprint**: Represents the computational mass produced by this turn alone (user prompt, model output, tool arguments and executions, and vision tokens).
+* **Net Delta**: Represents the true net delta on the conversation's active memory. When context caching is effective, $\Delta_{\text{net}}$ tracks incremental growth without penalizing cached history.
+
+### 4.7 Compaction Detection & Pre-Compaction Peak Tracking
+When a conversation reaches saturation or triggers `/compact`, the LLM host condenses message history into a summary checkpoint:
+
+1. **Drastic Context Reduction**: $\Delta_{\text{net}}$ turns sharply negative (e.g., dropping from $258\text{k}$ down to $22\text{k}$, $\Delta_{\text{net}} = -236\text{k}$).
+2. **Peak Preservation**: Standard token counters lose the historical memory of pre-compaction load. The engine detects compaction transitions and freezes the pre-compaction peak:
+   $$\text{peak}_{\text{pre}} = \max(\text{window}_{t-1},\, \text{peakTokens})$$
+3. **Alert State Styling**: The turn badge is highlighted in crimson (`.agpa-turn-compacted`) and its tooltip displays the full compaction trajectory:
+   $$\text{Compacting}: \sim\text{peak}_{\text{pre}} \rightarrow \sim\text{window}_{\text{post}}$$
+
 ---
 
 ## 5. Virtual Scroll & Virtual DOM Protection
@@ -163,6 +186,13 @@ const pendingChars = Math.max(entry.pendingChars || 0, unrecordedChars);
 
 ### 5.3 Single-Source Image Deduplication
 When `apiTokens > 0`, historical images are sourced strictly from disk transcript logs (`file:///.../.user_uploaded/...`). The DOM scanner is disabled for historical turns, preventing browser `data:image/png;base64,...` rendered elements from generating duplicate image entries.
+
+### 5.4 Multi-Pass Bidirectional Neighbor Propagation
+Because virtual scrolling unmounts and remounts bubbles dynamically, older or partially rendered turns might not be directly anchored to user prompt DOM nodes. The `updateTurnBadges` engine resolves turns using a 3-pass pipeline:
+* **Pass 1 (Direct Key Match)**: Matches turn bubbles by comparing prompt text prefix and response text with transcript `promptKey` and `responseKey`.
+* **Pass 2 (Iterative Bidirectional Propagation)**: Adjacent contiguous turns propagate known turn indices forward ($t \to t+1$) and backward ($t \to t-1$).
+* **Pass 3 (Cardinality Alignment Fallback)**: If container count matches `turnsList` length, indices are aligned sequentially.
+* **Loading Placeholder**: When a turn completes before disk telemetry synchronizes, the action bar inserts a loading badge with an animated micro-spinner (`.agpa-turn-loading`) that transitions into the footprint as soon as file `mtime` updates.
 
 ---
 
@@ -212,6 +242,26 @@ State is keyed under `agpa_context_budget_{conversationKey}`:
     "rulesCount": 0,
     "tokens": 1500
   },
+  "turnsList": [
+    {
+      "turnIndex": 1,
+      "promptKey": "initial prompt text",
+      "responseKey": "model response text",
+      "deltaTokens": 8400,
+      "realDelta": 8400,
+      "footprint": 1600,
+      "outputTokens": 400,
+      "finalOutputTokens": 400,
+      "inputTokens": 1200,
+      "cacheReadTokens": 6800,
+      "totalTokens": 8400,
+      "toolCallsCount": 3,
+      "imageTokens": 0,
+      "hasCompaction": false,
+      "preCompactionTokens": 0,
+      "postCompactionTokens": 0
+    }
+  ],
   "mtime": 1793566778563.605,
   "ceiling": 1000000,
   "modelName": "Gemini 3.8 Flash High",
@@ -231,18 +281,34 @@ When `loadConversationState` reads from storage:
 
 ### 8.1 The Context Pill (`.agpa-context-pill`)
 Mounted in the Antigravity chat input container next to the model selector:
-* **Compact Text**: Displays formatted tokens (e.g. `~40k tok`, `~1.2M tok`).
+* **Compact Text**: Displays formatted tokens (e.g. `~90k tok`, `~1.2M tok`).
 * **Visual Ring Indicator**: Displays SVG ring filled proportionally to the context percentage, colored according to health level.
 * **Tooltips**: Screen-reader accessible `aria-label` with localized status.
 
 ### 8.2 Detailed Breakdown Modal (`.agpa-context-popup`)
 Clicking the pill opens a detailed diagnostic popup providing full visibility:
-* **Total Tokens & Turns**: e.g., `~40k tokens (9 turns)`.
-* **Model & Ceiling Ratio**: e.g., `Gemini 3.8 Flash High · 4% (~1M max)`.
+* **Total Tokens & Turns**: e.g., `~90k tokens (31 turns)`.
+* **Model & Ceiling Ratio**: e.g., `Gemini 3.8 Flash High · 9% (~1M max)`.
 * **Prompt Caching Telemetry**: Cached tokens vs fresh prompt tokens.
 * **Multimodal Assets**: Image count and calculated vision tokens.
 * **System Baseline Overhead**: Tool, MCP, and rule allocations.
 * **One-Click `/compact` Action**: When context exceeds 80%, provides a button to automatically insert the `/compact` command into the composer.
+
+### 8.3 Turn Token Badges (`.agpa-turn-token-badge`)
+Embedded in the action bar of every assistant response bubble alongside `Copy` and `Good response`:
+* **Turn Footprint**: Displays the formatted computational mass (e.g. `~4.7k tok`).
+* **Compacted Alert Mode**: Renders with crimson styling (`.agpa-turn-compacted`) when a compaction occurs on this turn.
+* **In-Flight Loading State**: Shows a subtle rotating micro-spinner (`.agpa-turn-spinner`) while the host transcript reader finalizes telemetry.
+
+### 8.4 Turn Diagnostic Tooltip (`.agpa-turn-tooltip`)
+Hovering a turn token badge opens an actionable inspection card:
+* **Turn Header**: Turn index and footprint (e.g. `Turn #31 · ~3.9k tok`).
+* **Compaction Row**: Visual indicator of compaction trajectory (`Compacting: ~258k ➔ ~22k` and `Pre-compaction peak: ~258k tok`).
+* **Token Breakdown**: `Response output`, `Active prompt`, `Cached` (or `0 tok (miss / recalculation)`).
+* **Execution Telemetry**: `Tool calls` count and multimodal `Vision` token costs.
+* **Net Delta**: Color-coded net context shift (`+8.4k tok` or `-196k tok (optimized)`).
+* **Total Window**: Synchronized snapshot of the total active context window at turn completion (`Total window: ~63k tok`).
+* **Multilingual Localization**: Fully translated across 7 languages (`en`, `it`, `de`, `es`, `fr`, `zh`, `ja`) via `common/locales.json`.
 
 ---
 
@@ -285,6 +351,17 @@ function clearConversationState(convKey?: string, storage?: Storage): void;
 function clearCache(): void;
 ```
 
+### UI Component Methods (`common/context-budget.js`)
+
+```typescript
+function updateTurnBadges(doc?: Document, stats?: ConversationStats): void;
+function showTurnTooltip(badge: HTMLElement, turnData: object): void;
+function closeTurnTooltip(): void;
+function createPill(): HTMLElement;
+function openPopup(): void;
+function closePopup(): void;
+```
+
 ### Host Transcript Reader (`common/transcript-reader.cjs`)
 
 ```typescript
@@ -297,16 +374,18 @@ function extractConversationId(raw: string): string | null;
 
 ## 11. Verification Matrix
 
-The subsystem includes a comprehensive test suite of **167 tests** run via Node.js native test runner:
+The subsystem includes a comprehensive test suite of **191 tests** run via Node.js native test runner:
 
-* `tests/context-budget.test.cjs`: Unit & state regression suite (39 tests).
-* `tests/transcript-reader.test.cjs`: Host log reader & token parser suite (9 tests).
+* `tests/context-budget.test.cjs`: Unit, turn badges, neighbor propagation, and i18n localization suite (44 tests).
+* `tests/transcript-reader.test.cjs`: Host log reader, delta tokens, and turn parser suite (10 tests).
+* `tests/i18n.test.cjs`: 7-language catalog, placeholder, and attribute sync suite (5 tests).
 * `tests/e2e-token-counter.test.cjs`: 4-tier opaque-box end-to-end integration suite (86 tests).
 * `tests/adversarial-token-estimator.test.cjs`: Lexical tokenizer stress & ReDoS safety suite (23 tests).
 * `tests/adversarial-stress-m1.test.cjs`: High-throughput JSONL & rapid disk write suite (11 tests).
 * `tests/windows-*.test.cjs`: Windows native attachment & platform lifecycle suite (10 tests).
+* `tests/runtime-versions.test.cjs`: Runtime version and injection guard suite (2 tests).
 
 To execute the complete test suite:
 ```powershell
-node --test tests/context-budget.test.cjs tests/transcript-reader.test.cjs tests/e2e-token-counter.test.cjs tests/adversarial-*.test.cjs tests/windows-*.test.cjs
+node --test tests/context-budget.test.cjs tests/transcript-reader.test.cjs tests/i18n.test.cjs tests/runtime-versions.test.cjs tests/e2e-token-counter.test.cjs tests/adversarial-*.test.cjs tests/windows-*.test.cjs
 ```
