@@ -1244,7 +1244,7 @@ test('context budget component requests instant hydration when chat lacks apiTok
     },
     queueMicrotask: fn => fn(),
     __AGPA_CONTEXT_BUDGET__: rules,
-    __AGPAI18n: { t: (k, v = {}) => k },
+    __AGPAI18n: { t: (k, v = {}) => Object.entries(v).reduce((s, [p, val]) => s.replace("{" + p + "}", val), k) },
     __agpaTranscriptRequest: (payload) => {
       const parsed = JSON.parse(payload);
       requestedKey = parsed.convKey;
@@ -1456,7 +1456,7 @@ test('needsTranscript triggers rehydration when mtime is newer than updatedAt', 
     MutationObserver: class { observe() {} disconnect() {} },
     queueMicrotask: fn => fn(),
     __AGPA_CONTEXT_BUDGET__: rules,
-    __AGPAI18n: { t: (k, v = {}) => k },
+    __AGPAI18n: { t: (k, v = {}) => Object.entries(v).reduce((s, [p, val]) => s.replace("{" + p + "}", val), k) },
     setTimeout: () => 1,
     clearTimeout: () => {},
     setInterval: () => 1,
@@ -1535,7 +1535,7 @@ test('details popup renders cached tokens, active prompt tokens, and output toke
     MutationObserver: class { observe() {} disconnect() {} },
     queueMicrotask: fn => fn(),
     __AGPA_CONTEXT_BUDGET__: rules,
-    __AGPAI18n: { t: (k, v = {}) => k },
+    __AGPAI18n: { t: (k, v = {}) => Object.entries(v).reduce((s, [p, val]) => s.replace("{" + p + "}", val), k) },
     setTimeout: () => 1,
     clearTimeout: () => {},
     setInterval: () => 1,
@@ -1747,7 +1747,7 @@ test('context-budget component injects .agpa-turn-token-badge into assistant act
     window: mockWindow,
     navigator: { language: 'en-US' },
     __AGPA_CONTEXT_BUDGET__: rules,
-    __AGPAI18n: { t: (k, v = {}) => k },
+    __AGPAI18n: { t: (k, v = {}) => Object.entries(v).reduce((s, [p, val]) => s.replace("{" + p + "}", val), k) },
     setTimeout: (fn) => setTimeout(fn, 0),
     clearTimeout: (id) => clearTimeout(id),
     setInterval: () => 1,
@@ -1798,7 +1798,7 @@ test('context-budget component injects .agpa-turn-token-badge into assistant act
   context.__AGContextBudget.refresh();
 
   // Find badge inserted in action bar
-  const badge = actionBar.children.find(c => c.className === 'agpa-turn-token-badge');
+  const badge = actionBar.children.find(c => (c.className || '').includes('agpa-turn-token-badge'));
   assert.ok(badge, 'turn token badge inserted in assistant action bar');
   assert.equal(badge.textContent, '~1.6k tok');
   assert.equal(badge.getAttribute('data-turn-index'), '1');
@@ -1820,11 +1820,11 @@ test('context-budget component injects .agpa-turn-token-badge into assistant act
 
   const tipBody = tip.children.find(c => c.className === 'agpa-turn-tooltip-body');
   const tipHtml = tipBody.children.map(c => c.innerHTML || c.textContent || '').join(' ');
-  assert.ok(tipHtml.includes('Output risposta'));
+  assert.ok(tipHtml.includes('Response output'));
   assert.ok(tipHtml.includes('Active prompt'));
   assert.ok(tipHtml.includes('Cached'));
-  assert.ok(tipHtml.includes('Delta netto'));
-  assert.ok(tipHtml.includes('Finestra totale'));
+  assert.ok(tipHtml.includes('Net delta'));
+  assert.ok(tipHtml.includes('Total window'));
 
   // Test loading state placeholder before transcript is hydrated
   actionBar.children = [copyBtn, goodBtn];
@@ -1891,9 +1891,215 @@ test('context-budget component injects .agpa-turn-token-badge into assistant act
   const negDeltaRow = tip22Body.children.find(c => c.className?.includes('agpa-turn-delta-neg'));
   assert.ok(negDeltaRow, 'negative delta row has agpa-turn-delta-neg class');
   const negContent = negDeltaRow.innerHTML || negDeltaRow.textContent || '';
-  assert.ok(negContent.includes('-4.6k tok (ottimizzato)'));
-  const cacheMissRow = tip22Body.children.find(c => (c.innerHTML || c.textContent || '').includes('miss / ricalcolo'));
+  assert.ok(negContent.includes('-4.6k tok (optimized)'));
+  const cacheMissRow = tip22Body.children.find(c => (c.innerHTML || c.textContent || '').includes('miss / recalculation'));
   assert.ok(cacheMissRow, 'cache miss row rendered correctly');
+
+  context.__AGContextBudget.destroy();
+});
+
+test('context-budget turn token badges localize into Italian using locales.json catalog', () => {
+  const locales = JSON.parse(fs.readFileSync(path.join(__dirname, '../common/locales.json'), 'utf8'));
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      getItem: k => storeMap.get(k) || null,
+      removeItem: k => storeMap.delete(k)
+    },
+    innerWidth: 1200,
+    innerHeight: 800,
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  const copyBtn = {
+    getAttribute: a => (a === 'aria-label' ? 'Copy' : null),
+    parentElement: null
+  };
+  const goodBtn = {
+    getAttribute: a => (a === 'aria-label' ? 'Good response' : null),
+    parentElement: null
+  };
+  const actionBar = {
+    children: [copyBtn, goodBtn],
+    querySelector: sel => {
+      if (sel.includes('aria-label="Copy"')) return copyBtn;
+      if (sel.includes('.agpa-turn-token-badge')) return actionBar.children.find(c => (c.className || '').includes('agpa-turn-token-badge')) || null;
+      return null;
+    },
+    insertBefore: (node, before) => {
+      node.parentElement = actionBar;
+      const idx = actionBar.children.indexOf(before);
+      if (idx !== -1) actionBar.children.splice(idx, 0, node);
+      else actionBar.children.push(node);
+      return node;
+    },
+    prepend: node => {
+      node.parentElement = actionBar;
+      actionBar.children.unshift(node);
+      return node;
+    }
+  };
+  copyBtn.parentElement = actionBar;
+  goodBtn.parentElement = actionBar;
+
+  const userStep = { textContent: 'Prompt utente' };
+  const turnContainer = {
+    className: 'flex items-start',
+    querySelector: sel => {
+      if (sel.includes('user-input-step')) return userStep;
+      if (sel.includes('aria-label="Good response"')) return goodBtn;
+      if (sel.includes('aria-label="Copy"')) return copyBtn;
+      return null;
+    }
+  };
+
+  const listContainer = {
+    className: 'relative flex flex-col gap-y-3',
+    querySelectorAll: sel => {
+      if (sel.includes('div.flex.items-start') || sel.includes(':scope > div.flex.items-start')) {
+        return [turnContainer];
+      }
+      return [];
+    }
+  };
+
+  const viewport = {
+    querySelector: sel => {
+      if (sel.includes('.relative.flex.flex-col.gap-y-3') || sel.includes('.flex.flex-col')) return listContainer;
+      return null;
+    }
+  };
+
+  const trigger = {
+    after: () => {},
+    parentElement: {
+      querySelector: () => null,
+      append: () => {},
+      after: () => {}
+    }
+  };
+
+  const mockDoc = {
+    documentElement: { getAttribute: (attr) => attr === 'lang' ? 'it' : null },
+    head: { append: () => {}, appendChild: () => {} },
+    body: {
+      children: [],
+      append(...ch) { this.children.push(...ch); },
+      appendChild(ch) { this.children.push(ch); return ch; },
+      removeChild(ch) {
+        const idx = this.children.indexOf(ch);
+        if (idx !== -1) this.children.splice(idx, 1);
+      },
+      contains: () => false,
+      querySelector: () => null,
+      querySelectorAll: () => []
+    },
+    location: { pathname: '/c/test-it-turn' },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') return viewport;
+      if (sel === '[data-testid=model-selector-trigger]') return trigger;
+      return null;
+    },
+    querySelectorAll: sel => {
+      if (sel === '[data-testid=model-selector-trigger]') return [trigger];
+      return [];
+    },
+    createElement: tag => ({
+      tagName: tag.toUpperCase(),
+      attributes: {},
+      listeners: {},
+      setAttribute(k, v) { this.attributes[k] = v; },
+      getAttribute(k) { return this.attributes[k] || null; },
+      removeAttribute(k) { delete this.attributes[k]; },
+      addEventListener(evt, fn) { this.listeners[evt] = fn; },
+      style: { setProperty() {} },
+      getBoundingClientRect: () => ({ top: 100, left: 500, width: 60, height: 20 }),
+      textContent: '',
+      className: '',
+      children: [],
+      append(...ch) { this.children.push(...ch); },
+      remove() {}
+    }),
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  const itStrings = locales.it.strings;
+  const tIt = (k, params = {}) => {
+    const template = itStrings[k] ?? locales.en.strings[k] ?? k;
+    return template.replace(/\{(\w+)\}/g, (all, name) => params[name] !== undefined ? String(params[name]) : all);
+  };
+
+  const context = {
+    document: mockDoc,
+    window: mockWindow,
+    navigator: { language: 'it-IT' },
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: { t: tIt },
+    setTimeout: (fn) => setTimeout(fn, 0),
+    clearTimeout: (id) => clearTimeout(id),
+    setInterval: () => 1,
+    clearInterval: () => {},
+    MutationObserver: class { observe() {} disconnect() {} },
+    DataTransfer: class { setData() {} },
+    ClipboardEvent: class {}
+  };
+  context.globalThis = context;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  const scriptContent = fs.readFileSync(path.join(__dirname, '../common/context-budget.js'), 'utf8');
+  vm.createContext(context);
+  vm.runInContext(scriptContent, context);
+
+  rules.hydrateFromTranscript('/c/test-it-turn', {
+    maxChars: 12000,
+    maxTurns: 1,
+    apiTokens: 8400,
+    inputTokens: 1200,
+    cacheReadTokens: 6800,
+    outputTokens: 400,
+    turnsList: [
+      {
+        turnIndex: 1,
+        prompt: 'Prompt utente',
+        promptKey: 'prompt utente',
+        deltaTokens: -2000,
+        realDelta: -2000,
+        footprint: 1600,
+        outputTokens: 400,
+        finalOutputTokens: 400,
+        inputTokens: 1200,
+        cacheReadTokens: 6800,
+        totalTokens: 8400,
+        toolCallsCount: 2,
+        hasCompaction: true,
+        preCompactionTokens: 25000,
+        postCompactionTokens: 8400
+      }
+    ]
+  }, mockWindow.localStorage);
+
+  context.__AGContextBudget.refresh();
+
+  const badge = actionBar.children.find(c => (c.className || '').includes('agpa-turn-token-badge'));
+  assert.ok(badge, 'turn token badge inserted in assistant action bar');
+  assert.ok(badge.title.includes('Turno #1'), 'badge title localized in Italian');
+  assert.ok(badge.title.includes('Output risposta'), 'badge title has Output risposta in Italian');
+  assert.ok(badge.title.includes('ottimizzato'), 'badge title has ottimizzato in Italian');
+  assert.ok(badge.title.includes('Finestra totale'), 'badge title has Finestra totale in Italian');
+
+  badge.listeners.mouseenter();
+  const tip = mockDoc.body.children.find(c => c.className === 'agpa-turn-tooltip');
+  assert.ok(tip, 'tooltip element attached');
+  const tipBody = tip.children.find(c => c.className === 'agpa-turn-tooltip-body');
+  const tipHtml = tipBody.children.map(c => c.innerHTML || c.textContent || '').join(' ');
+  assert.ok(tipHtml.includes('Output risposta'), 'tooltip body contains Output risposta');
+  assert.ok(tipHtml.includes('Delta netto'), 'tooltip body contains Delta netto');
+  assert.ok(tipHtml.includes('ottimizzato'), 'tooltip body contains ottimizzato');
+  assert.ok(tipHtml.includes('Finestra totale'), 'tooltip body contains Finestra totale');
 
   context.__AGContextBudget.destroy();
 });

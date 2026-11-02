@@ -7,7 +7,15 @@
 
   const rules = globalThis.__AGPA_CONTEXT_BUDGET__ || (typeof require !== 'undefined' ? require('./context-budget.cjs') : null);
   const i18n = globalThis.__AGPAI18n;
-  const t = (key, values) => (i18n ? i18n.t(key, values) : key);
+  const t = (key, values) => {
+    if (i18n && typeof i18n.t === 'function') return i18n.t(key, values);
+    if (!values) return key;
+    let res = key;
+    for (const [k, v] of Object.entries(values)) {
+      res = res.split('{' + k + '}').join(v);
+    }
+    return res;
+  };
 
   let stopped = false, timer = null;
   let activeStats = null, popup = null;
@@ -63,7 +71,7 @@
     const footprintStr = formatFootprint(footprintVal);
 
     const titleRow = element('div', { class: 'agpa-turn-tooltip-title' });
-    titleRow.innerHTML = `<span>Turn #${turnData.turnIndex}</span><span class="agpa-turn-impact">${footprintStr}</span>`;
+    titleRow.innerHTML = `<span>${t('Turn #{index}', { index: turnData.turnIndex })}</span><span class="agpa-turn-impact">${footprintStr}</span>`;
     tip.append(titleRow);
 
     const body = element('div', { class: 'agpa-turn-tooltip-body' });
@@ -77,37 +85,37 @@
       const cRow = element('div', { class: 'agpa-turn-tooltip-row agpa-turn-compact-row' });
       const preTok = turnData.preCompactionTokens || turnData.peakTokens || 0;
       const postTok = turnData.postCompactionTokens || 0;
-      let compactDetail = 'Cronologia condensata';
+      let compactDetail = t('Condensed history');
       if (preTok > 0 && postTok > 0) {
         compactDetail = `~${formatNum(preTok)} ➔ ~${formatNum(postTok)}`;
       } else if (preTok > 0) {
-        compactDetail = `picco ~${formatNum(preTok)}`;
+        compactDetail = t('peak ~{tokens}', { tokens: formatNum(preTok) });
       }
-      cRow.innerHTML = `<span style="color:#f87171; font-weight:600">🗜 Compacting</span><span style="color:#fca5a5; font-weight:500">${compactDetail}</span>`;
+      cRow.innerHTML = `<span style="color:#f87171; font-weight:600">🗜 ${t('Compacting')}</span><span style="color:#fca5a5; font-weight:500">${compactDetail}</span>`;
       body.append(cRow);
 
       if (preTok > 0) {
         const peakRow = element('div', { class: 'agpa-turn-tooltip-row agpa-turn-peak-row' });
-        peakRow.innerHTML = `<span style="color:#fca5a5">🔺 Picco pre-compacting</span><span style="color:#fca5a5; font-weight:600">~${formatNum(preTok)} tok</span>`;
+        peakRow.innerHTML = `<span style="color:#fca5a5">🔺 ${t('Pre-compaction peak')}</span><span style="color:#fca5a5; font-weight:600">~${formatNum(preTok)} tok</span>`;
         body.append(peakRow);
       }
     }
 
     const outTokens = turnData.finalOutputTokens || turnData.outputTokens || 0;
-    addRow('📤 Output risposta', `${formatNum(outTokens)} tok`);
-    addRow('📥 Active prompt', `${formatNum(turnData.inputTokens)} tok`);
+    addRow('📤 ' + t('Response output'), `${formatNum(outTokens)} tok`);
+    addRow('📥 ' + t('Active prompt'), `${formatNum(turnData.inputTokens)} tok`);
 
     if (turnData.cacheReadTokens > 0) {
-      addRow('⚡ Cached', `${formatNum(turnData.cacheReadTokens)} tok`);
+      addRow('⚡ ' + t('Cached'), `${formatNum(turnData.cacheReadTokens)} tok`);
     } else {
-      addRow('⚡ Cache', '0 tok (miss / ricalcolo)');
+      addRow('⚡ ' + t('Cached'), t('0 tok (miss / recalculation)'));
     }
 
     if (turnData.toolCallsCount > 0) {
-      addRow('🛠 Tool calls', `${turnData.toolCallsCount} ${turnData.toolCallsCount === 1 ? 'call' : 'calls'}`);
+      addRow('🛠 ' + t('Tool calls'), `${turnData.toolCallsCount} ${turnData.toolCallsCount === 1 ? 'call' : 'calls'}`);
     }
     if (turnData.imageTokens > 0) {
-      addRow('🖼 Vision', `${formatNum(turnData.imageTokens)} tok`);
+      addRow('🖼 ' + t('Vision'), `${formatNum(turnData.imageTokens)} tok`);
     }
 
     const div = element('div', { class: 'agpa-turn-tooltip-divider' });
@@ -115,16 +123,16 @@
 
     const realDelta = typeof turnData.realDelta === 'number' ? turnData.realDelta : turnData.deltaTokens;
     if (realDelta < 0) {
-      addRow('📉 Delta netto', `-${formatNum(Math.abs(realDelta))} tok (ottimizzato)`, 'agpa-turn-delta-neg');
+      addRow('📉 ' + t('Net delta'), `-${formatNum(Math.abs(realDelta))} tok (${t('optimized')})`, 'agpa-turn-delta-neg');
     } else if (realDelta > 0) {
-      addRow('📈 Delta netto', `+${formatNum(realDelta)} tok`, 'agpa-turn-delta-pos');
+      addRow('📈 ' + t('Net delta'), `+${formatNum(realDelta)} tok`, 'agpa-turn-delta-pos');
     } else {
-      addRow('± Delta netto', '0 tok');
+      addRow('± ' + t('Net delta'), '0 tok');
     }
 
     if (turnData.totalTokens > 0) {
       const totRow = element('div', { class: 'agpa-turn-tooltip-row agpa-turn-total' });
-      totRow.innerHTML = `<span>📊 Finestra totale</span><span>~${formatNum(turnData.totalTokens)} tok</span>`;
+      totRow.innerHTML = `<span>📊 ${t('Total window')}</span><span>~${formatNum(turnData.totalTokens)} tok</span>`;
       body.append(totRow);
     }
 
@@ -262,7 +270,7 @@
             class: 'agpa-turn-token-badge agpa-turn-loading',
             'data-agpa-turn-badge': '',
             role: 'status',
-            title: 'Calcolo impronta turno...'
+            title: t('Calculating turn footprint...')
           });
           const spinner = element('span', { class: 'agpa-turn-spinner' });
           badge.append(spinner);
@@ -327,22 +335,22 @@
       }
 
       const realDelta = typeof turnData.realDelta === 'number' ? turnData.realDelta : turnData.deltaTokens;
-      const deltaSign = realDelta > 0 ? `+${formatNum(realDelta)}` : (realDelta < 0 ? `-${formatNum(Math.abs(realDelta))} (ottimizzato)` : '0');
+      const deltaSign = realDelta > 0 ? `+${formatNum(realDelta)}` : (realDelta < 0 ? `-${formatNum(Math.abs(realDelta))} (${t('optimized')})` : '0');
       const pre = turnData.preCompactionTokens || turnData.peakTokens;
       const post = turnData.postCompactionTokens;
       const compStr = turnData.hasCompaction
-        ? (pre && post ? ` (Compacting: ~${formatNum(pre)} ➔ ~${formatNum(post)})` : ` (Compacting: picco ~${formatNum(pre || 0)})`)
+        ? (pre && post ? ` (${t('Compacting')}: ~${formatNum(pre)} ➔ ~${formatNum(post)})` : ` (${t('Compacting')}: ${t('peak ~{tokens}', { tokens: formatNum(pre || 0) })})`)
         : '';
       const tipLines = [
-        `Turn #${turnData.turnIndex} · ${formattedFootprint} impronta turno${compStr}`,
-        `• Output risposta: ${formatNum(turnData.finalOutputTokens || turnData.outputTokens)} tok`,
-        `• Active prompt: ${formatNum(turnData.inputTokens)} tok`,
-        turnData.cacheReadTokens > 0 ? `• Cached: ${formatNum(turnData.cacheReadTokens)} tok` : `• Cache: 0 tok (miss / ricalcolo)`,
-        `• Delta netto: ${deltaSign} tok`
+        `${t('Turn #{index}', { index: turnData.turnIndex })} · ${t('{tokens} turn footprint', { tokens: formattedFootprint })}${compStr}`,
+        `• ${t('Response output')}: ${formatNum(turnData.finalOutputTokens || turnData.outputTokens)} tok`,
+        `• ${t('Active prompt')}: ${formatNum(turnData.inputTokens)} tok`,
+        turnData.cacheReadTokens > 0 ? `• ${t('Cached')}: ${formatNum(turnData.cacheReadTokens)} tok` : `• ${t('Cached')}: ${t('0 tok (miss / recalculation)')}`,
+        `• ${t('Net delta')}: ${deltaSign} tok`
       ];
-      if (turnData.toolCallsCount > 0) tipLines.push(`• Tool calls: ${turnData.toolCallsCount}`);
-      if (turnData.imageTokens > 0) tipLines.push(`• Vision: ${formatNum(turnData.imageTokens)} tok`);
-      if (turnData.totalTokens > 0) tipLines.push(`• Finestra totale: ~${formatNum(turnData.totalTokens)} tok`);
+      if (turnData.toolCallsCount > 0) tipLines.push(`• ${t('Tool calls')}: ${turnData.toolCallsCount}`);
+      if (turnData.imageTokens > 0) tipLines.push(`• ${t('Vision')}: ${formatNum(turnData.imageTokens)} tok`);
+      if (turnData.totalTokens > 0) tipLines.push(`• ${t('Total window')}: ~${formatNum(turnData.totalTokens)} tok`);
       badge.title = tipLines.join('\n');
     });
   }
