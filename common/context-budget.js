@@ -1,11 +1,11 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.0.12';
+  const VERSION = '1.0.27';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
-  const rules = globalThis.__AGPA_CONTEXT_BUDGET__ || require('./context-budget.cjs');
+  const rules = globalThis.__AGPA_CONTEXT_BUDGET__ || (typeof require !== 'undefined' ? require('./context-budget.cjs') : null);
   const i18n = globalThis.__AGPAI18n;
   const t = (key, values) => (i18n ? i18n.t(key, values) : key);
 
@@ -24,7 +24,331 @@
     return node;
   }
 
-  function closePopup() {
+  let activeTurnTooltip = null;
+
+  function closeTurnTooltip() {
+    if (activeTurnTooltip) {
+      activeTurnTooltip.remove();
+      activeTurnTooltip = null;
+    }
+  }
+
+  function formatFootprint(tokens) {
+    if (!tokens || tokens <= 0) return '~0 tok';
+    if (tokens >= 1000) {
+      const k = tokens / 1000;
+      return '~' + (k >= 10 ? Math.round(k) : k.toFixed(1)) + 'k tok';
+    }
+    return '~' + tokens + ' tok';
+  }
+
+  function formatNum(n) {
+    if (!n) return '0';
+    if (n >= 1000) {
+      const k = n / 1000;
+      return (k >= 10 ? Math.round(k) : k.toFixed(1)) + 'k';
+    }
+    return String(n);
+  }
+
+  function showTurnTooltip(badge, initialData) {
+    closeTurnTooltip();
+    if (stopped) return;
+
+    const turnData = badge?._turnData || initialData;
+    if (!turnData) return;
+
+    const tip = element('div', { class: 'agpa-turn-tooltip', role: 'tooltip' });
+    const footprintVal = turnData.footprint || turnData.deltaTokens || 0;
+    const footprintStr = formatFootprint(footprintVal);
+
+    const titleRow = element('div', { class: 'agpa-turn-tooltip-title' });
+    titleRow.innerHTML = `<span>Turn #${turnData.turnIndex}</span><span class="agpa-turn-impact">${footprintStr}</span>`;
+    tip.append(titleRow);
+
+    const body = element('div', { class: 'agpa-turn-tooltip-body' });
+    const addRow = (label, val, className = '') => {
+      const r = element('div', { class: 'agpa-turn-tooltip-row' + (className ? ' ' + className : '') });
+      r.innerHTML = `<span>${label}</span><span>${val}</span>`;
+      body.append(r);
+    };
+
+    if (turnData.hasCompaction) {
+      const cRow = element('div', { class: 'agpa-turn-tooltip-row agpa-turn-compact-row' });
+      const preTok = turnData.preCompactionTokens || turnData.peakTokens || 0;
+      const postTok = turnData.postCompactionTokens || 0;
+      let compactDetail = 'Cronologia condensata';
+      if (preTok > 0 && postTok > 0) {
+        compactDetail = `~${formatNum(preTok)} ➔ ~${formatNum(postTok)}`;
+      } else if (preTok > 0) {
+        compactDetail = `picco ~${formatNum(preTok)}`;
+      }
+      cRow.innerHTML = `<span style="color:#f87171; font-weight:600">🗜 Compacting</span><span style="color:#fca5a5; font-weight:500">${compactDetail}</span>`;
+      body.append(cRow);
+
+      if (preTok > 0) {
+        const peakRow = element('div', { class: 'agpa-turn-tooltip-row agpa-turn-peak-row' });
+        peakRow.innerHTML = `<span style="color:#fca5a5">🔺 Picco pre-compacting</span><span style="color:#fca5a5; font-weight:600">~${formatNum(preTok)} tok</span>`;
+        body.append(peakRow);
+      }
+    }
+
+    const outTokens = turnData.finalOutputTokens || turnData.outputTokens || 0;
+    addRow('📤 Output risposta', `${formatNum(outTokens)} tok`);
+    addRow('📥 Active prompt', `${formatNum(turnData.inputTokens)} tok`);
+
+    if (turnData.cacheReadTokens > 0) {
+      addRow('⚡ Cached', `${formatNum(turnData.cacheReadTokens)} tok`);
+    } else {
+      addRow('⚡ Cache', '0 tok (miss / ricalcolo)');
+    }
+
+    if (turnData.toolCallsCount > 0) {
+      addRow('🛠 Tool calls', `${turnData.toolCallsCount} ${turnData.toolCallsCount === 1 ? 'call' : 'calls'}`);
+    }
+    if (turnData.imageTokens > 0) {
+      addRow('🖼 Vision', `${formatNum(turnData.imageTokens)} tok`);
+    }
+
+    const div = element('div', { class: 'agpa-turn-tooltip-divider' });
+    body.append(div);
+
+    const realDelta = typeof turnData.realDelta === 'number' ? turnData.realDelta : turnData.deltaTokens;
+    if (realDelta < 0) {
+      addRow('📉 Delta netto', `-${formatNum(Math.abs(realDelta))} tok (ottimizzato)`, 'agpa-turn-delta-neg');
+    } else if (realDelta > 0) {
+      addRow('📈 Delta netto', `+${formatNum(realDelta)} tok`, 'agpa-turn-delta-pos');
+    } else {
+      addRow('± Delta netto', '0 tok');
+    }
+
+    if (turnData.totalTokens > 0) {
+      const totRow = element('div', { class: 'agpa-turn-tooltip-row agpa-turn-total' });
+      totRow.innerHTML = `<span>📊 Finestra totale</span><span>~${formatNum(turnData.totalTokens)} tok</span>`;
+      body.append(totRow);
+    }
+
+    tip.append(body);
+    document.body.append(tip);
+    activeTurnTooltip = tip;
+
+    const rect = badge.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(rect.left - 40, window.innerWidth - 240)) + 'px';
+    tip.style.top = Math.max(8, rect.top - tip.offsetHeight - 6) + 'px';
+    if (rect.top < tip.offsetHeight + 12) {
+      tip.style.top = Math.min(rect.bottom + 6, window.innerHeight - tip.offsetHeight - 8) + 'px';
+    }
+  }
+
+  function hasClass(node, cls) {
+    if (node?.classList && typeof node.classList.contains === 'function') return node.classList.contains(cls);
+    return (node?.className || '').split(' ').includes(cls);
+  }
+
+  function removeClass(node, cls) {
+    if (node?.classList && typeof node.classList.remove === 'function') {
+      node.classList.remove(cls);
+    } else if (node) {
+      node.className = (node.className || '').split(' ').filter(c => c && c !== cls).join(' ');
+    }
+  }
+
+  function addClass(node, cls) {
+    if (node?.classList && typeof node.classList.add === 'function') {
+      node.classList.add(cls);
+    } else if (node) {
+      const list = (node.className || '').split(' ').filter(Boolean);
+      if (!list.includes(cls)) list.push(cls);
+      node.className = list.join(' ');
+    }
+  }
+
+  function updateTurnBadges(doc = document, stats) {
+    const vp = doc.querySelector?.('[data-testid=autoscroll-viewport]') || doc.querySelector?.('[data-testid=conversation-view]');
+    if (!vp) return;
+    const list = vp.querySelector?.('.relative.flex.flex-col.gap-y-3') || vp.querySelector?.('.flex.flex-col');
+    if (!list) return;
+
+    const allContainers = Array.from(list.querySelectorAll(':scope > div.flex.items-start'));
+    if (!allContainers.length) return;
+
+    const responseContainers = allContainers.filter(c => c.querySelector('button[aria-label="Good response"]'));
+    if (!responseContainers.length) return;
+
+    const turnsList = Array.isArray(stats?.turnsList) ? stats.turnsList : [];
+
+    // Pass 1: Direct matches by promptKey or responseKey
+    const matches = new Array(responseContainers.length).fill(null);
+    responseContainers.forEach((container, idx) => {
+      const prev = container.previousElementSibling;
+      const userStep = container.querySelector('[data-testid="user-input-step"]') ||
+                       prev?.querySelector?.('[data-testid="user-input-step"]') ||
+                       (prev?.getAttribute?.('data-testid') === 'user-input-step' ? prev : null);
+
+      const rawPrompt = userStep?.textContent?.trim() || '';
+      const promptKey = rawPrompt.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 40);
+
+      if (promptKey) {
+        const found = turnsList.find(t => t.promptKey && (t.promptKey.startsWith(promptKey.slice(0, 25)) || promptKey.startsWith(t.promptKey.slice(0, 25))));
+        if (found) {
+          matches[idx] = found;
+          return;
+        }
+      }
+
+      const respText = (container.textContent || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (respText.length > 20) {
+        const found = turnsList.find(t => {
+          const rk = t.responseKey || t.finalResponseKey;
+          return rk && rk.length > 10 && respText.includes(rk.slice(0, 25));
+        });
+        if (found) {
+          matches[idx] = found;
+          return;
+        }
+      }
+    });
+
+    // Pass 2: Iterative neighbor propagation across consecutive response bubbles
+    let changed = true;
+    while (changed) {
+      changed = false;
+      // Forward propagation
+      for (let i = 0; i < matches.length - 1; i++) {
+        if (matches[i] && !matches[i + 1]) {
+          const nextIndex = matches[i].turnIndex + 1;
+          const found = turnsList.find(t => t.turnIndex === nextIndex);
+          if (found) {
+            matches[i + 1] = found;
+            changed = true;
+          }
+        }
+      }
+      // Backward propagation
+      for (let i = matches.length - 1; i > 0; i--) {
+        if (matches[i] && !matches[i - 1]) {
+          const prevIndex = matches[i].turnIndex - 1;
+          const found = turnsList.find(t => t.turnIndex === prevIndex);
+          if (found) {
+            matches[i - 1] = found;
+            changed = true;
+          }
+        }
+      }
+    }
+
+    // Pass 3: Fallback for unanchored turns if turnsList length matches
+    if (matches.every(m => !m) && responseContainers.length <= turnsList.length) {
+      responseContainers.forEach((_, idx) => {
+        matches[idx] = turnsList[idx];
+      });
+    }
+
+    // Render badges
+    responseContainers.forEach((container, idx) => {
+      const goodBtn = container.querySelector('button[aria-label="Good response"]');
+      if (!goodBtn) return;
+      const bar = goodBtn.parentElement;
+      if (!bar) return;
+      const copyBtn = bar.querySelector('button[aria-label="Copy"]');
+
+      const turnData = matches[idx];
+      let badge = bar.querySelector('.agpa-turn-token-badge');
+
+      if (!turnData) {
+        // Response finished but transcript data not yet loaded: show loading pill with micro-spinner
+        if (!badge) {
+          badge = element('div', {
+            class: 'agpa-turn-token-badge agpa-turn-loading',
+            'data-agpa-turn-badge': '',
+            role: 'status',
+            title: 'Calcolo impronta turno...'
+          });
+          const spinner = element('span', { class: 'agpa-turn-spinner' });
+          badge.append(spinner);
+          if (copyBtn) bar.insertBefore(badge, copyBtn);
+          else bar.prepend(badge);
+        } else if (hasClass(badge, 'agpa-turn-loading') && (!badge.children || !badge.children.length)) {
+          const spinner = element('span', { class: 'agpa-turn-spinner' });
+          badge.append(spinner);
+        }
+        return;
+      }
+
+      const footprintVal = turnData.footprint || turnData.deltaTokens || 0;
+      const formattedFootprint = formatFootprint(footprintVal);
+
+      if (!badge) {
+        badge = element('div', {
+          class: 'agpa-turn-token-badge',
+          'data-agpa-turn-badge': '',
+          'data-turn-index': String(turnData.turnIndex),
+          'data-footprint': String(footprintVal),
+          role: 'button',
+          tabindex: '0'
+        });
+
+        if (copyBtn) bar.insertBefore(badge, copyBtn);
+        else bar.prepend(badge);
+      } else if (hasClass(badge, 'agpa-turn-loading')) {
+        removeClass(badge, 'agpa-turn-loading');
+        badge.innerHTML = '';
+        badge.setAttribute('role', 'button');
+        badge.setAttribute('tabindex', '0');
+      }
+
+      if (!badge._listenersAttached) {
+        badge.addEventListener('mouseenter', () => showTurnTooltip(badge, badge._turnData || turnData));
+        badge.addEventListener('mouseleave', closeTurnTooltip);
+        badge._listenersAttached = true;
+      }
+
+      badge._turnData = turnData;
+
+      if (badge.textContent !== formattedFootprint) badge.textContent = formattedFootprint;
+      if (badge.getAttribute('data-turn-index') !== String(turnData.turnIndex)) {
+        badge.setAttribute('data-turn-index', String(turnData.turnIndex));
+      }
+      if (badge.getAttribute('data-footprint') !== String(footprintVal)) {
+        badge.setAttribute('data-footprint', String(footprintVal));
+      }
+
+      if (badge.classList && badge.classList.toggle) {
+        badge.classList.toggle('agpa-turn-compacted', !!turnData.hasCompaction);
+      } else {
+        const cls = (badge.className || '').split(' ').filter(c => c && c !== 'agpa-turn-compacted');
+        if (turnData.hasCompaction) cls.push('agpa-turn-compacted');
+        badge.className = cls.join(' ');
+      }
+      if (turnData.hasCompaction) {
+        badge.setAttribute('data-compacted', 'true');
+      } else if (badge.removeAttribute) {
+        badge.removeAttribute('data-compacted');
+      }
+
+      const realDelta = typeof turnData.realDelta === 'number' ? turnData.realDelta : turnData.deltaTokens;
+      const deltaSign = realDelta > 0 ? `+${formatNum(realDelta)}` : (realDelta < 0 ? `-${formatNum(Math.abs(realDelta))} (ottimizzato)` : '0');
+      const pre = turnData.preCompactionTokens || turnData.peakTokens;
+      const post = turnData.postCompactionTokens;
+      const compStr = turnData.hasCompaction
+        ? (pre && post ? ` (Compacting: ~${formatNum(pre)} ➔ ~${formatNum(post)})` : ` (Compacting: picco ~${formatNum(pre || 0)})`)
+        : '';
+      const tipLines = [
+        `Turn #${turnData.turnIndex} · ${formattedFootprint} impronta turno${compStr}`,
+        `• Output risposta: ${formatNum(turnData.finalOutputTokens || turnData.outputTokens)} tok`,
+        `• Active prompt: ${formatNum(turnData.inputTokens)} tok`,
+        turnData.cacheReadTokens > 0 ? `• Cached: ${formatNum(turnData.cacheReadTokens)} tok` : `• Cache: 0 tok (miss / ricalcolo)`,
+        `• Delta netto: ${deltaSign} tok`
+      ];
+      if (turnData.toolCallsCount > 0) tipLines.push(`• Tool calls: ${turnData.toolCallsCount}`);
+      if (turnData.imageTokens > 0) tipLines.push(`• Vision: ${formatNum(turnData.imageTokens)} tok`);
+      if (turnData.totalTokens > 0) tipLines.push(`• Finestra totale: ~${formatNum(turnData.totalTokens)} tok`);
+      badge.title = tipLines.join('\n');
+    });
+  }
+
+    function closePopup() {
+    closeTurnTooltip();
     if (popup) {
       popup.remove();
       popup = null;
@@ -105,6 +429,17 @@
     }
 
     popup.append(header, desc, modelNote);
+
+    if (stats.cacheReadTokens > 0 || stats.inputTokens > 0 || stats.outputTokens > 0) {
+      const cacheFmt = rules.formatTokens ? rules.formatTokens(stats.cacheReadTokens) : String(stats.cacheReadTokens || 0);
+      const inputFmt = rules.formatTokens ? rules.formatTokens(stats.inputTokens) : String(stats.inputTokens || 0);
+      const outFmt = rules.formatTokens ? rules.formatTokens(stats.outputTokens) : String(stats.outputTokens || 0);
+      const breakdown = element('div', {
+        class: 'agpa-context-breakdown',
+        text: `⚡ Cached: ${cacheFmt} · Active prompt: ${inputFmt} · Output: ${outFmt}`
+      });
+      popup.append(breakdown);
+    }
 
     if (stats.systemTokens > 0) {
       const sysFmt = rules.formatTokens ? rules.formatTokens(stats.systemTokens) : `${stats.systemTokens}`;
@@ -278,7 +613,10 @@
     const convKey = rules.getConversationKey ? rules.getConversationKey(document) : 'default';
     if (convKey && convKey !== 'default') {
       const stored = rules.loadConversationState ? rules.loadConversationState(convKey) : null;
-      if (!stored || !stored.maxChars) {
+      const navTurns = rules.countTurns ? rules.countTurns(document) : 0;
+      const mtimePending = Boolean(stored?.mtime && stored?.updatedAt && stored.mtime > stored.updatedAt);
+      const missingTurns = Boolean(stored && (!Array.isArray(stored.turnsList) || stored.turnsList.length === 0));
+      if (!stored || !stored.apiTokens || missingTurns || (navTurns > 0 && navTurns > (stored.maxTurns || 0)) || mtimePending) {
         if (typeof globalThis.__agpaTranscriptRequest === 'function') {
           globalThis.__agpaTranscriptRequest(JSON.stringify({ convKey }));
         }
@@ -286,6 +624,7 @@
     }
 
     tryAutoHydrate(document);
+    updateTurnBadges(document, stats);
 
     const triggers = document.querySelectorAll('[data-testid=model-selector-trigger]');
     if (!triggers.length) {
@@ -437,6 +776,15 @@
       color: var(--secondary-foreground, #aaa);
       margin: 2px 0 8px 0;
     }
+    .agpa-context-breakdown {
+      font-size: 11px;
+      color: var(--secondary-foreground, #bbb);
+      margin: 2px 0 8px 0;
+      padding: 4px 6px;
+      background: var(--secondary, rgba(255, 255, 255, 0.05));
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
     .agpa-context-status {
       font-size: 11px;
       margin-bottom: 8px;
@@ -471,6 +819,133 @@
     .agpa-context-compact-btn:hover {
       filter: brightness(1.15);
     }
+    .agpa-turn-token-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 1px 7px;
+      margin-right: 6px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--secondary-foreground, rgba(255, 255, 255, 0.75));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      user-select: none;
+      line-height: 18px;
+      white-space: nowrap;
+      transition: all 0.15s ease-in-out;
+    }
+    .agpa-turn-token-badge:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+    .agpa-turn-token-badge.agpa-turn-loading {
+      min-width: 22px;
+      justify-content: center;
+      padding: 1px 7px;
+      cursor: wait;
+      opacity: 0.8;
+    }
+    .agpa-turn-spinner {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      box-sizing: border-box;
+      border: 1.5px solid rgba(255, 255, 255, 0.22);
+      border-top-color: #8ab4f8;
+      border-radius: 50%;
+      animation: agpa-spin 0.75s linear infinite;
+    }
+    @keyframes agpa-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .agpa-turn-tooltip {
+      position: fixed;
+      z-index: 2147483645;
+      min-width: 190px;
+      max-width: 270px;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border: 1px solid var(--border, #444);
+      border-radius: 10px;
+      background: var(--card, #222);
+      color: var(--foreground, #eee);
+      font: 11px/1.4 system-ui, sans-serif;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+      animation: agpa-fade-in 0.12s ease-out;
+    }
+    @keyframes agpa-fade-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .agpa-turn-tooltip-title {
+      font-weight: 600;
+      font-size: 11px;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+        .agpa-turn-delta-neg {
+      color: #8ab4f8 !important;
+      font-weight: 500;
+    }
+    .agpa-turn-delta-pos {
+      color: #6ee7b7 !important;
+      font-weight: 500;
+    }
+.agpa-turn-impact {
+      color: #6ee7b7;
+      font-weight: 600;
+    }
+    .agpa-turn-token-badge.agpa-turn-compacted {
+      background: rgba(239, 68, 68, 0.16) !important;
+      color: #fca5a5 !important;
+      border-color: rgba(239, 68, 68, 0.38) !important;
+    }
+    .agpa-turn-token-badge.agpa-turn-compacted:hover {
+      background: rgba(239, 68, 68, 0.28) !important;
+      color: #fee2e2 !important;
+      border-color: rgba(239, 68, 68, 0.6) !important;
+      box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25) !important;
+    }
+        .agpa-turn-peak-row {
+      background: rgba(239, 68, 68, 0.08);
+      border-radius: 4px;
+      padding: 1.5px 6px !important;
+      margin-bottom: 3px;
+    }
+    .agpa-turn-compact-row {
+      background: rgba(239, 68, 68, 0.12);
+      border-radius: 4px;
+      padding: 2px 6px !important;
+      margin-bottom: 4px;
+    }
+    .agpa-turn-tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--secondary-foreground, #bbb);
+      padding: 1.5px 0;
+    }
+    .agpa-turn-tooltip-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      margin: 4px 0;
+    }
+    .agpa-turn-total {
+      font-weight: 600;
+      color: var(--foreground, #eee);
+    }
   `;
   document.head.append(style);
 
@@ -488,6 +963,7 @@
   observer.observe(document.body, { childList: true, subtree: true });
 
   const onPointerDown = e => {
+    closeTurnTooltip();
     if (popup && !popup.contains(e.target) && !e.target.closest('[data-agpa-context-budget]')) {
       closePopup();
     }
@@ -505,13 +981,18 @@
     version: VERSION,
     status: () => ({ stats: activeStats, open: !!popup }),
     getActiveKey: () => (rules.getConversationKey ? rules.getConversationKey(document) : 'default'),
-    needsTranscript: (key) => {
-      const k = key || (rules.getConversationKey ? rules.getConversationKey(document) : 'default');
+    needsTranscript: (key, optionsOrMtime) => {
+      const k = (typeof key === 'string' ? key : key?.convKey) || (rules.getConversationKey ? rules.getConversationKey(document) : 'default');
       if (!k || k === 'default') return false;
-      const stored = rules.loadConversationState ? rules.loadConversationState(k) : null;
-      if (!stored || !stored.maxChars) return true;
+      const store = typeof window !== 'undefined' && window.localStorage ? window.localStorage : undefined;
+      const stored = rules.loadConversationState ? rules.loadConversationState(k, store) : null;
+      if (!stored || !stored.maxChars || !stored.apiTokens) return true;
+      if (optionsOrMtime?.requireTurns && (!Array.isArray(stored.turnsList) || stored.turnsList.length === 0)) return true;
       const navTurns = rules.countTurns ? rules.countTurns(document) : 0;
-      if (navTurns > (stored.blocks?.length || 0)) return true;
+      if (navTurns > 0 && navTurns > (stored.maxTurns || stored.blocks?.length || 0)) return true;
+      const fileMtime = typeof optionsOrMtime === 'number' ? optionsOrMtime : (optionsOrMtime?.mtime || stored.mtime);
+      if (fileMtime && stored.updatedAt && fileMtime > stored.updatedAt) return true;
+      if (stored.mtime && stored.updatedAt && stored.mtime > stored.updatedAt) return true;
       return false;
     },
     hydrateFromTranscript: (convKey, data) => {
@@ -533,7 +1014,7 @@
       document.removeEventListener('pointerdown', onPointerDown, true);
       window.removeEventListener?.('storage', onStorage);
       style.remove();
-      document.querySelectorAll('[data-agpa-context-budget], [data-agpa-context-ui]').forEach(n => n.remove());
+      document.querySelectorAll('[data-agpa-context-budget], [data-agpa-context-ui], .agpa-turn-token-badge, .agpa-turn-tooltip').forEach(n => n.remove());
       delete globalThis.__AGContextBudget;
     }
   };

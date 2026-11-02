@@ -27,12 +27,39 @@ function saveConversationState(convKey, data, storage) {
 
 function loadConversationState(convKey, storage) {
   if (!convKey) return null;
+  if (convKey === 'default') {
+    try {
+      const store = storage !== undefined ? storage : getStorage();
+      store?.removeItem?.('agpa_context_budget_default');
+    } catch {}
+    return null;
+  }
   try {
     const store = storage !== undefined ? storage : getStorage();
     if (store && typeof store.getItem === 'function') {
       const key = 'agpa_context_budget_' + convKey;
       const raw = store.getItem(key);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.apiTokens && parsed.transcriptTurns && parsed.maxTurns > parsed.transcriptTurns) {
+            parsed.maxTurns = parsed.transcriptTurns + (parsed.pendingTurns || 0);
+          }
+          if (parsed.apiTokens && parsed.transcriptChars && parsed.maxChars > parsed.transcriptChars * 1.1) {
+            parsed.maxChars = parsed.transcriptChars + (parsed.pendingChars || 0);
+          }
+          if (parsed.apiTokens && Array.isArray(parsed.images)) {
+            const hasFileImages = parsed.images.some(([k]) => typeof k === 'string' && !k.startsWith('data:') && !k.startsWith('blob:'));
+            if (hasFileImages) {
+              parsed.images = parsed.images.filter(([k]) => typeof k === 'string' && !k.startsWith('data:') && !k.startsWith('blob:'));
+              let sum = 0;
+              for (const [, tok] of parsed.images) sum += (typeof tok === 'number' ? tok : 0);
+              parsed.maxImageTokens = sum;
+            }
+          }
+        }
+        return parsed;
+      }
     }
   } catch {}
   return null;
@@ -74,40 +101,58 @@ function hydrateFromTranscript(convKey, data, storage) {
       maxDocTokens: 0,
       systemTokens: 1500,
       systemBaseline: null,
-      apiTokens: 0
+      apiTokens: 0,
+      inputTokens: 0,
+      cacheReadTokens: 0,
+      outputTokens: 0,
+      mtime: 0,
+      pendingChars: 0,
+      pendingCodeChars: 0,
+      pendingTurns: 0,
+      transcriptChars: 0,
+      turnsList: []
     };
     conversationCache.set(convKey, entry);
   }
 
   if (Array.isArray(data.blocks)) {
+    entry.blocks.clear();
     for (const [k, v] of data.blocks) {
-      if (!entry.blocks.has(k)) {
-        entry.blocks.set(k, typeof v === 'number' ? { length: v, codeChars: 0 } : v);
-      }
+      entry.blocks.set(k, typeof v === 'number' ? { length: v, codeChars: 0 } : v);
     }
   }
 
   if (Array.isArray(data.images)) {
+    entry.images.clear();
     for (const [k, tokens] of data.images) {
-      if (!entry.images.has(k)) {
-        entry.images.set(k, tokens);
-      }
+      entry.images.set(k, tokens);
     }
   }
 
-  entry.maxChars = Math.max(entry.maxChars, data.maxChars || 0);
-  entry.maxCodeChars = Math.max(entry.maxCodeChars || 0, data.maxCodeChars || 0);
-  entry.maxTurns = Math.max(entry.maxTurns, data.maxTurns || 0);
-  entry.maxImageTokens = Math.max(entry.maxImageTokens, data.maxImageTokens || 0);
+  entry.maxChars = data.maxChars || entry.maxChars || 0;
+  entry.maxCodeChars = data.maxCodeChars || entry.maxCodeChars || 0;
+  entry.maxTurns = data.maxTurns || entry.maxTurns || 0;
+  entry.maxImageTokens = data.maxImageTokens || 0;
+  entry.turnsList = Array.isArray(data.turnsList) ? data.turnsList : (entry.turnsList || []);
   if (data.apiTokens && typeof data.apiTokens === 'number') {
-    entry.apiTokens = Math.max(entry.apiTokens || 0, data.apiTokens);
+    entry.apiTokens = data.apiTokens;
   }
+  entry.inputTokens = typeof data.inputTokens === 'number' ? data.inputTokens : (entry.inputTokens || 0);
+  entry.cacheReadTokens = typeof data.cacheReadTokens === 'number' ? data.cacheReadTokens : (entry.cacheReadTokens || 0);
+  entry.outputTokens = typeof data.outputTokens === 'number' ? data.outputTokens : (entry.outputTokens || 0);
+  entry.mtime = typeof data.mtime === 'number' ? data.mtime : (entry.mtime || 0);
+  entry.pendingChars = data.pendingChars || 0;
+  entry.pendingCodeChars = data.pendingCodeChars || 0;
+  entry.pendingTurns = data.pendingTurns || 0;
+  entry.transcriptChars = data.maxChars || entry.maxChars || 0;
+  entry.transcriptTurns = data.maxTurns || entry.maxTurns || 0;
   entry.updatedAt = Date.now();
 
   saveConversationState(convKey, {
     blocks: Array.from(entry.blocks.entries()),
     images: Array.from(entry.images.entries()),
     documents: Array.from(entry.documents.entries()),
+    turnsList: entry.turnsList || [],
     maxChars: entry.maxChars,
     maxCodeChars: entry.maxCodeChars,
     maxTurns: entry.maxTurns,
@@ -116,6 +161,15 @@ function hydrateFromTranscript(convKey, data, storage) {
     systemTokens: entry.systemTokens,
     systemBaseline: entry.systemBaseline,
     apiTokens: entry.apiTokens || null,
+    inputTokens: entry.inputTokens || 0,
+    cacheReadTokens: entry.cacheReadTokens || 0,
+    outputTokens: entry.outputTokens || 0,
+    mtime: entry.mtime || 0,
+    pendingChars: entry.pendingChars || 0,
+    pendingCodeChars: entry.pendingCodeChars || 0,
+    pendingTurns: entry.pendingTurns || 0,
+    transcriptChars: entry.transcriptChars || 0,
+    transcriptTurns: entry.transcriptTurns || 0,
     ceiling: entry.ceiling,
     modelName: entry.modelName,
     updatedAt: entry.updatedAt
@@ -125,12 +179,33 @@ function hydrateFromTranscript(convKey, data, storage) {
 }
 
 
-function estimateImageTokens(width, height) {
+function estimateImageTokens(width, height, modelFamilyOrName = '') {
   let w = Math.max(0, Number(width) || 0);
   let h = Math.max(0, Number(height) || 0);
   if (w === 0 || h === 0) return 0;
   if (w <= 40 && h <= 40) return 0;
 
+  const model = String(modelFamilyOrName || '').toLowerCase();
+  // 1. Google Gemini (Flash, Carbon, Argon, Pro): 258 tokens per image/tile
+  if (model.includes('gemini') || model.includes('carbon') || model.includes('argon')) {
+    return 258;
+  }
+
+  // 2. Anthropic Claude: (width * height) / 750 (with max 1568px bounding constraint)
+  if (model.includes('claude') || model.includes('sonnet') || model.includes('opus')) {
+    let cw = w;
+    let ch = h;
+    const maxSide = Math.max(cw, ch);
+    if (maxSide > 1568) {
+      const scale = 1568 / maxSide;
+      cw = Math.round(cw * scale);
+      ch = Math.round(ch * scale);
+    }
+    const claudeTokens = Math.round((cw * ch) / 750);
+    return Math.max(258, claudeTokens);
+  }
+
+  // 3. OpenAI / Default (Tile based 512x512)
   if (w <= 512 && h <= 512) return 255;
 
   if (w > 2048 || h > 2048) {
@@ -337,17 +412,28 @@ function detectActiveModel(doc = document) {
   const cleanName = rawName.trim().replace(/\s+/g, ' ');
   const lower = cleanName.toLowerCase();
 
-  // 1. OpenAI: GPT-OSS 120B (128k)
-  if (lower.includes('gpt-oss') || lower.includes('120b') || (lower.includes('gpt') && lower.includes('oss'))) {
+  // Dynamic context ceiling check from label (e.g. "Claude 3.5 (200k)", "Gemini 1.5 Pro (2M)", "GPT-4o (128k)")
+  const labelMatch = cleanName.match(/(?:^|\s|\(|\[)(\d+(?:\.\d+)?)\s*(k|m)\b/i);
+  if (labelMatch) {
+    const num = parseFloat(labelMatch[1]);
+    const unit = labelMatch[2].toLowerCase();
+    const dynamicCeiling = unit === 'm' ? Math.round(num * 1000000) : Math.round(num * 1000);
+    if (dynamicCeiling >= 10000) {
+      return { name: cleanName, ceiling: dynamicCeiling };
+    }
+  }
+
+  // 1. OpenAI: GPT-OSS 120B (128k), GPT-4o (128k)
+  if (lower.includes('gpt-oss') || lower.includes('120b') || (lower.includes('gpt') && lower.includes('oss')) || lower.includes('gpt-4')) {
     return { name: cleanName || 'GPT-OSS 120B', ceiling: 128000 };
   }
 
-  // 2. Claude: Sonnet 4.6 & Opus 4.6 (1M context window)
+  // 2. Claude: Sonnet 5.5 & Opus 5.5 (1M context window)
   if (lower.includes('sonnet') || lower.includes('opus') || lower.includes('claude')) {
-    return { name: cleanName || 'Claude 4.6', ceiling: 1000000 };
+    return { name: cleanName || 'Claude 5.5', ceiling: 1000000 };
   }
 
-  // 3. Google Gemini: Gemini 4 Carbon, Gemini 4 Argon, Gemini 3.8 Flash (all Gemini >= 3 have 1M)
+  // 3. Google Gemini: Gemini 4 Argon, Gemini 3.8 Flash, Gemini 3.1 Pro (all Gemini >= 3 have 1M)
   if (lower.includes('gemini') || lower.includes('carbon') || lower.includes('argon')) {
     return { name: cleanName || 'Gemini', ceiling: 1000000 };
   }
@@ -367,6 +453,150 @@ function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0, docTokens 
   const dTokens = Math.max(0, Number(docTokens) || 0);
   const sysTokens = Math.max(0, Number(systemTokens) || 0);
   return Math.max(0, proseTokens + codeTokens + turnOverhead + imgTokens + dTokens + sysTokens);
+}
+
+function estimateTokensPrecise(text, modelFamilyOrName = 'gemini') {
+  if (!text || typeof text !== 'string') return 0;
+  const len = text.length;
+  if (len === 0) return 0;
+
+  const model = String(modelFamilyOrName || '').toLowerCase();
+  const isClaude = /claude|sonnet|opus/i.test(model);
+  const isGemini = /gemini|carbon|argon/i.test(model);
+
+  // Model-specific calibrated token ratios
+  const proseR = isClaude ? 3.6 : (isGemini ? 4.2 : 4.1);
+  const codeR  = isClaude ? 2.6 : (isGemini ? 2.9 : 3.0);
+  const jsonR  = isClaude ? 2.0 : (isGemini ? 2.2 : 2.3);
+  const cjkR   = isClaude ? 0.8 : (isGemini ? 1.3 : 1.4);
+
+  let tokenCount = 0;
+
+  // 1. Fenced Code Blocks (```...```) with delimiter envelope (+3 tokens)
+  let prose = text.replace(/```[\s\S]*?```/g, match => {
+    const inner = match.slice(3, -3);
+    tokenCount += Math.ceil(inner.length / codeR) + 3;
+    return ' ';
+  });
+
+  // 2. Inline Code Spans (`...`) with envelope (+1 token)
+  prose = prose.replace(/`[^`\n]+`/g, match => {
+    tokenCount += Math.ceil((match.length - 2) / codeR) + 1;
+    return ' ';
+  });
+
+  // 3. Structured JSON Payloads
+  const trimmed = prose.trim();
+  if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+    try {
+      JSON.parse(trimmed);
+      return tokenCount + Math.ceil(trimmed.length / jsonR);
+    } catch {}
+  }
+
+  // 4. Multilingual & CJK Ideographs (Hanzi, Kana, Hangul, CJK punctuation & fullwidth forms)
+  const cjkMatches = prose.match(/[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u30ff\uac00-\ud7af\u1100-\u11ff\u3000-\u303f\uff00-\uffef]/g);
+  if (cjkMatches) {
+    tokenCount += Math.ceil(cjkMatches.length / cjkR);
+    prose = prose.replace(/[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u30ff\uac00-\ud7af\u1100-\u11ff\u3000-\u303f\uff00-\uffef]/g, ' ');
+  }
+
+  // 5. Non-Latin Alphabets (Cyrillic, Greek, Arabic, Hebrew, Devanagari)
+  const nonLatin = prose.match(/[\u0400-\u04ff\u0370-\u03ff\u0600-\u06ff\u0590-\u05ff\u0900-\u097f]/g);
+  if (nonLatin) {
+    tokenCount += Math.ceil(nonLatin.length / 2.2);
+    prose = prose.replace(/[\u0400-\u04ff\u0370-\u03ff\u0600-\u06ff\u0590-\u05ff\u0900-\u097f]/g, ' ');
+  }
+
+  // 6. Number Sequences (3-digit grouping)
+  const numbers = prose.match(/\b\d+\b/g);
+  if (numbers) {
+    for (const num of numbers) {
+      tokenCount += Math.ceil(num.length / 3);
+    }
+    prose = prose.replace(/\b\d+\b/g, ' ');
+  }
+
+  // 7. Punctuation & Syntax Operators
+  const punctRuns = prose.match(/[.,!?;:()[\]{}<>"'`~@#$%^&*+=|\\/-]+/g);
+  if (punctRuns) {
+    for (const pr of punctRuns) {
+      tokenCount += pr.length === 1 ? 1 : Math.ceil(pr.length / 2);
+    }
+    prose = prose.replace(/[.,!?;:()[\]{}<>"'`~@#$%^&*+=|\\/-]+/g, ' ');
+  }
+
+  // 8. Indentation & Structural Whitespace
+  const newlines = (text.match(/\n/g) || []).length;
+  const indentMatches = text.match(/\n[ ]{2,}/g);
+  let indentTokens = 0;
+  if (indentMatches) {
+    for (const ind of indentMatches) {
+      indentTokens += Math.floor((ind.length - 1) / 4);
+    }
+  }
+  tokenCount += Math.ceil(newlines * 0.75) + indentTokens;
+
+  // 9. Standard Prose Words
+  const words = prose.trim().split(/\s+/).filter(Boolean);
+  for (const w of words) {
+    if (w.length <= 4) {
+      tokenCount += 1;
+    } else if (w.length <= 8 && /^[a-z]+$/i.test(w)) {
+      tokenCount += 1;
+    } else {
+      tokenCount += Math.ceil(w.length / proseR);
+    }
+  }
+
+  return Math.max(1, tokenCount);
+}
+
+function calculateEffectiveTokens(entry, composerText = '', modelName = '') {
+  if (!entry) return 0;
+  const chars = entry.maxChars || 0;
+  const turns = entry.maxTurns || 0;
+  const codeChars = entry.maxCodeChars || 0;
+  const imageTokens = entry.maxImageTokens || 0;
+  const docTokens = entry.maxDocTokens || 0;
+  const systemTokens = entry.systemTokens || 0;
+
+  if (entry.apiTokens && entry.apiTokens > 0) {
+    const baseline = entry.systemBaseline?.tokens || 0;
+    const histChars = entry.transcriptChars || chars;
+    const histCode = entry.maxCodeChars || 0;
+    const histProse = Math.max(0, histChars - histCode);
+    const histEstimate = Math.round(histProse / 4) + Math.round(histCode / 2.8) + (entry.maxImageTokens || 0) + (entry.maxDocTokens || 0);
+
+    let kappa = 1.0;
+    if (histEstimate > 0 && entry.apiTokens > baseline) {
+      const netActual = baseline > 0 ? (entry.apiTokens - baseline) : entry.apiTokens;
+      const rawKappa = netActual / histEstimate;
+      if (rawKappa >= 0.5 && rawKappa <= 2.0) {
+        kappa = Math.max(0.7, Math.min(1.5, rawKappa));
+      }
+    }
+
+    const pendingChars = entry.pendingChars || 0;
+    const pendingCode = entry.pendingCodeChars || 0;
+    const pendingTurns = entry.pendingTurns || 0;
+    let delta = 0;
+    if (pendingChars > 0 || pendingTurns > 0) {
+      const rawDelta = estimateTokens(pendingChars, pendingTurns, 0, pendingCode, 0, 0);
+      delta += Math.round(rawDelta * kappa);
+    }
+    if (composerText) {
+      const composerTokens = estimateTokensPrecise(composerText, modelName);
+      delta += Math.round(composerTokens * kappa);
+    }
+    return entry.apiTokens + delta;
+  }
+
+  let total = estimateTokens(chars, turns, imageTokens, codeChars, docTokens, systemTokens);
+  if (composerText) {
+    total += estimateTokensPrecise(composerText, modelName);
+  }
+  return total;
 }
 
 function budgetLevelFor(tokens, ceiling = 1000000) {
@@ -423,6 +653,9 @@ function getConversationKey(doc) {
   if (path.startsWith('/c/')) return path;
   const matchPath = path.match(/\/c\/[a-zA-Z0-9_-]+/);
   if (matchPath) return matchPath[0];
+  const href = loc?.href || '';
+  const matchHref = href.match(/\/c\/([a-zA-Z0-9_-]+)/);
+  if (matchHref) return '/c/' + matchHref[1];
 
   // 2. Check URL hash (e.g. #/c/01ed90cd-c026-4190-bfd8-5bb6444c0719)
   const hash = loc?.hash || '';
@@ -446,7 +679,7 @@ function getConversationKey(doc) {
     '[data-testid="conversation-row-sidebar"][data-selected="true"], [data-testid*="conversation-item"][data-selected="true"], [data-testid*="conversation-row"][aria-selected="true"], [class*="conversation-row"][data-selected="true"]'
   );
   if (selectedRow) {
-    const rowId = selectedRow.getAttribute('data-conversation-id') || selectedRow.getAttribute('data-id');
+    const rowId = selectedRow.getAttribute('data-conversation-id') || selectedRow.getAttribute('data-id') || selectedRow.getAttribute('data-sidebar-row-id') || selectedRow.getAttribute('data-cascade-id');
     if (rowId) return '/c/' + rowId;
     const rowLink = selectedRow.querySelector?.('a[href*="/c/"]')?.getAttribute('href');
     if (rowLink) {
@@ -478,18 +711,20 @@ function collectTurnBlocks(doc) {
 
   const list = vp.querySelector?.('.relative.flex.flex-col.gap-y-3') || vp.firstElementChild;
   const items = list?.children?.length ? [...list.children] : (vp.querySelectorAll?.('.flex.items-start') || []);
-  for (const item of items) {
+  for (let idx = 0; idx < items.length; idx++) {
+    const item = items[idx];
     if (!list?.children?.length && item.parentElement?.closest?.('.flex.items-start')) continue;
     const userStep = item.querySelector?.('[data-testid=user-input-step]');
     const prompt = userStep ? userStep.textContent?.slice(0, 80)?.trim() : '';
     const text = item.textContent || '';
     if (prompt || text.length > 50) {
-      const key = prompt ? 'p:' + prompt : 't:' + text.slice(0, 60);
+      const stepIdx = item.getAttribute?.('data-step-index') || item.getAttribute?.('data-index') || idx;
+      const key = prompt ? `p:${stepIdx}:${prompt}` : `t:${stepIdx}:${text.slice(0, 60)}`;
 
       let codeChars = 0;
-      const codeNodes = item.querySelectorAll?.('pre, [data-testid*="code-block"], [class*="code-block"]') || [];
+      const codeNodes = item.querySelectorAll?.('pre, [data-testid*="code-block"], [class*="code-block"], [data-testid*="terminal"], [class*="command-output"], [class*="terminal-output"]') || [];
       for (const node of codeNodes) {
-        if (node.parentElement?.closest?.('pre, [data-testid*="code-block"], [class*="code-block"]')) {
+        if (node.parentElement?.closest?.('pre, [data-testid*="code-block"], [class*="code-block"], [data-testid*="terminal"], [class*="command-output"], [class*="terminal-output"]')) {
           continue;
         }
         codeChars += node.textContent?.length || 0;
@@ -502,7 +737,7 @@ function collectTurnBlocks(doc) {
   return blocks;
 }
 
-function collectImages(doc) {
+function collectImages(doc, modelName = '') {
   const images = [];
   if (!doc) return images;
   const vp = doc.querySelector?.('[data-testid=autoscroll-viewport]') || doc.querySelector?.('[data-testid=conversation-view]');
@@ -523,7 +758,7 @@ function collectImages(doc) {
     if (w > 0 && h > 0 && w <= 40 && h <= 40) continue;
 
     const key = src ? (src.length > 120 ? src.slice(0, 80) + ':' + src.length : src) : 'alt:' + alt;
-    const tokens = (w > 0 && h > 0) ? estimateImageTokens(w, h) : 258;
+    const tokens = (w > 0 && h > 0) ? estimateImageTokens(w, h, modelName) : 258;
     images.push({ key, tokens, width: w, height: h });
   }
   return images;
@@ -542,14 +777,24 @@ function extractConversationStats(doc = document, storage = undefined) {
         blocks: new Map(stored.blocks || []),
         images: new Map(stored.images || []),
         documents: new Map(stored.documents || []),
+        turnsList: Array.isArray(stored.turnsList) ? stored.turnsList : [],
         maxChars: stored.maxChars || 0,
         maxCodeChars: stored.maxCodeChars || 0,
-        maxTurns: stored.maxTurns || 0,
+        maxTurns: stored.transcriptTurns ? (stored.transcriptTurns + (stored.pendingTurns || 0)) : (stored.maxTurns || 0),
         maxImageTokens: stored.maxImageTokens || 0,
         maxDocTokens: stored.maxDocTokens || 0,
         systemTokens: stored.systemTokens || 0,
         systemBaseline: stored.systemBaseline || null,
         apiTokens: stored.apiTokens || 0,
+        inputTokens: stored.inputTokens || 0,
+        cacheReadTokens: stored.cacheReadTokens || 0,
+        outputTokens: stored.outputTokens || 0,
+        mtime: stored.mtime || 0,
+        pendingChars: stored.pendingChars || 0,
+        pendingCodeChars: stored.pendingCodeChars || 0,
+        pendingTurns: stored.pendingTurns || 0,
+        transcriptChars: stored.transcriptChars || 0,
+        transcriptTurns: stored.transcriptTurns || 0,
         ceiling: stored.ceiling || 1000000,
         modelName: stored.modelName || '',
         updatedAt: stored.updatedAt || Date.now()
@@ -563,7 +808,7 @@ function extractConversationStats(doc = document, storage = undefined) {
       const oldest = conversationCache.keys().next().value;
       conversationCache.delete(oldest);
     }
-    entry = { blocks: new Map(), images: new Map(), documents: new Map(), maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0, maxDocTokens: 0, systemTokens: 0, systemBaseline: null };
+    entry = { blocks: new Map(), images: new Map(), documents: new Map(), turnsList: [], maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0, maxDocTokens: 0, systemTokens: 0, systemBaseline: null, apiTokens: 0, inputTokens: 0, cacheReadTokens: 0, outputTokens: 0, mtime: 0, pendingChars: 0, pendingCodeChars: 0, pendingTurns: 0, transcriptChars: 0, transcriptTurns: 0 };
     conversationCache.set(convKey, entry);
   }
   if (!entry.images) entry.images = new Map();
@@ -583,31 +828,51 @@ function extractConversationStats(doc = document, storage = undefined) {
     entry.blocks.clear();
     entry.images.clear();
     entry.documents.clear();
+    entry.turnsList = [];
     entry.maxChars = 0;
     entry.maxCodeChars = 0;
     entry.maxTurns = 0;
     entry.maxImageTokens = 0;
     entry.maxDocTokens = 0;
+    entry.apiTokens = 0;
+    entry.inputTokens = 0;
+    entry.cacheReadTokens = 0;
+    entry.outputTokens = 0;
+    entry.mtime = 0;
+    entry.pendingChars = 0;
+    entry.pendingCodeChars = 0;
+    entry.pendingTurns = 0;
+    entry.transcriptChars = 0;
     entry.compacted = true;
     clearConversationState(convKey, store);
   }
 
-  // Discover newly mounted turn blocks in viewport
-  const currentBlocks = collectTurnBlocks(doc);
-  for (const b of currentBlocks) {
-    entry.blocks.set(b.key, { length: b.length, codeChars: b.codeChars || 0 });
+  const activeModel = detectActiveModel(doc);
+  const ceiling = activeModel.name ? activeModel.ceiling : (entry.ceiling || activeModel.ceiling);
+  const modelName = activeModel.name || entry.modelName || '';
+
+  // Discover newly mounted turn blocks in viewport (only when unhydrated)
+  if (!entry.apiTokens) {
+    const currentBlocks = collectTurnBlocks(doc);
+    for (const b of currentBlocks) {
+      entry.blocks.set(b.key, { length: b.length, codeChars: b.codeChars || 0 });
+    }
   }
 
-  // Discover newly mounted images in viewport
-  const currentImages = collectImages(doc);
-  for (const img of currentImages) {
-    entry.images.set(img.key, img.tokens);
+  // Discover newly mounted images in viewport (only when unhydrated)
+  if (!entry.apiTokens) {
+    const currentImages = collectImages(doc, modelName);
+    for (const img of currentImages) {
+      entry.images.set(img.key, img.tokens);
+    }
   }
 
-  // Discover newly mounted documents in viewport/chat
-  const currentDocs = collectAttachments(doc);
-  for (const d of currentDocs) {
-    entry.documents.set(d.key, d.tokens);
+  // Discover newly mounted documents in viewport/chat (only when unhydrated)
+  if (!entry.apiTokens) {
+    const currentDocs = collectAttachments(doc);
+    for (const d of currentDocs) {
+      entry.documents.set(d.key, d.tokens);
+    }
   }
 
   let blockSum = 0;
@@ -625,6 +890,19 @@ function extractConversationStats(doc = document, storage = undefined) {
   entry.maxImageTokens = imageTokens;
   const imageCount = entry.images.size;
 
+  if (convKey === 'default' && entry.apiTokens > 0) {
+    entry.apiTokens = 0;
+    entry.inputTokens = 0;
+    entry.cacheReadTokens = 0;
+    entry.outputTokens = 0;
+    entry.maxChars = 0;
+    entry.maxTurns = 0;
+    entry.blocks.clear();
+    entry.images.clear();
+    entry.documents.clear();
+    entry.turnsList = [];
+  }
+
   let docSum = 0;
   for (const t of entry.documents.values()) docSum += t;
   const docTokens = Math.max(docSum, entry.maxDocTokens);
@@ -640,33 +918,44 @@ function extractConversationStats(doc = document, storage = undefined) {
     }
   }
 
+  const composer = doc.querySelector?.('.surface-composer [contenteditable=true], [data-testid=agent-input-box]');
+  const composerText = (composer?.textContent || '').trim();
+
   const navTurns = countTurns(doc);
-  const turns = Math.max(entry.blocks.size, navTurns, entry.maxTurns);
+  const turns = entry.apiTokens
+    ? Math.max(navTurns, (entry.transcriptTurns || 0) + (entry.pendingTurns || 0))
+    : Math.max(navTurns, entry.maxTurns || 0);
   entry.maxTurns = turns;
 
-  let chars = Math.max(blockSum, currentChars, entry.maxChars);
-  let codeChars = Math.max(codeSum, entry.maxCodeChars || 0);
+  let chars, codeChars;
+  if (entry.apiTokens && entry.apiTokens > 0) {
+    const transcriptChars = entry.transcriptChars || entry.maxChars || 0;
+    const unrecordedTurns = Math.max(0, navTurns - (entry.transcriptTurns || 0));
+    const unrecordedChars = unrecordedTurns > 0 ? Math.max(0, currentChars - transcriptChars) : 0;
+    const pendingChars = Math.max(entry.pendingChars || 0, unrecordedChars) + composerText.length;
+    chars = transcriptChars + pendingChars;
+    codeChars = (entry.maxCodeChars || 0) + (entry.pendingCodeChars || 0);
+  } else {
+    chars = Math.max(blockSum, currentChars, entry.maxChars);
+    codeChars = Math.max(codeSum, entry.maxCodeChars || 0);
 
-  // Proportional projection for unhydrated conversations (navTurns > mountedBlocks)
-  const mountedBlocksCount = entry.blocks.size;
-  if (navTurns > mountedBlocksCount && mountedBlocksCount > 0 && entry.maxChars <= blockSum) {
-    const avgCharsPerBlock = blockSum / mountedBlocksCount;
-    const projectedChars = Math.round(avgCharsPerBlock * navTurns);
-    if (projectedChars > chars) {
-      chars = projectedChars;
-      if (codeSum > 0) {
-        const avgCodePerBlock = codeSum / mountedBlocksCount;
-        codeChars = Math.min(chars, Math.round(avgCodePerBlock * navTurns));
+    // Proportional projection for unhydrated conversations (navTurns > mountedBlocks)
+    const mountedBlocksCount = entry.blocks.size;
+    if (navTurns > mountedBlocksCount && mountedBlocksCount > 0 && entry.maxChars <= blockSum) {
+      const avgCharsPerBlock = blockSum / mountedBlocksCount;
+      const projectedChars = Math.round(avgCharsPerBlock * navTurns);
+      if (projectedChars > chars) {
+        chars = projectedChars;
+        if (codeSum > 0) {
+          const avgCodePerBlock = codeSum / mountedBlocksCount;
+          codeChars = Math.min(chars, Math.round(avgCodePerBlock * navTurns));
+        }
       }
     }
   }
 
   entry.maxChars = chars;
   entry.maxCodeChars = codeChars;
-
-  const activeModel = detectActiveModel(doc);
-  const ceiling = activeModel.name ? activeModel.ceiling : (entry.ceiling || activeModel.ceiling);
-  const modelName = activeModel.name || entry.modelName || '';
 
   const systemBaselineRaw = estimateSystemBaseline(doc);
   const systemBaseline = (systemBaselineRaw && systemBaselineRaw.tokens > 0) ? systemBaselineRaw : (entry.systemBaseline || systemBaselineRaw);
@@ -679,6 +968,7 @@ function extractConversationStats(doc = document, storage = undefined) {
       blocks: [...entry.blocks.entries()],
       images: [...entry.images.entries()],
       documents: [...entry.documents.entries()],
+      turnsList: entry.turnsList || [],
       maxChars: entry.maxChars,
       maxCodeChars: entry.maxCodeChars,
       maxTurns: entry.maxTurns,
@@ -686,6 +976,16 @@ function extractConversationStats(doc = document, storage = undefined) {
       maxDocTokens: entry.maxDocTokens,
       systemTokens,
       systemBaseline,
+      apiTokens: entry.apiTokens || null,
+      inputTokens: entry.inputTokens || 0,
+      cacheReadTokens: entry.cacheReadTokens || 0,
+      outputTokens: entry.outputTokens || 0,
+      mtime: entry.mtime || 0,
+      pendingChars: entry.pendingChars || 0,
+      pendingCodeChars: entry.pendingCodeChars || 0,
+      pendingTurns: entry.pendingTurns || 0,
+      transcriptChars: entry.transcriptChars || 0,
+      transcriptTurns: entry.transcriptTurns || 0,
       ceiling,
       modelName,
       updatedAt: Date.now()
@@ -696,9 +996,44 @@ function extractConversationStats(doc = document, storage = undefined) {
   const budgetFn = typeof budgetLevelFor === 'function' ? budgetLevelFor : (this?.budgetLevelFor || budgetLevelFor);
   const formatFn = typeof formatTokens === 'function' ? formatTokens : (this?.formatTokens || formatTokens);
 
-  let tokens = estimateFn(chars, turns, imageTokens, codeChars, docTokens, systemTokens);
-  if (entry.apiTokens && entry.apiTokens > tokens) {
-    tokens = entry.apiTokens;
+  let tokens;
+  if (entry.apiTokens && entry.apiTokens > 0) {
+    const unrecordedTurns = Math.max(0, navTurns - (entry.transcriptTurns || 0));
+    const unrecordedChars = unrecordedTurns > 0 ? Math.max(0, currentChars - (entry.transcriptChars || entry.maxChars || 0)) : 0;
+    const pendingChars = Math.max(entry.pendingChars || 0, unrecordedChars);
+    const pendingCode = (entry.pendingCodeChars || 0);
+    const pendingTurns = Math.max(entry.pendingTurns || 0, unrecordedTurns);
+
+    const baseline = entry.systemBaseline?.tokens || 0;
+    const histChars = entry.transcriptChars || entry.maxChars || 0;
+    const histCode = entry.maxCodeChars || 0;
+    const histProse = Math.max(0, histChars - histCode);
+    const histEstimate = Math.round(histProse / 4) + Math.round(histCode / 2.8) + (entry.maxImageTokens || 0) + (entry.maxDocTokens || 0);
+
+    let kappa = 1.0;
+    if (histEstimate > 0 && entry.apiTokens > baseline) {
+      const netActual = baseline > 0 ? (entry.apiTokens - baseline) : entry.apiTokens;
+      const rawKappa = netActual / histEstimate;
+      if (rawKappa >= 0.5 && rawKappa <= 2.0) {
+        kappa = Math.max(0.7, Math.min(1.5, rawKappa));
+      }
+    }
+
+    let deltaTokens = 0;
+    if (pendingChars > 0 || pendingTurns > 0) {
+      const rawDelta = estimateFn(pendingChars, pendingTurns, 0, pendingCode, 0, 0);
+      deltaTokens += Math.round(rawDelta * kappa);
+    }
+    if (composerText) {
+      const compTokens = estimateTokensPrecise(composerText, modelName);
+      deltaTokens += Math.round(compTokens * kappa);
+    }
+    tokens = entry.apiTokens + deltaTokens;
+  } else {
+    tokens = estimateFn(chars, turns, imageTokens, codeChars, docTokens, systemTokens);
+    if (composerText) {
+      tokens += estimateTokensPrecise(composerText, modelName);
+    }
   }
   const budget = budgetFn(tokens, ceiling);
   return {
@@ -711,6 +1046,12 @@ function extractConversationStats(doc = document, storage = undefined) {
     docCount,
     systemTokens,
     systemBaseline,
+    apiTokens: entry.apiTokens || 0,
+    inputTokens: entry.inputTokens || 0,
+    cacheReadTokens: entry.cacheReadTokens || 0,
+    outputTokens: entry.outputTokens || 0,
+    mtime: entry.mtime || 0,
+    turnsList: entry.turnsList || [],
     tokens,
     ceiling,
     modelName,
@@ -731,6 +1072,8 @@ function clearCache(key, storage) {
 
 module.exports = {
   estimateTokens,
+  estimateTokensPrecise,
+  calculateEffectiveTokens,
   estimateImageTokens,
   estimateAttachmentTokens,
   estimateSystemBaseline,
