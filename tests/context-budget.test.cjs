@@ -79,9 +79,12 @@ test('detectActiveModel identifies Antigravity models and sets context ceiling d
   assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (medium)')).ceiling, 1000000);
   assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (low)')).ceiling, 1000000);
 
-  // Anthropic Claude (Sonnet 4.6 and Opus 4.6 both have 1M)
+  // Anthropic Claude (Sonnet 5.5 and Opus 5.5 both have 1M)
+  assert.equal(rules.detectActiveModel(makeDoc('Claude Sonnet 5.5 (Thinking)')).ceiling, 1000000);
+  assert.equal(rules.detectActiveModel(makeDoc('Claude Opus 5.5 (Thinking)')).ceiling, 1000000);
   assert.equal(rules.detectActiveModel(makeDoc('Claude Sonnet 4.6')).ceiling, 1000000);
   assert.equal(rules.detectActiveModel(makeDoc('Claude Opus 4.6')).ceiling, 1000000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.1 Pro')).ceiling, 1000000);
 
   // OpenAI (GPT-OSS 120B has 128k)
   assert.equal(rules.detectActiveModel(makeDoc('GPT-OSS 120B')).ceiling, 128000);
@@ -643,6 +646,9 @@ test('getConversationKey resolves key from pathname, hash, query params, sidebar
   // Query search
   assert.equal(rules.getConversationKey({ location: { pathname: '/', search: '?conversation=uuid-search' } }), '/c/uuid-search');
 
+  // Full location href with port and query
+  assert.equal(rules.getConversationKey({ location: { href: 'https://127.0.0.1:51371/c/uuid-from-href?section=123' } }), '/c/uuid-from-href');
+
   // Sidebar selected row with data-conversation-id
   const sidebarDoc = {
     location: { pathname: '/' },
@@ -657,6 +663,21 @@ test('getConversationKey resolves key from pathname, hash, query params, sidebar
     }
   };
   assert.equal(rules.getConversationKey(sidebarDoc), '/c/uuid-sidebar');
+
+  // Sidebar selected row with data-sidebar-row-id
+  const sidebarRowIdDoc = {
+    location: { pathname: '/' },
+    querySelector: sel => {
+      if (sel && sel.includes('conversation-row-sidebar')) {
+        return {
+          getAttribute: attr => attr === 'data-sidebar-row-id' ? 'uuid-sidebar-row' : null,
+          querySelector: () => null
+        };
+      }
+      return null;
+    }
+  };
+  assert.equal(rules.getConversationKey(sidebarRowIdDoc), '/c/uuid-sidebar-row');
 
   // Sidebar selected row with anchor link
   const sidebarLinkDoc = {
@@ -745,120 +766,137 @@ test('extractConversationStats projects proportional characters on frame 1 when 
   assert.ok(stats.tokens >= 2500 + 1200, 'tokens realistically projected on frame 1 without manual scroll');
 });
 
-test('context budget component attaches pill, reflects levels and allows inserting /compact', async () => {
-  class FakeClassList {
-    constructor() { this.classes = new Set(); }
-    add(c) { this.classes.add(c); }
-    remove(c) { this.classes.delete(c); }
-    contains(c) { return this.classes.has(c); }
-  }
+class FakeClassList {
+  constructor() { this.classes = new Set(); }
+  add(c) { this.classes.add(c); }
+  remove(c) { this.classes.delete(c); }
+  contains(c) { return this.classes.has(c); }
+}
 
-  function makeNode(tag) {
-    const attrs = new Map();
-    const children = [];
-    const listeners = new Map();
-    const classList = new FakeClassList();
-    let textContent = '';
-    const style = {
-      properties: new Map(),
-      setProperty(k, v) { this.properties.set(k, v); },
-      getPropertyValue(k) { return this.properties.get(k) || ''; }
-    };
+function makeNode(tag) {
+  const attrs = new Map();
+  const children = [];
+  const listeners = new Map();
+  const classList = new FakeClassList();
+  let textContent = '';
+  const style = {
+    properties: new Map(),
+    setProperty(k, v) { this.properties.set(k, v); },
+    getPropertyValue(k) { return this.properties.get(k) || ''; }
+  };
 
-    return {
-      nodeType: 1,
-      tagName: tag.toUpperCase(),
-      classList,
-      style,
-      isConnected: true,
-      children,
-      get className() { return [...classList.classes].join(' '); },
-      set className(v) { classList.classes = new Set(v.split(/\s+/).filter(Boolean)); },
-      get textContent() { return textContent || children.map(c => c.textContent).join(''); },
-      set textContent(v) { textContent = v; },
-      setAttribute(k, v) { attrs.set(k, String(v)); },
-      getAttribute(k) { return attrs.get(k) ?? null; },
-      hasAttribute(k) { return attrs.has(k); },
-      removeAttribute(k) { attrs.delete(k); },
-      append(...nodes) {
-        for (const n of nodes) {
-          if (!n) continue;
-          n.parentElement = this;
-          children.push(n);
-        }
-      },
-      replaceChildren(...nodes) {
-        children.length = 0;
-        this.append(...nodes);
-      },
-      remove() {
-        if (this.parentElement) {
-          const idx = this.parentElement.children.indexOf(this);
-          if (idx >= 0) this.parentElement.children.splice(idx, 1);
-          this.parentElement = null;
-        }
-      },
-      addEventListener(type, fn) {
-        if (!listeners.has(type)) listeners.set(type, []);
-        listeners.get(type).push(fn);
-      },
-      removeEventListener(type, fn) {
-        const list = listeners.get(type) || [];
-        const idx = list.indexOf(fn);
-        if (idx >= 0) list.splice(idx, 1);
-      },
-      dispatchEvent(event) {
-        const list = listeners.get(event.type) || [];
-        for (const fn of list) fn(event);
-        return true;
-      },
-      querySelector(selector) {
-        return this.querySelectorAll(selector)[0] || null;
-      },
-      querySelectorAll(selector) {
-        const results = [];
-        const parts = selector.split(',').map(s => s.trim());
-        function walk(node) {
-          for (const child of node.children || []) {
-            if (parts.some(s => matches(child, s))) results.push(child);
-            walk(child);
+  return {
+    nodeType: 1,
+    tagName: tag.toUpperCase(),
+    classList,
+    style,
+    isConnected: true,
+    children,
+    get className() { return [...classList.classes].join(' '); },
+    set className(v) { classList.classes = new Set(v.split(/\s+/).filter(Boolean)); },
+    get textContent() { return textContent || children.map(c => c.textContent).join(''); },
+    set textContent(v) { textContent = v; },
+    setAttribute(k, v) { attrs.set(k, String(v)); },
+    getAttribute(k) { return attrs.get(k) ?? null; },
+    hasAttribute(k) { return attrs.has(k); },
+    removeAttribute(k) { attrs.delete(k); },
+    append(...nodes) {
+      for (const n of nodes) {
+        if (!n) continue;
+        n.parentElement = this;
+        children.push(n);
+      }
+    },
+    replaceChildren(...nodes) {
+      children.length = 0;
+      this.append(...nodes);
+    },
+    after(...nodes) {
+      if (this.parentElement) {
+        const idx = this.parentElement.children.indexOf(this);
+        if (idx >= 0) {
+          for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            if (!n) continue;
+            n.parentElement = this.parentElement;
+            this.parentElement.children.splice(idx + 1 + i, 0, n);
           }
         }
-        walk(this);
-        return results;
-      },
-      closest(selector) {
-        let cur = this;
-        while (cur) {
-          if (matches(cur, selector)) return cur;
-          cur = cur.parentElement;
+      }
+    },
+    remove() {
+      if (this.parentElement) {
+        const idx = this.parentElement.children.indexOf(this);
+        if (idx >= 0) this.parentElement.children.splice(idx, 1);
+        this.parentElement = null;
+      }
+    },
+    addEventListener(type, fn) {
+      if (!listeners.has(type)) listeners.set(type, []);
+      listeners.get(type).push(fn);
+    },
+    removeEventListener(type, fn) {
+      const list = listeners.get(type) || [];
+      const idx = list.indexOf(fn);
+      if (idx >= 0) list.splice(idx, 1);
+    },
+    dispatchEvent(event) {
+      const list = listeners.get(event.type) || [];
+      for (const fn of list) fn(event);
+      return true;
+    },
+    click() {
+      return this.dispatchEvent({ type: 'click', preventDefault: () => {}, stopPropagation: () => {} });
+    },
+    querySelector(selector) {
+      return this.querySelectorAll(selector)[0] || null;
+    },
+    querySelectorAll(selector) {
+      const results = [];
+      const parts = selector.split(',').map(s => s.trim());
+      function walk(node) {
+        for (const child of node.children || []) {
+          if (parts.some(s => matches(child, s))) results.push(child);
+          walk(child);
         }
-        return null;
-      },
-      getBoundingClientRect() {
-        return { left: 100, right: 300, top: 200, bottom: 224, width: 200, height: 24 };
-      },
-      offsetHeight: 100,
-      focus() {}
-    };
-  }
+      }
+      walk(this);
+      return results;
+    },
+    closest(selector) {
+      let cur = this;
+      while (cur) {
+        if (matches(cur, selector)) return cur;
+        cur = cur.parentElement;
+      }
+      return null;
+    },
+    getBoundingClientRect() {
+      return { left: 100, right: 300, top: 200, bottom: 224, width: 200, height: 24 };
+    },
+    offsetHeight: 100,
+    focus() {}
+  };
+}
 
-  function matches(node, selector) {
-    if (!node || !node.tagName) return false;
-    if (selector === '[data-agpa-context-budget]') return node.hasAttribute('data-agpa-context-budget');
-    if (selector === '[data-agpa-context-ui]') return node.hasAttribute('data-agpa-context-ui');
-    if (selector === '.agpa-context-pill') return node.classList.contains('agpa-context-pill');
-    if (selector === '.agpa-context-popup') return node.classList.contains('agpa-context-popup');
-    if (selector === '.agpa-context-close') return node.classList.contains('agpa-context-close');
-    if (selector === '.agpa-context-compact-btn') return node.classList.contains('agpa-context-compact-btn');
-    if (selector === '.surface-composer') return node.classList.contains('surface-composer');
-    if (selector === '[data-testid=autoscroll-viewport]') return node.getAttribute('data-testid') === 'autoscroll-viewport';
-    if (selector === '[data-testid=conversation-navigator-turn]') return node.getAttribute('data-testid') === 'conversation-navigator-turn';
-    if (selector.includes('input-footer')) return node.className.includes('input-footer');
-    if (selector.includes('role=combobox')) return node.getAttribute('role') === 'combobox';
-    return false;
-  }
+function matches(node, selector) {
+  if (!node || !node.tagName) return false;
+  if (selector === '[data-agpa-context-budget]') return node.hasAttribute('data-agpa-context-budget');
+  if (selector === '[data-agpa-context-ui]') return node.hasAttribute('data-agpa-context-ui');
+  if (selector === '.agpa-context-pill') return node.classList.contains('agpa-context-pill');
+  if (selector === '.agpa-context-popup') return node.classList.contains('agpa-context-popup');
+  if (selector === '.agpa-context-breakdown') return node.classList.contains('agpa-context-breakdown');
+  if (selector === '.agpa-context-close') return node.classList.contains('agpa-context-close');
+  if (selector === '.agpa-context-compact-btn') return node.classList.contains('agpa-context-compact-btn');
+  if (selector === '.surface-composer') return node.classList.contains('surface-composer');
+  if (selector === '[data-testid=autoscroll-viewport]') return node.getAttribute('data-testid') === 'autoscroll-viewport';
+  if (selector === '[data-testid=conversation-navigator-turn]') return node.getAttribute('data-testid') === 'conversation-navigator-turn';
+  if (selector.includes('input-footer')) return node.className.includes('input-footer');
+  if (selector.includes('role=combobox')) return node.getAttribute('role') === 'combobox';
+  return false;
+}
 
+test('context budget component attaches pill, reflects levels and allows inserting /compact', async () => {
   const html = makeNode('html');
   const head = makeNode('head');
   const body = makeNode('body');
@@ -967,4 +1005,1085 @@ test('context budget component attaches pill, reflects levels and allows inserti
   context.__AGContextBudget.destroy();
   assert.equal(footer.querySelector('[data-agpa-context-budget]'), null, 'destroy removes pill');
   assert.equal(context.__AGContextBudget, undefined, 'destroy deletes global instance');
+});
+
+test('estimateImageTokens adapts accurately to model family', () => {
+  // Gemini standardizes to 258 tokens per image
+  assert.equal(rules.estimateImageTokens(1920, 1080, 'Gemini 3.8 Flash'), 258);
+  assert.equal(rules.estimateImageTokens(3840, 2160, 'Gemini 4 Carbon'), 258);
+
+  // Claude computes area / 750 bounded to 1568
+  assert.equal(rules.estimateImageTokens(1500, 1000, 'Claude Sonnet 3.5'), Math.round(1500000 / 750));
+
+  // Default / OpenAI uses resolution tiling
+  assert.equal(rules.estimateImageTokens(1920, 1080), 1105);
+});
+
+test('detectActiveModel parses context ceiling dynamically from label', () => {
+  const makeDoc = name => ({
+    querySelector: sel => sel.includes('model-selector-trigger') ? { textContent: name } : null
+  });
+
+  assert.equal(rules.detectActiveModel(makeDoc('Claude 3.5 Sonnet (200k)')).ceiling, 200000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 1.5 Pro (2M)')).ceiling, 2000000);
+  assert.equal(rules.detectActiveModel(makeDoc('OpenAI o1 (128k)')).ceiling, 128000);
+  assert.equal(rules.detectActiveModel(makeDoc('Custom Model (64k)')).ceiling, 64000);
+});
+
+test('collectTurnBlocks keeps unique keys when user sends identical prompts', () => {
+  const items = [
+    {
+      textContent: 'User: continua\nModel: step 1 response content is here',
+      querySelector: sel => sel && sel.includes('user-input-step') ? { textContent: 'continua' } : null,
+      querySelectorAll: () => []
+    },
+    {
+      textContent: 'User: continua\nModel: step 2 response content continues here',
+      querySelector: sel => sel && sel.includes('user-input-step') ? { textContent: 'continua' } : null,
+      querySelectorAll: () => []
+    }
+  ];
+
+  const doc = {
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') {
+        return {
+          querySelector: () => null,
+          firstElementChild: { children: items }
+        };
+      }
+      return null;
+    }
+  };
+
+  const blocks = rules.collectTurnBlocks(doc);
+  assert.equal(blocks.length, 2, 'both identical turns are captured');
+  assert.notEqual(blocks[0].key, blocks[1].key, 'unique keys assigned despite identical prompts');
+});
+
+test('extractConversationStats prioritizes API tokens ground truth and adds live delta for new DOM chars', () => {
+  rules.clearCache();
+  const convKey = '/c/test-ground-truth-priority';
+  const storeMap = new Map();
+  const mockStorage = {
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    getItem: k => storeMap.get(k) || null,
+    removeItem: k => storeMap.delete(k)
+  };
+
+  // Hydrate with exact API tokens: 10,000 tokens for 40,000 characters
+  rules.hydrateFromTranscript(convKey, {
+    maxChars: 40000,
+    maxTurns: 5,
+    apiTokens: 10000,
+    blocks: [['turn-1', { length: 40000, codeChars: 0 }]]
+  }, mockStorage);
+
+  // Viewport at same character count -> exact API tokens (no delta)
+  const docSame = {
+    location: { pathname: convKey },
+    querySelector: sel => sel === '[data-testid=autoscroll-viewport]' ? { textContent: 'a'.repeat(40000) } : null,
+    querySelectorAll: sel => sel === '[data-testid=conversation-navigator-turn]' ? [{}, {}, {}, {}, {}] : []
+  };
+
+  const statsSame = rules.extractConversationStats(docSame, mockStorage);
+  assert.equal(statsSame.tokens, 10000, 'exact API tokens used without heuristic drift');
+
+  // Scrolling up past messages in viewport (chars <= transcriptChars, turns <= transcriptTurns) does not inflate tokens
+  const docScroll = {
+    location: { pathname: convKey },
+    querySelector: sel => sel === '[data-testid=autoscroll-viewport]' ? { textContent: 'a'.repeat(35000) } : null,
+    querySelectorAll: sel => sel === '[data-testid=conversation-navigator-turn]' ? [{}, {}, {}, {}, {}] : []
+  };
+  const statsScroll = rules.extractConversationStats(docScroll, mockStorage);
+  assert.equal(statsScroll.tokens, 10000, 'scrolling up past messages does not inflate API tokens');
+
+  // New prompt typed in DOM (+ 400 chars, + 1 turn) -> exact API tokens + delta
+  const docNew = {
+    location: { pathname: convKey },
+    querySelector: sel => sel === '[data-testid=autoscroll-viewport]' ? { textContent: 'a'.repeat(40400) } : null,
+    querySelectorAll: sel => sel === '[data-testid=conversation-navigator-turn]' ? [{}, {}, {}, {}, {}, {}] : []
+  };
+
+  const statsNew = rules.extractConversationStats(docNew, mockStorage);
+  // delta: 400 chars / 4 = 100, 1 turn overhead = 120 -> 10000 + 220 = 10220
+  assert.equal(statsNew.tokens, 10220, 'exact API base plus delta for newly typed DOM turn');
+});
+
+test('extractConversationStats maintains identical token count when scrolling between top and bottom of virtualized viewport', () => {
+  rules.clearCache();
+  const convKey = '/c/test-virtual-scroll-stability';
+  const storeMap = new Map();
+  const mockStorage = {
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    getItem: k => storeMap.get(k) || null,
+    removeItem: k => storeMap.delete(k)
+  };
+
+  rules.hydrateFromTranscript(convKey, {
+    maxChars: 20000,
+    maxTurns: 6,
+    apiTokens: 25000,
+    images: [['test.png', 258]]
+  }, mockStorage);
+
+  // At bottom (only recent messages mounted in viewport: 8,000 characters)
+  const docBottom = {
+    location: { pathname: convKey },
+    querySelector: sel => sel === '[data-testid=autoscroll-viewport]' ? { textContent: 'a'.repeat(8000) } : null,
+    querySelectorAll: sel => sel === '[data-testid=conversation-navigator-turn]' ? [{}, {}, {}, {}, {}, {}] : []
+  };
+  const statsBottom = rules.extractConversationStats(docBottom, mockStorage);
+
+  // Scrolled up (entire history mounted in viewport: 38,000 characters of rendered HTML)
+  const docTop = {
+    location: { pathname: convKey },
+    querySelector: sel => sel === '[data-testid=autoscroll-viewport]' ? { textContent: 'a'.repeat(38000) } : null,
+    querySelectorAll: sel => sel === '[data-testid=conversation-navigator-turn]' ? [{}, {}, {}, {}, {}, {}] : []
+  };
+  const statsTop = rules.extractConversationStats(docTop, mockStorage);
+
+  // Scrolled back down (messages unmounted: 8,000 characters)
+  const statsBottomAgain = rules.extractConversationStats(docBottom, mockStorage);
+
+  assert.equal(statsBottom.tokens, 25000, 'at bottom tokens match exact apiTokens');
+  assert.equal(statsTop.tokens, 25000, 'scrolling up does not fluctuate tokens due to rendered DOM bloat');
+  assert.equal(statsBottomAgain.tokens, 25000, 'scrolling back down preserves identical token count');
+});
+
+test('fresh new conversation screen (convKey default) starts with 0 turns and zero API tokens without inheriting old sessions', () => {
+  rules.clearCache();
+  const mockStorage = new Map();
+  // Simulate corrupted leftover state in default
+  mockStorage.set('agpa_context_budget_default', JSON.stringify({
+    apiTokens: 152744,
+    inputTokens: 2735,
+    cacheReadTokens: 149394,
+    outputTokens: 615,
+    maxChars: 300000,
+    maxTurns: 0,
+    ceiling: 1000000
+  }));
+
+  const storageAdapter = {
+    getItem: k => mockStorage.get(k) || null,
+    setItem: (k, v) => mockStorage.set(k, String(v)),
+    removeItem: k => mockStorage.delete(k)
+  };
+
+  const docNewChat = {
+    location: { pathname: '/' },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') return { textContent: '' };
+      if (sel === '[data-testid=agent-input-box]') return { textContent: '' };
+      return null;
+    },
+    querySelectorAll: () => []
+  };
+
+  const stats = rules.extractConversationStats(docNewChat, storageAdapter);
+  assert.equal(stats.apiTokens, 0, 'apiTokens is 0 on fresh chat screen');
+  assert.equal(stats.turns, 0, 'turns is 0 on fresh chat screen');
+  assert.equal(stats.chars, 0, 'chars is 0 on fresh chat screen');
+  assert.equal(mockStorage.has('agpa_context_budget_default'), false, 'purged corrupted default state from localStorage');
+});
+
+test('context budget component requests instant hydration when chat lacks apiTokens without requiring scroll', () => {
+  const storeMap = new Map();
+  let requestedKey = null;
+
+  const html = makeNode('html');
+  const head = makeNode('head');
+  const body = makeNode('body');
+  html.append(head, body);
+
+  const composer = makeNode('div');
+  composer.className = 'surface-composer';
+  const footer = makeNode('div');
+  footer.className = '@container/input-footer fixture-footer';
+  composer.append(footer);
+
+  const viewport = makeNode('div');
+  viewport.setAttribute('data-testid', 'autoscroll-viewport');
+  viewport.textContent = 'Initial bottom messages only';
+
+  body.append(viewport, composer);
+
+  const mockWindow = {
+    innerWidth: 1024,
+    innerHeight: 768,
+    localStorage: {
+      getItem: k => storeMap.get(k) || null,
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      removeItem: k => storeMap.delete(k)
+    },
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  const mockDoc = {
+    defaultView: mockWindow,
+    location: { pathname: '/c/test-unhydrated-chat' },
+    head,
+    body,
+    documentElement: html,
+    createElement: tag => makeNode(tag),
+    querySelector: sel => body.querySelector(sel) || head.querySelector(sel),
+    querySelectorAll: sel => [...body.querySelectorAll(sel), ...head.querySelectorAll(sel)],
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  const context = {
+    window: mockWindow,
+    document: mockDoc,
+    MutationObserver: class {
+      constructor(fn) { this.fn = fn; }
+      observe() {}
+      disconnect() {}
+    },
+    queueMicrotask: fn => fn(),
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: { t: (k, v = {}) => k },
+    __agpaTranscriptRequest: (payload) => {
+      const parsed = JSON.parse(payload);
+      requestedKey = parsed.convKey;
+    },
+    setTimeout: () => 1,
+    clearTimeout: () => {},
+    setInterval: () => 1,
+    clearInterval: () => {},
+    setInterval: () => 1,
+    clearInterval: () => {}
+  };
+  context.globalThis = context;
+  context.__AGPA_CONTEXT_BUDGET__ = rules;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  // Run component in VM context
+  const scriptContent = fs.readFileSync(path.join(__dirname, '../common/context-budget.js'), 'utf8');
+  vm.createContext(context);
+  vm.runInContext(scriptContent, context);
+
+  // Verify that needsTranscript is true for newly opened unhydrated chat
+  assert.equal(context.__AGContextBudget.needsTranscript('/c/test-unhydrated-chat'), true);
+
+  // Verify that __agpaTranscriptRequest was immediately triggered on chat open without scroll
+  assert.equal(requestedKey, '/c/test-unhydrated-chat', 'requests background transcript immediately on open');
+
+  context.__AGContextBudget.destroy();
+});
+
+test('estimateTokensPrecise estimates fenced code blocks with delimiter envelope and inline code', () => {
+  const emptyTokens = rules.estimateTokensPrecise('', 'gemini');
+  assert.equal(emptyTokens, 0);
+
+  // Fenced code block with 29 characters of inner code:
+  // Math.ceil(29 / 2.9) + 3 = 10 + 3 = 13 tokens
+  const codeBlock = '```javascript\nconst x = 100;\n```';
+  const tokens = rules.estimateTokensPrecise(codeBlock, 'gemini');
+  assert.ok(tokens >= 10 && tokens <= 16, `expected ~13 tokens, got ${tokens}`);
+
+  // Inline code
+  const inline = 'Use `console.log(msg)` here';
+  const inlineTokens = rules.estimateTokensPrecise(inline, 'gemini');
+  assert.ok(inlineTokens >= 6 && inlineTokens <= 12);
+});
+
+test('estimateTokensPrecise classifies structured JSON payloads accurately', () => {
+  const jsonPayload = JSON.stringify({
+    tool: 'execute_command',
+    parameters: { cmd: 'git status', flags: ['--short', '--branch'] }
+  });
+
+  const geminiTokens = rules.estimateTokensPrecise(jsonPayload, 'gemini');
+  const claudeTokens = rules.estimateTokensPrecise(jsonPayload, 'claude');
+  const gptTokens = rules.estimateTokensPrecise(jsonPayload, 'gpt-4o');
+
+  // JSON is denser in Claude (jsonR = 2.0) than Gemini (jsonR = 2.2)
+  assert.ok(geminiTokens > 20, 'JSON tokens properly computed for Gemini');
+  assert.ok(claudeTokens >= geminiTokens, 'Claude produces equal or higher tokens for dense JSON');
+  assert.ok(gptTokens > 20, 'JSON tokens computed for GPT');
+});
+
+test('estimateTokensPrecise tokenizes multilingual CJK and non-Latin alphabets accurately', () => {
+  // CJK ideographs have dense meaning: 0.8 - 1.3 chars/token
+  const cjkText = '这是一个中文测试句子，包含几个汉字。'; // 18 chars
+  const cjkTokens = rules.estimateTokensPrecise(cjkText, 'gemini');
+  // Naive chars/4 would give 4 tokens; MMSLE should give >= 12
+  assert.ok(cjkTokens >= 10, `CJK should have high token density, got ${cjkTokens}`);
+
+  const claudeCjk = rules.estimateTokensPrecise(cjkText, 'claude');
+  assert.ok(claudeCjk >= cjkTokens, 'Claude CJK density (0.8) yields higher token count');
+
+  // Cyrillic, Greek, Arabic
+  const nonLatin = 'Привет мир Γειά σου مرحبا بالعالم';
+  const nlTokens = rules.estimateTokensPrecise(nonLatin, 'gemini');
+  assert.ok(nlTokens >= 8, `Non-latin alphabets should be tokenized properly, got ${nlTokens}`);
+});
+
+test('estimateTokensPrecise chunks numbers into 3-digit groups and counts punctuation and indentation', () => {
+  // 9-digit number = 3 chunks of 3 = 3 tokens
+  const numTokens = rules.estimateTokensPrecise('123456789', 'gemini');
+  assert.equal(numTokens, 3);
+
+  // 5-digit number = 2 tokens
+  assert.equal(rules.estimateTokensPrecise('12345', 'gemini'), 2);
+
+  // Contiguous punctuation run: "===" -> Math.ceil(3/2) = 2 tokens
+  const punctTokens = rules.estimateTokensPrecise('===', 'gemini');
+  assert.equal(punctTokens, 2);
+
+  // Single punctuation = 1 token
+  assert.equal(rules.estimateTokensPrecise('!', 'gemini'), 1);
+
+  // Indentation with newlines
+  const indented = 'function test() {\n    return 42;\n}';
+  const indTokens = rules.estimateTokensPrecise(indented, 'gemini');
+  assert.ok(indTokens >= 8 && indTokens <= 15);
+});
+
+test('estimateTokensPrecise calibrates across model families (Gemini vs Claude vs OpenAI)', () => {
+  const prose = 'The quick brown fox jumps over the lazy dog and explores the context window.';
+  const gemini = rules.estimateTokensPrecise(prose, 'gemini-1.5-pro');
+  const claude = rules.estimateTokensPrecise(prose, 'claude-3-7-sonnet');
+  const openai = rules.estimateTokensPrecise(prose, 'gpt-4o');
+
+  assert.ok(gemini > 10 && gemini < 25);
+  assert.ok(claude >= gemini, 'Claude tokenizer has tighter ratio (3.6 vs 4.2)');
+  assert.ok(openai > 10 && openai < 25);
+});
+
+test('calculateEffectiveTokens implements dual-anchor calibration with online kappa factor', () => {
+  // Case 1: Entry with API tokens ground truth
+  const entry = {
+    apiTokens: 10000,
+    systemTokens: 1500,
+    transcriptChars: 40000,
+    transcriptTurns: 5,
+    maxChars: 40000,
+    maxTurns: 5,
+    pendingChars: 400,
+    pendingTurns: 1,
+    pendingCodeChars: 0
+  };
+
+  const effective = rules.calculateEffectiveTokens(entry, 'Hello assistant', 'gemini');
+  // API base (10,000) + scaled delta (~220) + composer tokens (~3)
+  assert.ok(effective > 10000, 'anchored on API tokens ground truth');
+  assert.ok(effective >= 10200 && effective <= 10250, `effective tokens within expected calibrated range: ${effective}`);
+
+  // Case 2: Entry without API tokens -> fallback to estimate
+  const unhydratedEntry = {
+    apiTokens: 0,
+    maxChars: 4000,
+    maxTurns: 2,
+    maxCodeChars: 0,
+    systemTokens: 1500
+  };
+  const unhydrated = rules.calculateEffectiveTokens(unhydratedEntry, '', 'gemini');
+  // 4000/4 + 2*120 + 1500 = 1000 + 240 + 1500 = 2740
+  assert.equal(unhydrated, 2740);
+});
+
+test('extractConversationStats and hydrateFromTranscript preserve inputTokens, cacheReadTokens, outputTokens, and mtime', () => {
+  rules.clearCache();
+  const convKey = '/c/test-granular-stats-preservation';
+  const storeMap = new Map();
+  const mockStorage = {
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    getItem: k => storeMap.get(k) || null,
+    removeItem: k => storeMap.delete(k)
+  };
+
+  const now = Date.now();
+  rules.hydrateFromTranscript(convKey, {
+    maxChars: 20000,
+    maxTurns: 3,
+    apiTokens: 12500,
+    inputTokens: 2000,
+    cacheReadTokens: 10000,
+    outputTokens: 500,
+    mtime: now,
+    blocks: [['turn-1', { length: 20000, codeChars: 0 }]]
+  }, mockStorage);
+
+  const doc = {
+    location: { pathname: convKey },
+    querySelector: sel => sel === '[data-testid=autoscroll-viewport]' ? { textContent: 'a'.repeat(20000) } : null,
+    querySelectorAll: sel => sel === '[data-testid=conversation-navigator-turn]' ? [{}, {}, {}] : []
+  };
+
+  const stats = rules.extractConversationStats(doc, mockStorage);
+  assert.equal(stats.apiTokens, 12500);
+  assert.equal(stats.inputTokens, 2000);
+  assert.equal(stats.cacheReadTokens, 10000);
+  assert.equal(stats.outputTokens, 500);
+  assert.equal(stats.mtime, now);
+
+  // Stored state also preserved
+  const loaded = rules.loadConversationState(convKey, mockStorage);
+  assert.equal(loaded.inputTokens, 2000);
+  assert.equal(loaded.cacheReadTokens, 10000);
+  assert.equal(loaded.outputTokens, 500);
+  assert.equal(loaded.mtime, now);
+});
+
+test('needsTranscript triggers rehydration when mtime is newer than updatedAt', () => {
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      getItem: k => storeMap.get(k) || null,
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      removeItem: k => storeMap.delete(k)
+    }
+  };
+  const mockDoc = {
+    createElement: tag => makeNode(tag),
+    querySelectorAll: () => [],
+    querySelector: () => null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    head: makeNode('head'),
+    body: makeNode('body'),
+    location: { pathname: '/c/test-mtime-rehydration' }
+  };
+
+  const context = {
+    window: mockWindow,
+    document: mockDoc,
+    MutationObserver: class { observe() {} disconnect() {} },
+    queueMicrotask: fn => fn(),
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: { t: (k, v = {}) => k },
+    setTimeout: () => 1,
+    clearTimeout: () => {},
+    setInterval: () => 1,
+    clearInterval: () => {}
+  };
+  context.globalThis = context;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  const scriptContent = fs.readFileSync(path.join(__dirname, '../common/context-budget.js'), 'utf8');
+  vm.createContext(context);
+  vm.runInContext(scriptContent, context);
+
+  const convKey = '/c/test-mtime-rehydration';
+  // Seed conversation with updatedAt = 1000, mtime = 1000
+  rules.saveConversationState(convKey, {
+    maxChars: 5000,
+    maxTurns: 2,
+    apiTokens: 1500,
+    mtime: 1000,
+    updatedAt: 1000
+  }, mockWindow.localStorage);
+
+  // When mtime is equal to updatedAt, needsTranscript is false
+  assert.equal(context.__AGContextBudget.needsTranscript(convKey), false);
+
+  // When local file mtime is newer (e.g. 2000 > 1000), needsTranscript returns true
+  assert.equal(context.__AGContextBudget.needsTranscript(convKey, 2000), true);
+
+  // When stored.mtime > stored.updatedAt
+  rules.saveConversationState(convKey, {
+    maxChars: 5000,
+    maxTurns: 2,
+    apiTokens: 1500,
+    mtime: 3000,
+    updatedAt: 1000
+  }, mockWindow.localStorage);
+  assert.equal(context.__AGContextBudget.needsTranscript(convKey), true);
+
+  context.__AGContextBudget.destroy();
+});
+
+test('details popup renders cached tokens, active prompt tokens, and output tokens breakdown', () => {
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      getItem: k => storeMap.get(k) || null,
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      removeItem: k => storeMap.delete(k)
+    },
+    innerWidth: 1024,
+    innerHeight: 768
+  };
+
+  const trigger = makeNode('button');
+  trigger.setAttribute('data-testid', 'model-selector-trigger');
+  const body = makeNode('body');
+  const triggerContainer = makeNode('div');
+  triggerContainer.append(trigger);
+  body.append(triggerContainer);
+
+  const mockDoc = {
+    createElement: tag => makeNode(tag),
+    querySelectorAll: sel => sel === '[data-testid=model-selector-trigger]' ? [trigger] : (body.querySelectorAll(sel) || []),
+    querySelector: sel => sel === '[data-testid=model-selector-trigger]' ? trigger : body.querySelector(sel),
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    head: makeNode('head'),
+    body,
+    location: { pathname: '/c/test-modal-breakdown' }
+  };
+
+  const context = {
+    window: mockWindow,
+    document: mockDoc,
+    MutationObserver: class { observe() {} disconnect() {} },
+    queueMicrotask: fn => fn(),
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: { t: (k, v = {}) => k },
+    setTimeout: () => 1,
+    clearTimeout: () => {},
+    setInterval: () => 1,
+    clearInterval: () => {}
+  };
+  context.globalThis = context;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  const scriptContent = fs.readFileSync(path.join(__dirname, '../common/context-budget.js'), 'utf8');
+  vm.createContext(context);
+  vm.runInContext(scriptContent, context);
+
+  // Hydrate conversation with granular tokens
+  rules.hydrateFromTranscript('/c/test-modal-breakdown', {
+    maxChars: 20000,
+    maxTurns: 4,
+    apiTokens: 18500,
+    inputTokens: 3500,
+    cacheReadTokens: 14000,
+    outputTokens: 1000,
+    blocks: [['turn-1', { length: 20000, codeChars: 0 }]]
+  }, mockWindow.localStorage);
+
+  // Trigger apply/refresh
+  context.__AGContextBudget.refresh();
+
+  // Find the pill inserted
+  const pill = trigger.parentElement?.querySelector('[data-agpa-context-budget]');
+  assert.ok(pill, 'context pill attached after trigger');
+
+  // Click pill to open details popup
+  pill.click();
+
+  const popup = mockDoc.body.querySelector('.agpa-context-popup');
+  assert.ok(popup, 'details popup opened');
+
+  const breakdown = popup.querySelector('.agpa-context-breakdown');
+  assert.ok(breakdown, 'breakdown element rendered in popup');
+  assert.ok(breakdown.textContent.includes('Cached:'), 'displays cached tokens');
+  assert.ok(breakdown.textContent.includes('Active prompt:'), 'displays active prompt tokens');
+  assert.ok(breakdown.textContent.includes('Output:'), 'displays output tokens');
+
+  context.__AGContextBudget.destroy();
+});
+
+test('extractConversationStats and hydrateFromTranscript preserve turnsList', () => {
+  rules.clearCache();
+  const storeMap = new Map();
+  const mockStorage = {
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    getItem: k => storeMap.get(k) || null,
+    removeItem: k => storeMap.delete(k)
+  };
+
+  const sampleTurnsList = [
+    { turnIndex: 1, prompt: 'First', promptKey: 'first', deltaTokens: 5000, outputTokens: 600, inputTokens: 1000, cacheReadTokens: 3400, totalTokens: 5000, toolCallsCount: 2 },
+    { turnIndex: 2, prompt: 'Second', promptKey: 'second', deltaTokens: 2500, outputTokens: 400, inputTokens: 1200, cacheReadTokens: 5900, totalTokens: 7500, toolCallsCount: 0 }
+  ];
+
+  rules.hydrateFromTranscript('/c/test-turns-storage', {
+    maxChars: 10000,
+    maxTurns: 2,
+    apiTokens: 7500,
+    turnsList: sampleTurnsList
+  }, mockStorage);
+
+  const doc = {
+    location: { pathname: '/c/test-turns-storage' },
+    body: { querySelectorAll: () => [], querySelector: () => null },
+    querySelector: () => null,
+    querySelectorAll: () => []
+  };
+
+  const stats = rules.extractConversationStats(doc, mockStorage);
+  assert.ok(stats);
+  assert.ok(Array.isArray(stats.turnsList));
+  assert.equal(stats.turnsList.length, 2);
+  assert.equal(stats.turnsList[0].deltaTokens, 5000);
+  assert.equal(stats.turnsList[1].deltaTokens, 2500);
+});
+
+test('context-budget component injects .agpa-turn-token-badge into assistant action bar', () => {
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      getItem: k => storeMap.get(k) || null,
+      removeItem: k => storeMap.delete(k)
+    },
+    innerWidth: 1200,
+    innerHeight: 800,
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  // Mock action bar and turn structure
+  const copyBtn = {
+    getAttribute: a => (a === 'aria-label' ? 'Copy' : null),
+    parentElement: null
+  };
+  const goodBtn = {
+    getAttribute: a => (a === 'aria-label' ? 'Good response' : null),
+    parentElement: null
+  };
+  const actionBar = {
+    children: [copyBtn, goodBtn],
+    querySelector: sel => {
+      if (sel.includes('aria-label="Copy"')) return copyBtn;
+      if (sel.includes('.agpa-turn-token-badge')) return actionBar.children.find(c => (c.className || '').includes('agpa-turn-token-badge')) || null;
+      return null;
+    },
+    insertBefore: (node, before) => {
+      node.parentElement = actionBar;
+      const idx = actionBar.children.indexOf(before);
+      if (idx !== -1) actionBar.children.splice(idx, 0, node);
+      else actionBar.children.push(node);
+      return node;
+    },
+    prepend: node => {
+      node.parentElement = actionBar;
+      actionBar.children.unshift(node);
+      return node;
+    }
+  };
+  copyBtn.parentElement = actionBar;
+  goodBtn.parentElement = actionBar;
+
+  const userStep = { textContent: 'Turn 1 prompt from user' };
+  const turnContainer = {
+    className: 'flex items-start',
+    querySelector: sel => {
+      if (sel.includes('user-input-step')) return userStep;
+      if (sel.includes('aria-label="Good response"')) return goodBtn;
+      if (sel.includes('aria-label="Copy"')) return copyBtn;
+      return null;
+    }
+  };
+
+  const listContainer = {
+    className: 'relative flex flex-col gap-y-3',
+    querySelectorAll: sel => {
+      if (sel.includes('div.flex.items-start') || sel.includes(':scope > div.flex.items-start')) {
+        return [turnContainer];
+      }
+      return [];
+    }
+  };
+
+  const viewport = {
+    querySelector: sel => {
+      if (sel.includes('.relative.flex.flex-col.gap-y-3') || sel.includes('.flex.flex-col')) return listContainer;
+      return null;
+    }
+  };
+
+  const trigger = {
+    after: () => {},
+    parentElement: {
+      querySelector: () => null,
+      append: () => {},
+      after: () => {}
+    }
+  };
+
+  const mockDoc = {
+    location: { pathname: '/c/test-turn-badges' },
+    head: { append: () => {} },
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    body: {
+      children: [],
+      append(...ch) { this.children.push(...ch); },
+      contains: () => false,
+      querySelector: () => null,
+      querySelectorAll: () => []
+    },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') return viewport;
+      if (sel === '[data-testid=model-selector-trigger]') return trigger;
+      return null;
+    },
+    querySelectorAll: sel => {
+      if (sel === '[data-testid=model-selector-trigger]') return [trigger];
+      return [];
+    },
+    createElement: tag => ({
+      tagName: tag.toUpperCase(),
+      attributes: {},
+      listeners: {},
+      setAttribute(k, v) { this.attributes[k] = v; },
+      getAttribute(k) { return this.attributes[k] || null; },
+      removeAttribute(k) { delete this.attributes[k]; },
+      addEventListener(evt, fn) { this.listeners[evt] = fn; },
+      style: { setProperty() {} },
+      getBoundingClientRect: () => ({ top: 100, left: 500, width: 60, height: 20 }),
+      textContent: '',
+      className: '',
+      children: [],
+      append(...ch) { this.children.push(...ch); },
+      remove() {}
+    }),
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  const context = {
+    document: mockDoc,
+    window: mockWindow,
+    navigator: { language: 'en-US' },
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: { t: (k, v = {}) => k },
+    setTimeout: (fn) => setTimeout(fn, 0),
+    clearTimeout: (id) => clearTimeout(id),
+    setInterval: () => 1,
+    clearInterval: () => {},
+    MutationObserver: class {
+      observe() {}
+      disconnect() {}
+    },
+    DataTransfer: class {
+      setData() {}
+    },
+    ClipboardEvent: class {}
+  };
+  context.globalThis = context;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  const scriptContent = fs.readFileSync(path.join(__dirname, '../common/context-budget.js'), 'utf8');
+  vm.createContext(context);
+  vm.runInContext(scriptContent, context);
+
+  // Hydrate with turnsList including footprint and realDelta
+  rules.hydrateFromTranscript('/c/test-turn-badges', {
+    maxChars: 12000,
+    maxTurns: 1,
+    apiTokens: 8400,
+    inputTokens: 1200,
+    cacheReadTokens: 6800,
+    outputTokens: 400,
+    turnsList: [
+      {
+        turnIndex: 1,
+        prompt: 'Turn 1 prompt from user',
+        promptKey: 'turn 1 prompt from user',
+        deltaTokens: 8400,
+        realDelta: 8400,
+        footprint: 1600,
+        outputTokens: 400,
+        finalOutputTokens: 400,
+        inputTokens: 1200,
+        cacheReadTokens: 6800,
+        totalTokens: 8400,
+        toolCallsCount: 3
+      }
+    ]
+  }, mockWindow.localStorage);
+
+  context.__AGContextBudget.refresh();
+
+  // Find badge inserted in action bar
+  const badge = actionBar.children.find(c => c.className === 'agpa-turn-token-badge');
+  assert.ok(badge, 'turn token badge inserted in assistant action bar');
+  assert.equal(badge.textContent, '~1.6k tok');
+  assert.equal(badge.getAttribute('data-turn-index'), '1');
+  assert.equal(badge.getAttribute('data-footprint'), '1600');
+  assert.ok(badge.title.includes('Turn #1'));
+  assert.ok(badge.title.includes('~1.6k tok'));
+
+  // Trigger tooltip
+  assert.ok(badge.listeners.mouseenter, 'badge has mouseenter listener');
+  badge.listeners.mouseenter();
+
+  // Verify tooltip created in DOM
+  const tip = mockDoc.body.children.find(c => c.className === 'agpa-turn-tooltip');
+  assert.ok(tip, 'tooltip element attached to body');
+  const tipTitle = tip.children.find(c => c.className === 'agpa-turn-tooltip-title');
+  const titleContent = tipTitle.innerHTML || tipTitle.textContent || '';
+  assert.ok(titleContent.includes('Turn #1'));
+  assert.ok(titleContent.includes('~1.6k tok'));
+
+  const tipBody = tip.children.find(c => c.className === 'agpa-turn-tooltip-body');
+  const tipHtml = tipBody.children.map(c => c.innerHTML || c.textContent || '').join(' ');
+  assert.ok(tipHtml.includes('Output risposta'));
+  assert.ok(tipHtml.includes('Active prompt'));
+  assert.ok(tipHtml.includes('Cached'));
+  assert.ok(tipHtml.includes('Delta netto'));
+  assert.ok(tipHtml.includes('Finestra totale'));
+
+  // Test loading state placeholder before transcript is hydrated
+  actionBar.children = [copyBtn, goodBtn];
+  mockDoc.body.children = [];
+  rules.clearCache('/c/test-turn-badges');
+  mockWindow.localStorage.removeItem('agpa_context_budget_/c/test-turn-badges');
+  context.__AGContextBudget.refresh();
+
+  const loadingBadge = actionBar.children.find(c => (c.className || '').includes('agpa-turn-token-badge'));
+  assert.ok(loadingBadge, 'loading badge inserted while awaiting transcript');
+  assert.ok(loadingBadge.className.includes('agpa-turn-loading'), 'badge has agpa-turn-loading class');
+  assert.equal(loadingBadge.getAttribute('role'), 'status');
+  assert.ok(loadingBadge.children.some(c => (c.className || '').includes('agpa-turn-spinner')), 'spinner child attached');
+
+  // Test negative delta (context contraction / cache optimization)
+  actionBar.children = [loadingBadge, copyBtn, goodBtn];
+  mockDoc.body.children = [];
+  rules.hydrateFromTranscript('/c/test-turn-badges', {
+    maxChars: 12000,
+    maxTurns: 1,
+    apiTokens: 220894,
+    turnsList: [
+      {
+        turnIndex: 22,
+        prompt: 'Turn 22 prompt',
+        promptKey: 'turn 1 prompt from user', // matches DOM container
+        deltaTokens: 0,
+        realDelta: -4592,
+        footprint: 3141,
+        outputTokens: 757,
+        finalOutputTokens: 757,
+        inputTokens: 2384,
+        cacheReadTokens: 0, // cache miss test
+        totalTokens: 220894,
+        peakTokens: 256130,
+        preCompactionTokens: 256130,
+        postCompactionTokens: 18903,
+        toolCallsCount: 15,
+        hasCompaction: true
+      }
+    ]
+  }, mockWindow.localStorage);
+
+  context.__AGContextBudget.refresh();
+  const badge22 = actionBar.children.find(c => (c.className || '').includes('agpa-turn-token-badge'));
+  assert.ok(badge22);
+  assert.equal(badge22.textContent, '~3.1k tok');
+  assert.ok(badge22.className.includes('agpa-turn-compacted'), 'badge has agpa-turn-compacted class');
+  assert.equal(badge22.getAttribute('data-compacted'), 'true');
+  assert.ok(badge22.title.includes('256k'));
+
+  badge22.listeners.mouseenter();
+  const tip22 = mockDoc.body.children.find(c => c.className === 'agpa-turn-tooltip');
+  assert.ok(tip22);
+  const tip22Body = tip22.children.find(c => c.className === 'agpa-turn-tooltip-body');
+  const compactRow = tip22Body.children.find(c => (c.className || '').includes('agpa-turn-compact-row'));
+  assert.ok(compactRow, 'tooltip contains compacting row');
+  const compactContent = compactRow.innerHTML || compactRow.textContent || '';
+  assert.ok(compactContent.includes('~256k ➔ ~19k'));
+  const peakRow = tip22Body.children.find(c => (c.className || '').includes('agpa-turn-peak-row'));
+  assert.ok(peakRow, 'tooltip contains peak row');
+  const peakContent = peakRow.innerHTML || peakRow.textContent || '';
+  assert.ok(peakContent.includes('~256k tok'));
+  const negDeltaRow = tip22Body.children.find(c => c.className?.includes('agpa-turn-delta-neg'));
+  assert.ok(negDeltaRow, 'negative delta row has agpa-turn-delta-neg class');
+  const negContent = negDeltaRow.innerHTML || negDeltaRow.textContent || '';
+  assert.ok(negContent.includes('-4.6k tok (ottimizzato)'));
+  const cacheMissRow = tip22Body.children.find(c => (c.innerHTML || c.textContent || '').includes('miss / ricalcolo'));
+  assert.ok(cacheMissRow, 'cache miss row rendered correctly');
+
+  context.__AGContextBudget.destroy();
+});
+
+test('updateTurnBadges resolves unmounted virtualized turns via responseKey and neighbor propagation', () => {
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      getItem: k => storeMap.get(k) || null,
+      removeItem: k => storeMap.delete(k)
+    },
+    innerWidth: 1200,
+    innerHeight: 800,
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  function createTurnMock(promptText, responseText) {
+    const copyBtn = {
+      getAttribute: a => (a === 'aria-label' ? 'Copy' : null),
+      parentElement: null
+    };
+    const goodBtn = {
+      getAttribute: a => (a === 'aria-label' ? 'Good response' : null),
+      parentElement: null
+    };
+    const actionBar = {
+      children: [copyBtn, goodBtn],
+      querySelector: sel => {
+        if (sel.includes('aria-label="Copy"')) return copyBtn;
+        if (sel.includes('.agpa-turn-token-badge')) return actionBar.children.find(c => (c.className || '').includes('agpa-turn-token-badge')) || null;
+        return null;
+      },
+      insertBefore: (node, before) => {
+        node.parentElement = actionBar;
+        const i = actionBar.children.indexOf(before);
+        if (i !== -1) actionBar.children.splice(i, 0, node);
+        else actionBar.children.push(node);
+        return node;
+      },
+      prepend: node => {
+        node.parentElement = actionBar;
+        actionBar.children.unshift(node);
+        return node;
+      }
+    };
+    copyBtn.parentElement = actionBar;
+    goodBtn.parentElement = actionBar;
+
+    const userStep = promptText ? { textContent: promptText } : null;
+    const container = {
+      className: 'flex items-start',
+      textContent: responseText || '',
+      previousElementSibling: null,
+      querySelector: sel => {
+        if (sel.includes('user-input-step')) return userStep;
+        if (sel.includes('aria-label="Good response"')) return goodBtn;
+        if (sel.includes('aria-label="Copy"')) return copyBtn;
+        return null;
+      }
+    };
+    return { container, actionBar, copyBtn, goodBtn };
+  }
+
+  const c0 = createTurnMock(null, 'L\'integrazione e completata, testata e attiva in tempo reale'); // unmounted prompt!
+  const c1 = createTurnMock('Ho chiuso e riaperto Antigravity', 'Ecco la spiegazione tecnica');
+  const c2 = createTurnMock('Fermati in un safe spot adesso', 'Checkpoint sicuro salvato');
+
+  c1.container.previousElementSibling = c0.container;
+  c2.container.previousElementSibling = c1.container;
+
+  const listContainer = {
+    className: 'relative flex flex-col gap-y-3',
+    querySelectorAll: sel => {
+      if (sel.includes('div.flex.items-start')) return [c0.container, c1.container, c2.container];
+      return [];
+    },
+    querySelector: sel => null
+  };
+
+  const viewport = {
+    getAttribute: a => (a === 'data-testid' ? 'autoscroll-viewport' : null),
+    querySelector: sel => {
+      if (sel.includes('.relative.flex.flex-col.gap-y-3')) return listContainer;
+      return null;
+    }
+  };
+
+  const trigger = {
+    after: () => {},
+    parentElement: {
+      querySelector: () => null,
+      append: () => {},
+      after: () => {}
+    }
+  };
+
+  const mockDoc = {
+    defaultView: mockWindow,
+    location: { pathname: '/c/conv-virtual-neighbor' },
+    head: { append: () => {} },
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    body: {
+      children: [],
+      append(...ch) { this.children.push(...ch); },
+      contains: () => false,
+      querySelector: () => null,
+      querySelectorAll: () => []
+    },
+    querySelector: sel => {
+      if (sel === '[data-testid=autoscroll-viewport]') return viewport;
+      if (sel === '[data-testid=model-selector-trigger]') return trigger;
+      return null;
+    },
+    querySelectorAll: sel => {
+      if (sel === '[data-testid=model-selector-trigger]') return [trigger];
+      return [];
+    },
+    createElement: tag => ({
+      tagName: tag.toUpperCase(),
+      attributes: {},
+      listeners: {},
+      children: [],
+      append(...ch) { this.children.push(...ch); },
+      setAttribute(k, v) { this.attributes[k] = v; },
+      getAttribute(k) { return this.attributes[k] || null; },
+      removeAttribute(k) { delete this.attributes[k]; },
+      addEventListener(evt, fn) { this.listeners[evt] = fn; },
+      style: { setProperty() {} },
+      getBoundingClientRect: () => ({ top: 100, left: 500, width: 60, height: 20 }),
+      textContent: '',
+      innerHTML: '',
+      className: '',
+      remove() {}
+    })
+  };
+
+  const context = {
+    document: mockDoc,
+    window: mockWindow,
+    setTimeout: () => 1,
+    clearTimeout: () => {},
+    setInterval: () => 1,
+    clearInterval: () => {},
+    MutationObserver: class { observe() {} disconnect() {} }
+  };
+  context.globalThis = context;
+  context.__AGPA_CONTEXT_BUDGET__ = rules;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  const scriptContent = fs.readFileSync(path.join(__dirname, '../common/context-budget.js'), 'utf8');
+  vm.createContext(context);
+  vm.runInContext(scriptContent, context);
+
+  // Set up mock rules to return our 3-turn stats
+  rules.hydrateFromTranscript('/c/conv-virtual-neighbor', {
+    maxChars: 5000,
+    maxTurns: 37,
+    apiTokens: 226000,
+    turnsList: [
+      { turnIndex: 35, prompt: 'Procedi con questa integrazione', promptKey: 'procedi con questa integrazione', responseKey: 'lintegrazione e completata', footprint: 3173 },
+      { turnIndex: 36, prompt: 'Ho chiuso e riaperto Antigravity', promptKey: 'ho chiuso e riaperto antigravity', responseKey: 'ecco la spiegazione tecnica', footprint: 2814 },
+      { turnIndex: 37, prompt: 'Fermati in un safe spot adesso', promptKey: 'fermati in un safe spot adesso', responseKey: 'checkpoint sicuro salvato', footprint: 2732 }
+    ]
+  }, mockWindow.localStorage);
+
+  // Call refresh
+  context.__AGContextBudget.refresh();
+
+  // Verify all 3 badges
+  const b0 = c0.actionBar.children.find(c => (c.className || '').includes('agpa-turn-token-badge'));
+  const b1 = c1.actionBar.children.find(c => (c.className || '').includes('agpa-turn-token-badge'));
+  const b2 = c2.actionBar.children.find(c => (c.className || '').includes('agpa-turn-token-badge'));
+
+  assert.ok(b0, 'C0 has badge');
+  assert.ok(b1, 'C1 has badge');
+  assert.ok(b2, 'C2 has badge');
+
+  assert.equal(b0.getAttribute('data-turn-index'), '35', 'C0 resolved to Turn 35 via responseKey/neighbor');
+  assert.equal(b0.textContent, '~3.2k tok', 'C0 footprint formatted correctly');
+  assert.equal(b0.className.includes('agpa-turn-loading'), false, 'C0 is not loading');
+
+  assert.equal(b1.getAttribute('data-turn-index'), '36', 'C1 resolved to Turn 36');
+  assert.equal(b1.textContent, '~2.8k tok');
+
+  assert.equal(b2.getAttribute('data-turn-index'), '37', 'C2 resolved to Turn 37');
+  assert.equal(b2.textContent, '~2.7k tok');
+
+  context.__AGContextBudget.destroy();
 });
