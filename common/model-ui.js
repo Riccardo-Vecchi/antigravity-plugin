@@ -1,9 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
  'use strict';const VERSION='1.1.6';
- globalThis.__AGContextBudget?.destroy();
- document.querySelectorAll('[data-agpa-context-budget],[data-agpa-context-ui],#agpa-context-budget-styles').forEach(e=>e.remove());
- delete globalThis.__AGPA_CONTEXT_BUDGET__;
  if(globalThis.__AGModelUI?.version===VERSION)return;
  globalThis.__AGModelUI?.destroy();
  const i=globalThis.__AGPAI18n,providerFor=globalThis.__AGPAProviderFor,permissionFor=globalThis.__AGPAPermissionFor,assets=globalThis.__AGPA_LAB_ICONS__;
