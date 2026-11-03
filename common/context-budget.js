@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.0.27';
+  const VERSION = '1.0.28';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -372,6 +372,20 @@
     return true;
   }
 
+  function isPending(stats) {
+    return stats.turns === 0 && stats.chars < 100 && !(stats.apiTokens > 0);
+  }
+
+  function placePopup(button) {
+    document.body.append(popup);
+    const rect = button.getBoundingClientRect();
+    popup.style.left = Math.max(8, Math.min(rect.right - 220, window.innerWidth - 230)) + 'px';
+    popup.style.top = Math.max(8, rect.top - popup.offsetHeight - 8) + 'px';
+    if (rect.top < popup.offsetHeight + 16) {
+      popup.style.top = Math.min(rect.bottom + 8, window.innerHeight - popup.offsetHeight - 8) + 'px';
+    }
+  }
+
   function openDetails(button, stats) {
     closePopup();
     if (stopped) return;
@@ -391,6 +405,17 @@
     });
     closeBtn.addEventListener('click', closePopup);
     header.append(title, closeBtn);
+    if (isPending(stats)) {
+      title.textContent = t('Context window');
+      popup.setAttribute('aria-label', t('Context window'));
+      popup.append(header, element('p', {
+        class: 'agpa-context-desc',
+        text: t('Context estimates appear after the conversation starts.')
+      }));
+      placePopup(button);
+      return;
+    }
+
 
     const desc = element('p', {
       class: 'agpa-context-desc',
@@ -478,13 +503,7 @@
       popup.append(action);
     }
 
-    document.body.append(popup);
-    const rect = button.getBoundingClientRect();
-    popup.style.left = Math.max(8, Math.min(rect.right - 220, window.innerWidth - 230)) + 'px';
-    popup.style.top = Math.max(8, rect.top - popup.offsetHeight - 8) + 'px';
-    if (rect.top < popup.offsetHeight + 16) {
-      popup.style.top = Math.min(rect.bottom + 8, window.innerHeight - popup.offsetHeight - 8) + 'px';
-    }
+    placePopup(button);
   }
 
   function createPill() {
@@ -504,6 +523,14 @@
   }
 
   function updatePill(pill, stats) {
+    if (isPending(stats)) {
+      const label = t('Context window');
+      pill.setAttribute('data-level', 'pending');
+      pill.textContent = '— tok';
+      pill.setAttribute('title', t('Context estimates appear after the conversation starts.'));
+      pill.setAttribute('aria-label', label);
+      return;
+    }
     if (pill.getAttribute('data-level') !== stats.budget.level) {
       pill.setAttribute('data-level', stats.budget.level);
     }
@@ -632,11 +659,6 @@
       );
       for (const footer of footers) {
         let pill = footer.querySelector('[data-agpa-context-budget]');
-        if (stats.turns === 0 && stats.chars < 100) {
-          closePopup();
-          if (pill) pill.remove();
-          continue;
-        }
         if (!pill) {
           pill = createPill();
           footer.append(pill);
@@ -649,11 +671,6 @@
     for (const trigger of triggers) {
       const parent = trigger.parentElement;
       let pill = parent?.querySelector('[data-agpa-context-budget]') || document.querySelector('[data-agpa-context-budget]');
-      if (stats.turns === 0 && stats.chars < 100) {
-        closePopup();
-        if (pill) pill.remove();
-        continue;
-      }
 
       const effort = parent?.querySelector('.agpa-effort-trigger');
       const anchor = effort || trigger;

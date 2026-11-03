@@ -498,7 +498,9 @@
       "Net delta": "Net delta",
       "optimized": "optimized",
       "Total window": "Total window",
-      "Compacting": "Compacting"
+      "Compacting": "Compacting",
+      "Context window": "Context window",
+      "Context estimates appear after the conversation starts.": "Context estimates appear after the conversation starts."
     },
     "icons": {
       "folder": "Folder",
@@ -1050,7 +1052,9 @@
       "Net delta": "Delta netto",
       "optimized": "ottimizzato",
       "Total window": "Finestra totale",
-      "Compacting": "Compattamento"
+      "Compacting": "Compattamento",
+      "Context window": "Finestra di contesto",
+      "Context estimates appear after the conversation starts.": "Le stime del contesto compaiono dopo l’inizio della conversazione."
     },
     "icons": {
       "folder": "Cartella",
@@ -1602,7 +1606,9 @@
       "Net delta": "Netto-Delta",
       "optimized": "optimiert",
       "Total window": "Gesamtes Fenster",
-      "Compacting": "Kompaktierung"
+      "Compacting": "Kompaktierung",
+      "Context window": "Kontextfenster",
+      "Context estimates appear after the conversation starts.": "Kontextschätzungen werden nach Beginn der Unterhaltung angezeigt."
     },
     "icons": {
       "folder": "Ordner",
@@ -2154,7 +2160,9 @@
       "Net delta": "Delta neto",
       "optimized": "optimizado",
       "Total window": "Ventana total",
-      "Compacting": "Compactación"
+      "Compacting": "Compactación",
+      "Context window": "Ventana de contexto",
+      "Context estimates appear after the conversation starts.": "Las estimaciones del contexto aparecen al iniciar la conversación."
     },
     "icons": {
       "folder": "Carpeta",
@@ -2706,7 +2714,9 @@
       "Net delta": "Delta net",
       "optimized": "optimisé",
       "Total window": "Fenêtre totale",
-      "Compacting": "Compactage"
+      "Compacting": "Compactage",
+      "Context window": "Fenêtre de contexte",
+      "Context estimates appear after the conversation starts.": "Les estimations du contexte apparaissent après le début de la conversation."
     },
     "icons": {
       "folder": "Dossier",
@@ -3258,7 +3268,9 @@
       "Net delta": "净增量",
       "optimized": "已优化",
       "Total window": "总窗口",
-      "Compacting": "压缩中"
+      "Compacting": "压缩中",
+      "Context window": "上下文窗口",
+      "Context estimates appear after the conversation starts.": "对话开始后将显示上下文估算。"
     },
     "icons": {
       "folder": "文件夹",
@@ -3810,7 +3822,9 @@
       "Net delta": "正味の差分",
       "optimized": "最適化済み",
       "Total window": "合計ウィンドウ",
-      "Compacting": "圧縮中"
+      "Compacting": "圧縮中",
+      "Context window": "コンテキストウィンドウ",
+      "Context estimates appear after the conversation starts.": "会話の開始後にコンテキストの推定値が表示されます。"
     },
     "icons": {
       "folder": "フォルダー",

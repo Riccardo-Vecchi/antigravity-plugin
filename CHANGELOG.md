@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.16.2
+
+- Keep the context-window control visible in new chats, with an explicit pending state until conversation data is available.
+
 ## 1.16.1
 
 - Include PR #4: per-turn token metrics and context estimates with transcript hydration, compaction tracking, localized tooltips and a Teamwork badge.
