@@ -502,9 +502,11 @@ function estimateTokensPrecise(text, modelFamilyOrName = 'gemini') {
   }
 
   // 5. Non-Latin Alphabets (Cyrillic, Greek, Arabic, Hebrew, Devanagari)
+  // eslint-disable-next-line no-misleading-character-class
   const nonLatin = prose.match(/[\u0400-\u04ff\u0370-\u03ff\u0600-\u06ff\u0590-\u05ff\u0900-\u097f]/g);
   if (nonLatin) {
     tokenCount += Math.ceil(nonLatin.length / 2.2);
+    // eslint-disable-next-line no-misleading-character-class
     prose = prose.replace(/[\u0400-\u04ff\u0370-\u03ff\u0600-\u06ff\u0590-\u05ff\u0900-\u097f]/g, ' ');
   }
 

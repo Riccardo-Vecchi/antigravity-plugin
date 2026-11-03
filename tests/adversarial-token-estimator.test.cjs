@@ -17,7 +17,6 @@ const assert = require('node:assert/strict');
 const { performance } = require('node:perf_hooks');
 
 const {
-  estimateTokens,
   estimateTokensPrecise,
   calculateEffectiveTokens
 } = require('../common/context-budget.cjs');
@@ -88,7 +87,7 @@ test('Adversarial 1.5: 50,000 unclosed double quotes and single quotes', () => {
 });
 
 test('Adversarial 1.6: 64,000 alternating syntax and operator characters (dense punctuation)', () => {
-  const punctCycle = '.,!?;:()[\]{}<>"\'`~@#$%^&*+=|\\/-';
+  const punctCycle = '.,!?;:()[]{}<>"\'`~@#$%^&*+=|\\/-';
   const input = punctCycle.repeat(2000);
   const t0 = performance.now();
   const tokens = estimateTokensPrecise(input, 'gemini');

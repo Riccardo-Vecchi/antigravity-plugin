@@ -1252,8 +1252,6 @@ test('context budget component requests instant hydration when chat lacks apiTok
     setTimeout: () => 1,
     clearTimeout: () => {},
     setInterval: () => 1,
-    clearInterval: () => {},
-    setInterval: () => 1,
     clearInterval: () => {}
   };
   context.globalThis = context;
@@ -1737,9 +1735,7 @@ test('context-budget component injects .agpa-turn-token-badge into assistant act
       children: [],
       append(...ch) { this.children.push(...ch); },
       remove() {}
-    }),
-    addEventListener: () => {},
-    removeEventListener: () => {}
+    })
   };
 
   const context = {

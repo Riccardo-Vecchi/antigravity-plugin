@@ -161,15 +161,6 @@
     }
   }
 
-  function addClass(node, cls) {
-    if (node?.classList && typeof node.classList.add === 'function') {
-      node.classList.add(cls);
-    } else if (node) {
-      const list = (node.className || '').split(' ').filter(Boolean);
-      if (!list.includes(cls)) list.push(cls);
-      node.className = list.join(' ');
-    }
-  }
 
   function updateTurnBadges(doc = document, stats) {
     const vp = doc.querySelector?.('[data-testid=autoscroll-viewport]') || doc.querySelector?.('[data-testid=conversation-view]');

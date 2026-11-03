@@ -99,7 +99,6 @@ test('Adversarial 1.2: SYSTEM_MESSAGE interspersion throughout turns', () => {
 
 test('Adversarial 1.3: Extremely large JSONL files (12,000+ lines, multiple megabytes)', () => {
   const lines = [];
-  const start = performance.now();
 
   for (let i = 0; i < 4000; i++) {
     lines.push(JSON.stringify({

@@ -1503,7 +1503,7 @@ test('Tier 4 - Scenario 4.3: Non-Latin multilingual interactive debugging sessio
 });
 
 test('Tier 4 - Scenario 4.4: Context saturation boundary & /compact action recommendation', () => {
-  const { doc, win } = createMockDom();
+  const { doc } = createMockDom();
   contextBudget.clearCache();
 
   const convKey = '/c/01ed90cd-c026-4190-bfd8-5bb6444c0719';

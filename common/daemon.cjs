@@ -923,7 +923,7 @@ class Client {
     if (!stats) return;
     await this.evaluate(
       `globalThis.__AGContextBudget?.hydrateFromTranscript(${JSON.stringify(convKey)}, ${JSON.stringify(stats)})`,
-      params.executionContextId
+      params.executionContextId,
     ).catch(() => {});
   }
   async onCompanion(params) {
