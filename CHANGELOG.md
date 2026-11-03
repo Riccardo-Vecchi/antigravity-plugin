@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.16.1
+
+- Include PR #4: per-turn token metrics and context estimates with transcript hydration, compaction tracking, localized tooltips and a Teamwork badge.
+
 ## 1.16.0
 
 - Keep the Usage popup beside its sidebar icon from the first frame, without briefly appearing in the top-left corner.
