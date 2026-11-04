@@ -37,7 +37,7 @@ This check does not install or execute a newer release. Setup continues to insta
 
 Changing scope requires **Apply access changes**. It revokes earlier connections before starting the new scope. Choosing Entire desktop is not an `unrestricted`/bypass-approvals setting. Existing Antigravity approvals remain in force.
 
-In either mode, the bridge exposes only the reviewed GUI tool set (17 tools for Entire desktop and 14 for Selected apps in driver 0.37.0). It excludes direct shell execution, arbitrary scripts, filesystem tools, process termination and browser-profile attachment. GUI interaction can still modify files, accounts and signed-in applications as part of a task; visible contents may be processed by Antigravity's model. These controls limit this driver, not Antigravity's independent shell access or another process running as your user.
+In either mode, the bridge exposes only the reviewed GUI tool set (17 tools for Entire desktop and 14 for Selected apps in driver 0.38.0). It excludes direct shell execution, arbitrary scripts, filesystem tools, process termination and browser-profile attachment. GUI interaction can still modify files, accounts and signed-in applications as part of a task; visible contents may be processed by Antigravity's model. These controls limit this driver, not Antigravity's independent shell access or another process running as your user.
 
 ## 🎚️ Enable, disable and stop
 
@@ -81,10 +81,10 @@ Windows is covered by adapter/configuration tests, release archive-layout verifi
 
 ## 🔧 Installation, privacy and compatibility
 
-- Reviewed driver: **0.37.0**, pinned to official release asset SHA-256 values. Future plugin releases can update the reviewed pin; setup never silently adopts an unreviewed driver.
+- Reviewed driver: **0.38.0**, pinned to official release asset SHA-256 values. Future plugin releases can update the reviewed pin; setup never silently adopts an unreviewed driver.
 - Downloads run no remote installer script. The driver is a separate MIT-licensed upstream dependency, not relicensed under the plugin's 0BSD license. No driver binaries or private configuration are published here. SHA-256 pin verification is not a claim of Sigstore signature verification.
 - Plugin-launched driver calls disable telemetry with `CUA_DRIVER_RS_TELEMETRY_ENABLED=0` and `CUA_TELEMETRY_ENABLED=0`. Other Cua installations are unchanged.
-- Local files live under the existing plugin configuration directory in `computer-use/`: `state.json`, `capabilities.json`, and `driver-0.37.0/`. They can contain local application paths and must not be shared or committed.
+- Local files live under the existing plugin configuration directory in `computer-use/`: `state.json`, `capabilities.json`, and `driver-0.38.0/`. They can contain local application paths and must not be shared or committed.
 - The wizard merges `~/.gemini/config/mcp_config.json` and installs its owned skill under `~/.gemini/config/skills/antigravity-plugin-computer-use/` (under the user's home on Windows too). Unrelated MCP entries and locally edited skills are preserved. Invalid JSON, symlinks, conflicts or detected concurrent edits stop configuration.
 - Automatic native MCP refresh uses a narrowly recognized Antigravity state-provider contract. It refreshes only this server and falls back to manual native refresh if the interface changes.
 
@@ -97,4 +97,4 @@ Verified live on Linux: the dedicated Settings page, navigation icons, Projects 
 - [Google Antigravity MCP](https://antigravity.google/docs/mcp)
 - [Cua with Antigravity and Gemini](https://cua.ai/docs/cua-driver/guides/gemini)
 - [Cua permissions](https://cua.ai/docs/cua-driver/guides/permissions)
-- [Cua Driver 0.37.0](https://github.com/trycua/cua/releases/tag/cua-driver-rs-v0.37.0)
+- [Cua Driver 0.38.0](https://github.com/trycua/cua/releases/tag/cua-driver-rs-v0.38.0)

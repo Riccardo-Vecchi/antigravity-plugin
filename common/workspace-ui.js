@@ -1,7 +1,7 @@
 /* Branding, title and optional hover sidebar. Native documents stay mounted. */
 (() => {
   "use strict";
-  const VERSION = "1.1.1";
+  const VERSION = "1.2.0";
   globalThis.__AGWorkspace?.destroy();
   const i18n = globalThis.__AGPAI18n,
     icon = globalThis.__AGPA_BRAND_ICON__,
@@ -15,7 +15,6 @@
     peek = false,
     panel = null,
     menuTitle = null,
-    lastExpanded = null,
     nativeTitle = document.title,
     displayedTitle = null;
   const listeners = [],
@@ -25,13 +24,9 @@
   style.id = "agpa-workspace-styles";
   style.textContent = `
  [data-agpa-brand]>svg{display:none!important}[data-agpa-brand]>img{width:24px;height:24px;object-fit:contain;pointer-events:none}
- @property --agpa-navigation-width{syntax:'<length>';inherits:true;initial-value:52px}
- @property --agpa-rail-width{syntax:'<length>';inherits:true;initial-value:52px}
- body[data-agpa-layout-ready]{transition:--agpa-navigation-width 240ms cubic-bezier(.22,1,.36,1),--agpa-rail-width 240ms cubic-bezier(.22,1,.36,1)}
- body[data-agpa-layout-ready] [data-agpa-sidebar-panel]:not([data-agpa-hover-pane]){width:calc(var(--agpa-navigation-width) - var(--agpa-rail-width))!important;transition:visibility 0s linear 240ms!important}
- body[data-agpa-layout-ready] .agpa-rail{width:var(--agpa-rail-width)!important;transition:opacity 160ms ease,visibility 0s linear 160ms!important}
  [data-agpa-sidebar-panel][data-agpa-hover-pane]{position:absolute!important;left:0!important;top:0!important;height:100%!important;width:var(--agpa-expanded-width,256px)!important;visibility:hidden!important;overflow:hidden!important;z-index:60!important;box-shadow:12px 0 32px #0005;background:var(--sidebar,#171717);transform:translateX(-100%);opacity:0;pointer-events:none;will-change:transform;transition:transform 240ms cubic-bezier(.22,1,.36,1),opacity 140ms ease,visibility 0s linear 240ms!important}
  [data-agpa-sidebar-panel][data-agpa-hover-pane][data-agpa-peek]{transform:translateX(0);opacity:1;visibility:visible!important;pointer-events:auto;transition:transform 240ms cubic-bezier(.22,1,.36,1),opacity 140ms ease,visibility 0s!important}
+ @media(prefers-reduced-motion:reduce){[data-agpa-hover-pane]{transition:none!important}}
  .agpa-sidebar-setting{margin-top:18px;padding:16px;border:1px solid var(--border,#353535);border-radius:12px;color:var(--foreground,#eee)}
  .agpa-sidebar-setting h3{font-size:14px;font-weight:500;margin:0 0 8px}.agpa-sidebar-setting p{font-size:12px;color:var(--muted-foreground,#aaa);margin:0 0 12px}
  .agpa-sidebar-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.agpa-sidebar-choices button{font:inherit;font-size:13px;padding:10px 8px;border:1px solid var(--border,#444);border-radius:9px;color:inherit;background:transparent;cursor:pointer}.agpa-sidebar-choices button[aria-checked=true]{border-color:#398bdb;background:var(--secondary,#292929)}.agpa-sidebar-choices button:focus-visible{outline:2px solid #398bdb;outline-offset:2px}
@@ -212,32 +207,6 @@
       brand.append(image);
     }
     preparePanel();
-    const expanded = toggle()?.getAttribute("aria-expanded");
-    if (panel && typeof expanded === "string") {
-      const width =
-        panel.firstElementChild?.getBoundingClientRect().width || 256;
-      const navigation =
-          expanded === "true"
-            ? Math.max(256, Math.min(456, width)) + "px"
-            : "52px",
-        rail = expanded === "true" ? "0px" : "52px";
-      const changed =
-        document.body.style.getPropertyValue("--agpa-navigation-width") !==
-          navigation ||
-        document.body.style.getPropertyValue("--agpa-rail-width") !== rail;
-      if (changed) {
-        document.body.style.setProperty("--agpa-navigation-width", navigation);
-        document.body.style.setProperty("--agpa-rail-width", rail);
-      }
-      if (!document.body.hasAttribute("data-agpa-layout-ready")) {
-        panel.getBoundingClientRect();
-        document.body.setAttribute("data-agpa-layout-ready", "");
-      }
-      if (changed || expanded !== lastExpanded) {
-        lastExpanded = expanded;
-        commitMotion();
-      }
-    }
     const bar = document.querySelector("[data-testid=title-menu-bar]");
     if (bar) {
       if (!menuTitle) {

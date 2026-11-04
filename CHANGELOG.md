@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.17.0
+
+- Restore project icons, colors and editing on Antigravity 2.29, and keep Usage docked beside its sidebar button with native glass styling.
+- Prefer native context usage and sidebar animations. Hide the fallback context ring in new chats; show a compact percentage ring before the model in existing conversations, with a colored breakdown and clearly labeled estimates.
+- Update the checksum-pinned Cua Driver to stable 0.38.0. Keep reasoning-effort controls retryable after slow native submenu rendering.
+- Reduce repeated UI scans and transcript reads, preserve native controls and improve controller cleanup.
+
 ## 1.16.2
 
 - Keep the context-window control visible in new chats, with an explicit pending state until conversation data is available.

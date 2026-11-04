@@ -1,7 +1,7 @@
 /* Local project appearance. No conversation, project metadata, or tool mutations. */
 (() => {
   'use strict';
-  const VERSION = '1.8.2';
+  const VERSION = '1.9.0';
   const i18n=globalThis.__AGPAI18n;
   const initial = globalThis.__AGPA_CONFIG__ || { projects: {} };
   delete globalThis.__AGPA_CONFIG__;
@@ -26,6 +26,7 @@
   let railSignature = '';
   function el(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
+    node.setAttribute('data-agpa-appearance-ui','');
     for (const [key, value] of Object.entries(attrs)) {
       if (key === 'class') node.className = value;
       else if (key === 'text') node.textContent = value;
@@ -41,8 +42,9 @@
     .agpa-project-icon {position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:17px;line-height:1}
     [data-agpa-inline-native] {display:none!important}
     .agpa-inline-icon {width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:none;font-size:16px;line-height:1}
-    .agpa-rail {box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:5px;width:52px;min-width:0;height:100%;padding:48px 0 8px;overflow:hidden;transition:width 240ms cubic-bezier(.22,1,.36,1),opacity 160ms ease;background:var(--sidebar,#171717);color:var(--muted-foreground,#aaa);flex-shrink:0;z-index:20}
-    .agpa-rail[hidden] {display:flex!important;width:0;opacity:0;visibility:hidden;pointer-events:none;transition:width 240ms cubic-bezier(.22,1,.36,1),opacity 120ms ease,visibility 0s linear 240ms}
+    .agpa-rail {box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:5px;width:52px;min-width:0;height:100%;padding:48px 0 8px;overflow:hidden;transition:width 500ms var(--ease-expo-out,cubic-bezier(.22,1,.36,1)),opacity 160ms ease;background:var(--sidebar,#171717);color:var(--muted-foreground,#aaa);flex-shrink:0;z-index:20}
+    .agpa-rail[hidden] {display:flex!important;width:0;opacity:0;visibility:hidden;pointer-events:none;transition:width 500ms var(--ease-expo-out,cubic-bezier(.22,1,.36,1)),opacity 120ms ease,visibility 0s linear 500ms}
+    @media(prefers-reduced-motion:reduce){.agpa-rail,.agpa-rail[hidden]{transition:none!important}}
     .agpa-rail-button {box-sizing:border-box;width:36px;height:36px;min-height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:transparent;border:0;border-radius:10px;color:inherit;cursor:pointer;font-size:19px;position:relative}
     .agpa-rail-button:hover,.agpa-rail-button[aria-current=page] {background:var(--sidebar-secondary,#303030);color:var(--foreground,#eee)}
     .agpa-rail-button[aria-current=page]::before {content:'';position:absolute;left:1px;width:2px;height:17px;border-radius:3px;background:currentColor}
@@ -145,7 +147,7 @@
     }
   }
   function nativeSidebar(){return document.querySelector('[data-testid="settings-button"]')?.closest('[role="navigation"]');}
-  function nativeControl(selector) {return nativeSidebar()?.querySelector(selector);}
+  function nativeControl(selector) {return selector === '[data-testid=sidebar-search-button]' ? globalThis.__AGPAPrimaryLayout(document).toggle?.parentElement?.querySelector(selector) : nativeSidebar()?.querySelector(selector);}
   function railButton(label,selector,fallback='folder') {
     const source=nativeControl(selector);
     if(!source)return null;
@@ -171,7 +173,7 @@
       rail.replaceChildren();
       for(const [label,selector,fallback]of [
         ['New Conversation','[data-testid="new-conversation-button"]','pencil'],
-        ['Conversation History','[data-testid="history-button"]','book'],
+        ['Search conversations','[data-testid=sidebar-search-button]','book'],
         ['Automations','[data-testid="automations-button"]','settings'],
         ['Library','[data-testid=agpa-library-button]','book'],
         ['Customizations','a[href="/customizations"]','briefcase']
@@ -185,7 +187,7 @@
         if(value?.color)button.style.color=value.color;
         button.addEventListener('click',()=>{
           const current=[...document.querySelectorAll('[data-testid="project-header"]')].map(projectFrom).find(p=>p?.id===project.id);
-          current?.link.click();
+          current?.link?.click();
         });
         list.append(button);
       }
@@ -193,7 +195,7 @@
       if(focused)rail.querySelector(`[data-agpa-project="${focused}"]`)?.focus();
     }
     const selected=document.querySelector('[data-testid="conversation-row-sidebar"][data-selected="true"]');
-    const active=new URL(location.href).searchParams.get('section')||selected?.closest('[data-sidebar-section-id]')?.getAttribute('data-sidebar-section-id');
+    const active=(new URL(location.href).searchParams.get('project')||new URL(location.href).searchParams.get('section'))||selected?.closest('[data-sidebar-section-id]')?.getAttribute('data-sidebar-section-id');
     for(const button of rail.querySelectorAll('[data-agpa-project]')){
       const current=button.getAttribute('data-agpa-project')===active;
       if(current&&button.getAttribute('aria-current')!=='page')button.setAttribute('aria-current','page');
@@ -214,7 +216,10 @@
     for (const menu of document.querySelectorAll('[role="menu"][data-open]')) {
       if (!menu.querySelector('[data-testid="group-header-settings-item"]')) continue;
       const project = menuProject(menu);
-      if (!project || menu.querySelector('[data-agpa-menu-edit]')) continue;
+      if (!project) continue;
+      const existing = menu.querySelector('[data-agpa-menu-edit]');
+      if (existing?.getAttribute('data-agpa-menu-edit') === project.id) continue;
+      existing?.remove();
       const reference = menu.querySelector('[data-testid="group-header-settings-item"]');
       const item = el('button',{type:'button',role:'menuitem',tabindex:'-1',class:reference.className,'data-agpa-menu-edit':project.id},svg('settings',16),el('span',{class:'truncate',text:'Edit'}));
       item.addEventListener('pointerdown',e=>e.stopPropagation());
@@ -316,9 +321,20 @@
     });
     editorTranslate=paint;document.body.append(dialog);paint();dialog.showModal();search.focus();
   }
-  const observer=new MutationObserver(schedule);
-  observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['data-open','data-project-label','data-project-name','aria-labelledby','aria-expanded','data-selected']});
-  const routeTimer=setInterval(schedule,1000);
+  const watched = '[data-sidebar-section-drop-id],[data-testid=project-header],[data-testid=project-selector-trigger],[data-testid=project-selector-item],[data-testid=sidebar-toggle],[data-testid=settings-button],[data-testid=sidebar-navigation-items],[data-testid=conversation-row-sidebar],[role=menu]';
+  const observer=new MutationObserver(records => {
+    const owned = node => node.nodeType === 1 && (node.hasAttribute('data-agpa-appearance-ui') || node.closest('[data-agpa-appearance-ui]'));
+    if (records.some(record => {
+      const target = record.target.nodeType === 1 ? record.target : record.target.parentElement;
+      if (!target || owned(target)) return false;
+      const changed = [...record.addedNodes, ...record.removedNodes];
+      if (changed.length && changed.every(owned)) return false;
+      return target.closest(watched) || changed.some(node => node.nodeType === 1 && (node.matches(watched) || node.querySelector(watched)));
+    })) schedule();
+  });
+  observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['data-open','data-project-label','data-project-name','data-sidebar-section-drop-id','aria-labelledby','aria-expanded','data-selected']});
+  window.addEventListener('popstate',schedule);
+  window.addEventListener('hashchange',schedule);
   const untranslate=i18n.subscribe(()=>{schedule();editorTranslate?.();});
   globalThis.__AGProjectAppearance={
     version:VERSION,
@@ -329,8 +345,8 @@
       clearTimeout(request.timer);pending.delete(requestId);
       if(ok){this.setConfig(next);request.resolve();}else request.reject(Error(message||'Could not save.'));
     },
-    status(){return{version:VERSION,projectsFound:document.querySelectorAll('[data-testid="project-header"]').length,configuredProjects:Object.keys(config.projects||{}).length,editorOpen:!!editor,compactSidebar:!!rail&&!rail.hidden};},
-    destroy(){destroyed=true;untranslate();observer.disconnect();clearInterval(routeTimer);rail?.remove();rail=null;for(const [menu,handler]of menuHandlers)menu.removeEventListener('keydown',handler,true);menuHandlers.clear();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Appearance service stopped.'));}pending.clear();editor?.close();editor?.remove();editor=null;document.querySelectorAll('[data-agpa-menu-edit],.agpa-project-icon,.agpa-inline-icon').forEach(x=>x.remove());document.querySelectorAll('[data-agpa-styled]').forEach(x=>x.removeAttribute('data-agpa-styled'));document.querySelectorAll('[data-agpa-inline-native]').forEach(x=>x.removeAttribute('data-agpa-inline-native'));style.remove();delete globalThis.__AGProjectAppearance;}
+    status(){return{version:VERSION,projectsFound:document.querySelectorAll('[data-testid="project-header"]').length,projectsResolved:[...document.querySelectorAll('[data-testid="project-header"]')].filter(header=>projectFrom(header)).length,configuredProjects:Object.keys(config.projects||{}).length,editorOpen:!!editor,compactSidebar:!!rail&&!rail.hidden};},
+    destroy(){destroyed=true;untranslate();observer.disconnect();window.removeEventListener('popstate',schedule);window.removeEventListener('hashchange',schedule);rail?.remove();rail=null;for(const [menu,handler]of menuHandlers)menu.removeEventListener('keydown',handler,true);menuHandlers.clear();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Appearance service stopped.'));}pending.clear();editor?.close();editor?.remove();editor=null;document.querySelectorAll('[data-agpa-menu-edit],.agpa-project-icon,.agpa-inline-icon').forEach(x=>x.remove());document.querySelectorAll('[data-agpa-styled]').forEach(x=>x.removeAttribute('data-agpa-styled'));document.querySelectorAll('[data-agpa-inline-native]').forEach(x=>x.removeAttribute('data-agpa-inline-native'));style.remove();delete globalThis.__AGProjectAppearance;}
   };
   schedule();
 })();

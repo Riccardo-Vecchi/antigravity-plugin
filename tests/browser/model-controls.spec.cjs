@@ -72,3 +72,72 @@ test("native Teamwork editing, rollback, draft preservation and cleanup still pa
   const result = await page.evaluate(`(${team.verify.toString()})()`);
   expect(result.checks || result.passed.length).toBeGreaterThan(10);
 });
+
+test("a slowly rendered native submenu still opens the slider", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const trigger = window.fixture.trigger,
+      original = trigger.onclick;
+    trigger.onclick = () => {
+      original();
+      const row = document
+        .querySelector("[data-testid=model-selector-effort-group]")
+        ?.closest("[role=menuitem]");
+      if (row) {
+        const handler = row.onkeydown;
+        row.onkeydown = (e) => setTimeout(() => handler(e), 1500);
+      }
+    };
+  });
+  await page.locator(".agpa-effort-trigger").click();
+  await expect(page.locator(".agpa-effort-trigger")).toHaveAttribute(
+    "aria-busy",
+    "true",
+  );
+  await expect(
+    page.locator(".agpa-effort-popup input[type=range]"),
+  ).toBeVisible();
+  await expect(page.locator(".agpa-effort-trigger")).not.toHaveAttribute(
+    "aria-busy",
+  );
+  const range = page.locator(".agpa-effort-popup input[type=range]");
+  await range.focus();
+  await range.press("Home");
+  await expect(page.locator(".agpa-effort-label")).toHaveText("Low");
+});
+
+test("a transient submenu timeout does not permanently hide effort controls", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const trigger = window.fixture.trigger,
+      original = trigger.onclick;
+    trigger.onclick = () => {
+      original();
+      const row = document
+        .querySelector("[data-testid=model-selector-effort-group]")
+        ?.closest("[role=menuitem]");
+      if (row) {
+        row.savedKeydown = row.onkeydown;
+        row.onkeydown = () => {};
+      }
+    };
+  });
+  await page.locator(".agpa-effort-trigger").click();
+  await expect(page.locator(".agpa-effort-trigger")).not.toHaveAttribute(
+    "aria-busy",
+    { timeout: 5000 },
+  );
+  await expect(page.locator(".agpa-effort-trigger")).toBeVisible();
+  await page.evaluate(() => {
+    const row = document
+      .querySelector("[data-testid=model-selector-effort-group]")
+      .closest("[role=menuitem]");
+    row.onkeydown = row.savedKeydown;
+  });
+  await page.locator(".agpa-effort-trigger").click();
+  await expect(page.locator(".agpa-effort-popup")).toBeVisible();
+});

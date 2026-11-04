@@ -409,3 +409,32 @@ test('parseTranscriptContent and readTranscriptStats compute per-turn deltaToken
   assert.equal(t5.preCompactionTokens, 3150); // captures peak from previous turn!
   assert.equal(t5.postCompactionTokens, 1400); // post-compaction first response
 });
+
+
+test('unchanged transcript files are cached and changed files invalidate their snapshot', (t) => {
+  const os = require('node:os');
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agpa-transcript-cache-'));
+  t.after(() => fs.rmSync(dir, {recursive:true, force:true}));
+  const id = '11111111-2222-3333-4444-555555555555';
+  const logs = path.join(dir, id, '.system_generated', 'logs');
+  fs.mkdirSync(logs, {recursive:true});
+  const file = path.join(logs, 'transcript.jsonl');
+  fs.writeFileSync(file, JSON.stringify({type:'USER_INPUT',content:'first question'})+'\n');
+  const original = fs.readFileSync;
+  let reads = 0;
+  const spy = t.mock.method(fs,'readFileSync',function(name,...args){
+    if (name === file) reads++;
+    return original.call(this,name,...args);
+  });
+  const first = readTranscriptStats('/c/'+id,{brainDir:dir});
+  const again = readTranscriptStats('/c/'+id,{brainDir:dir});
+  assert.equal(reads,1);
+  assert.equal(first.maxChars,again.maxChars);
+  fs.appendFileSync(file,JSON.stringify({type:'USER_INPUT',content:'second longer question'})+'\n');
+  const next = readTranscriptStats('/c/'+id,{brainDir:dir});
+  assert.equal(reads,2);
+  assert.ok(next.maxChars > first.maxChars);
+  spy.mock.restore();
+});

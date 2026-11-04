@@ -622,6 +622,24 @@ function budgetLevelFor(tokens, ceiling = 1000000) {
   return { level: 'saturated', color: '#ff666a', label: 'Saturated', percentage, ceiling: max };
 }
 
+// Presentation totals are a partition, not a sum of API cache/input/output counters.
+// Missing instruction telemetry stays unknown rather than being presented as zero.
+function contextWindowBreakdown(stats = {}) {
+  const count = value => Number.isFinite(value) && value >= 0 ? value : 0;
+  const used = count(stats.tokens);
+  const capacity = count(stats.ceiling) || null;
+  const instructions = count(stats.systemTokens) > 0
+    ? Math.min(used, count(stats.systemTokens)) : null;
+  return {
+    used,
+    capacity,
+    instructions,
+    conversation: instructions === null ? null : used - instructions,
+    free: capacity === null ? null : Math.max(0, capacity - used),
+    percentage: capacity === null ? null : Math.min(100, used / capacity * 100),
+  };
+}
+
 function formatTokens(tokens) {
   const count = Number(tokens) || 0;
   if (count < 1000) return String(count);
@@ -1073,6 +1091,7 @@ function clearCache(key, storage) {
 }
 
 module.exports = {
+  contextWindowBreakdown,
   estimateTokens,
   estimateTokensPrecise,
   calculateEffectiveTokens,

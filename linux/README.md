@@ -13,7 +13,7 @@ The integration uses the app's existing local debugging endpoint. Other app vers
 
 ## Install on Linux
 
-Install the latest official Antigravity AppImage first. The tested compatibility baseline is 2.28.0.
+Install the latest official Antigravity AppImage first. The tested compatibility baseline is 2.29.0.
 
 Linux discovery first reads valid Antigravity `.desktop` entries in the XDG user and system applications directories. It accepts executable AppImages with the AppImage header, including quoted paths and launcher arguments. System launchers are represented by a user override; system files are not edited.
 

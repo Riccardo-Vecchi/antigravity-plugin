@@ -1,7 +1,7 @@
 /* Separate model/effort controls, delegating selection to native menu items. */
 (() => {
   "use strict";
-  const VERSION = "1.2.1";
+  const VERSION = "1.2.2";
   if (globalThis.__AGModelControls?.version === VERSION) return;
   globalThis.__AGModelControls?.destroy();
   const rules = globalThis.__AGPA_MODEL_CONTROLS__;
@@ -48,7 +48,7 @@
   }
   const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
   async function until(read, current) {
-    const deadline = Date.now() + 1200;
+    const deadline = Date.now() + 3000;
     while (!stopped && session === current && Date.now() < deadline) {
       const result = read();
       if (result) return result;
@@ -68,6 +68,7 @@
     }
     current.popup?.remove();
     current.button?.setAttribute("aria-expanded", "false");
+    current.button?.removeAttribute("aria-busy");
     if (
       native &&
       current.trigger.isConnected &&
@@ -280,6 +281,7 @@
     popup.showPopover();
     position(current);
     current.range.focus({ preventScroll: true });
+    current.button.removeAttribute("aria-busy");
     current.button.setAttribute("aria-expanded", "true");
   }
   async function open(trigger, button, preferred, group) {
@@ -298,6 +300,7 @@
       group,
     };
     session = current;
+    button?.setAttribute("aria-busy", "true");
     if (!origin.effortLabel && teamwork.active(trigger) && !preferred) {
       current.taskOnly = true;
       current.menu = document.body;
@@ -394,7 +397,9 @@
         showSlider(current);
       }
     } catch {
-      fallback(current);
+      // Slow or interrupted native rendering is transient, not proof that the
+      // model lacks effort support. Keep the control available for another try.
+      fallback(current, false);
     }
   }
   function hideNativeEfforts() {
@@ -703,6 +708,7 @@
   [data-agpa-native-effort-menu]{visibility:hidden!important;pointer-events:none!important}
   [data-agpa-native-model-row] [data-testid=model-selector-effort-group]+span{display:none!important}
   .agpa-effort-trigger{display:inline-flex;align-items:center;gap:3px;order:21;height:28px;flex-shrink:0;border:0;border-radius:999px;background:transparent;color:var(--muted-foreground,#999);font:inherit;font-size:12px;padding:0 8px;cursor:pointer;white-space:nowrap}
+  .agpa-effort-trigger[aria-busy=true]{cursor:progress;opacity:.7}
   .agpa-effort-trigger:hover,.agpa-effort-trigger[aria-expanded=true]{background:var(--secondary,#303030);color:var(--foreground,#eee)}
   .agpa-effort-trigger:focus-visible{outline:2px solid #398bdb;outline-offset:2px}.agpa-effort-trigger:disabled{opacity:.5;cursor:default}
   .agpa-effort-trigger[data-teamwork]{color:#d4b1ff;background:#8f46df26;box-shadow:inset 0 0 0 1px #9e5bef45}.agpa-teamwork-burst{position:fixed;z-index:2147483647;pointer-events:none;width:14px;height:14px;border:1px solid #c595ff;border-radius:50%;box-shadow:0 -12px 0 -5px #d6b4ff,11px -5px 0 -5px #ba7cff,10px 8px 0 -5px #e5caff,0 13px 0 -5px #af67ff,-11px 6px 0 -5px #ddbbff,-11px -7px 0 -5px #ae5fff}.agpa-teamwork-error{order:50;color:#f3a4aa;font-size:11px;flex-basis:100%;padding:4px 8px}

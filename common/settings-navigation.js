@@ -1,7 +1,7 @@
 /* Small, reversible additions to the native Settings navigation. */
 (() => {
  'use strict';
- const VERSION = '1.2.1';
+ const VERSION = '1.2.2';
  if (globalThis.__AGSettingsNavigation?.version === VERSION) return;
  globalThis.__AGSettingsNavigation?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -74,7 +74,12 @@
   for (const button of dialog.querySelectorAll('[data-testid^=settings-nav-item-]')) {
    const key = button.dataset.testid.slice('settings-nav-item-'.length);
    if (key === 'Account') continue;
-   if (paths[key]) {if (!button.querySelector('[data-agpa-settings-icon]')) button.prepend(icon(key));continue;}
+   if (paths[key]) {
+    const added = button.querySelector('[data-agpa-settings-icon]');
+    if (button.querySelector(':scope > svg:not([data-agpa-settings-icon]),:scope > [data-icon]')) added?.remove();
+    else if (!added) button.prepend(icon(key));
+    continue;
+   }
    const project = globalThis.__AGProjectPresentation?.byName(button.querySelector(':scope > span:not([data-agpa-settings-icon])')?.textContent || key);
    const appearance = project && projectStyles.projects?.[project.id];
    const signature = JSON.stringify([project?.id, appearance]);

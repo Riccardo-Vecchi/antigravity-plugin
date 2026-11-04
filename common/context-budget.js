@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.0.28';
+  const VERSION = '1.1.1';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -18,7 +18,7 @@
   };
 
   let stopped = false, timer = null;
-  let activeStats = null, popup = null;
+  let activeStats = null, popup = null, popupButton = null;
 
   function element(tag, attributes = {}, ...children) {
     const node = document.createElement(tag);
@@ -346,8 +346,10 @@
     });
   }
 
-    function closePopup() {
+  function closePopup() {
     closeTurnTooltip();
+    popupButton?.setAttribute('aria-expanded', 'false');
+    popupButton = null;
     if (popup) {
       popup.remove();
       popup = null;
@@ -377,132 +379,122 @@
   }
 
   function placePopup(button) {
-    document.body.append(popup);
+    if (popup.parentElement !== document.body) document.body.append(popup);
     const rect = button.getBoundingClientRect();
-    popup.style.left = Math.max(8, Math.min(rect.right - 220, window.innerWidth - 230)) + 'px';
-    popup.style.top = Math.max(8, rect.top - popup.offsetHeight - 8) + 'px';
-    if (rect.top < popup.offsetHeight + 16) {
-      popup.style.top = Math.min(rect.bottom + 8, window.innerHeight - popup.offsetHeight - 8) + 'px';
-    }
+    const width = popup.getBoundingClientRect().width;
+    const height = Math.min(popup.offsetHeight, window.innerHeight - 16);
+    popup.style.left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8)) + 'px';
+    const above = rect.top - height - 8;
+    popup.style.top = Math.max(8, above >= 8 ? above : Math.min(rect.bottom + 8, window.innerHeight - height - 8)) + 'px';
   }
 
   function openDetails(button, stats) {
     closePopup();
     if (stopped) return;
+    popupButton = button;
+    button.setAttribute('aria-expanded', 'true');
     popup = element('div', {
-      class: 'agpa-context-popup',
-      role: 'dialog',
-      'aria-label': t('Context: {tokens}', { tokens: stats.formatted })
+      class: 'agpa-context-popup', role: 'dialog',
+      'aria-label': t('Context window'), 'data-level': stats.budget.level
     });
-
+    popup.style.setProperty('--context-color', stats.budget.level === 'saturated' ? '#f08080' : stats.budget.level === 'elevated' ? '#e8b75b' : '#a78bfa');
     const header = element('div', { class: 'agpa-context-header' });
-    const title = element('strong', { text: t('Context: {tokens}', { tokens: stats.formatted }) });
+    header.append(element('strong', { class: 'agpa-context-title', text: t('Context window') }));
     const closeBtn = element('button', {
-      type: 'button',
-      class: 'agpa-context-close',
-      'aria-label': t('Close'),
-      text: '×'
+      type: 'button', class: 'agpa-context-close', 'aria-label': t('Close'), text: '×'
     });
     closeBtn.addEventListener('click', closePopup);
-    header.append(title, closeBtn);
+    popup.append(header);
     if (isPending(stats)) {
-      title.textContent = t('Context window');
-      popup.setAttribute('aria-label', t('Context window'));
-      popup.append(header, element('p', {
-        class: 'agpa-context-desc',
-        text: t('Context estimates appear after the conversation starts.')
+      header.append(closeBtn);
+      popup.append(element('p', {
+        class: 'agpa-context-desc', text: t('Context estimates appear after the conversation starts.')
       }));
       placePopup(button);
       return;
     }
 
+    const totals = rules.contextWindowBreakdown(stats);
+    const format = value => {
+      if (value === null) return t('Unavailable');
+      if (value < 1000) return String(Math.round(value));
+      const unit = value >= 1000000 ? 1000000 : 1000;
+      return '~' + Number((value / unit).toFixed(1)) + (unit === 1000 ? 'k' : 'M');
+    };
+    const percent = totals.percentage === null ? '—' : Math.round(totals.percentage) + '%';
+    header.append(closeBtn);
+    const hero = element('div', {class:'agpa-context-hero'});
+    const donut = element('div', {class:'agpa-context-donut', 'aria-hidden':'true'});
+    donut.style.setProperty('--context-percent', (totals.percentage || 0) + '%');
+    donut.append(element('strong', {class:'agpa-context-percent', text:percent}));
+    const headline = element('div', {class:'agpa-context-headline'});
+    headline.append(element('div', {class:'agpa-context-full', text:t('{percent} full', {percent})}), element('div', {
+      class:'agpa-context-used',
+      text:t('{used} of {capacity} tokens used', {used:format(totals.used),capacity:format(totals.capacity)})
+    }));
+    hero.append(donut,headline);popup.append(hero);
 
-    const desc = element('p', {
-      class: 'agpa-context-desc',
-      text: t('Context budget: {tokens} tokens ({turns} turns)', {
-        tokens: stats.formatted,
-        turns: String(stats.turns)
-      })
+    const meter = element('div', {
+      class: 'agpa-context-meter', role: 'progressbar',
+      'aria-label': t('Context window'), 'aria-valuemin': '0', 'aria-valuemax': '100'
     });
+    if (totals.percentage !== null) meter.setAttribute('aria-valuenow', String(Math.round(totals.percentage)));
+    meter.setAttribute('aria-valuetext', percent);
+    const instructionsSegment = element('span', {class:'agpa-context-meter-instructions'});
+    const conversationSegment = element('span', {class:'agpa-context-meter-used'});
+    const instructionsPercent = totals.capacity ? Math.min(totals.percentage || 0, (totals.instructions || 0) / totals.capacity * 100) : 0;
+    instructionsSegment.style.width = instructionsPercent + '%';
+    conversationSegment.style.width = Math.max(0, (totals.percentage || 0) - instructionsPercent) + '%';
+    meter.append(instructionsSegment,conversationSegment);
+    popup.append(meter);
 
-    const statusNote = element('div', {
-      class: 'agpa-context-status',
-      'data-level': stats.budget.level,
-      text:
-        stats.budget.level === 'healthy' || stats.budget.level === 'moderate'
-          ? t('Context budget is healthy')
-          : stats.budget.level === 'elevated'
-          ? t('Context budget is elevated. Consider using /compact.')
-          : t('Context budget is saturated. /compact recommended.')
-    });
-
-    const ceilingFmt = rules.formatTokens ? rules.formatTokens(stats.ceiling || 200000) : '~200k';
-    const modelNote = element('div', {
-      class: 'agpa-context-model-note',
-      text: stats.modelName
-        ? `${stats.modelName} · ${stats.budget.percentage}% (${ceilingFmt} max)`
-        : `${stats.budget.percentage}% (${ceilingFmt} max)`
-    });
-
-    const parts = [];
-    if (stats.imageCount > 0) {
-      parts.push(`${stats.imageCount} ${stats.imageCount === 1 ? 'image' : 'images'} (~${rules.formatTokens ? rules.formatTokens(stats.imageTokens) : stats.imageTokens})`);
+    function row(label, value, icon, className = '') {
+      const item = element('div', { class: 'agpa-context-row ' + className });
+      item.append(element('span', { class: 'agpa-context-row-icon', text: icon, 'aria-hidden': 'true' }),
+        element('span', { class: 'agpa-context-row-label', text: label }),
+        element('span', { class: 'agpa-context-row-value', text: value }));
+      return item;
     }
-    if (stats.docCount > 0) {
-      parts.push(`${stats.docCount} ${stats.docCount === 1 ? 'doc' : 'docs'} (~${rules.formatTokens ? rules.formatTokens(stats.docTokens) : stats.docTokens})`);
-    }
+    popup.append(row(t('Instructions and tools'), format(totals.instructions), '⚙︎', 'agpa-context-instructions'),
+      row(t('Conversation'), format(totals.conversation), '☷', 'agpa-context-conversation'),
+      row(t('Free'), format(totals.free), '○', 'agpa-context-free'));
+    popup.append(element('p', {
+      class: 'agpa-context-desc agpa-context-estimate',
+      text: t('Estimated from available data; the actual context may differ.')
+    }));
+    popup.append(element('p', {
+      class: 'agpa-context-desc', text: t('Older turns can be summarized to make room as the window fills.')
+    }));
 
-    popup.append(header, desc, modelNote);
-
+    const details = element('details', { class: 'agpa-context-details' });
+    details.addEventListener('toggle', () => {
+      if (popup && details.isConnected) placePopup(button);
+    });
+    details.append(element('summary', { text: t('Usage details') }));
+    if (stats.modelName) details.append(element('div', { class: 'agpa-context-model-note', text: stats.modelName }));
+    const breakdown = element('div', { class: 'agpa-context-breakdown' });
+    const tokenRow = (label, value, icon) => row(t(label) + ':', format(value) + ' tok', icon);
     if (stats.cacheReadTokens > 0 || stats.inputTokens > 0 || stats.outputTokens > 0) {
-      const cacheFmt = rules.formatTokens ? rules.formatTokens(stats.cacheReadTokens) : String(stats.cacheReadTokens || 0);
-      const inputFmt = rules.formatTokens ? rules.formatTokens(stats.inputTokens) : String(stats.inputTokens || 0);
-      const outFmt = rules.formatTokens ? rules.formatTokens(stats.outputTokens) : String(stats.outputTokens || 0);
-      const breakdown = element('div', {
-        class: 'agpa-context-breakdown',
-        text: `⚡ Cached: ${cacheFmt} · Active prompt: ${inputFmt} · Output: ${outFmt}`
-      });
-      popup.append(breakdown);
+      breakdown.append(tokenRow('Cached', stats.cacheReadTokens || 0, '⚡'),
+        tokenRow('Active prompt', stats.inputTokens || 0, '↳'),
+        tokenRow('Output', stats.outputTokens || 0, '↗'));
     }
-
-    if (stats.systemTokens > 0) {
-      const sysFmt = rules.formatTokens ? rules.formatTokens(stats.systemTokens) : `${stats.systemTokens}`;
-      const sysDetails = [];
-      if (stats.systemBaseline?.toolsCount > 0) {
-        sysDetails.push(`${stats.systemBaseline.toolsCount} ${stats.systemBaseline.toolsCount === 1 ? 'tool' : 'tools'}`);
-      } else if (stats.systemBaseline?.mcpCount > 0) {
-        sysDetails.push(`${stats.systemBaseline.mcpCount} MCP`);
-      }
-      if (stats.systemBaseline?.rulesCount > 0) {
-        sysDetails.push(`${stats.systemBaseline.rulesCount} ${stats.systemBaseline.rulesCount === 1 ? 'rule' : 'rules'}`);
-      }
-      const label = sysDetails.length > 0 ? `⚙️ System & tools: ${sysFmt} (${sysDetails.join(', ')})` : `⚙️ System overhead: ${sysFmt}`;
-      const sysNode = element('div', {
-        class: 'agpa-context-system-note',
-        text: label
-      });
-      popup.append(sysNode);
+    if (stats.imageCount > 0) breakdown.append(tokenRow('Vision', stats.imageTokens || 0, '▧'));
+    if (stats.docCount > 0) breakdown.append(tokenRow('Documents', stats.docTokens || 0, '▤'));
+    const baseline = stats.systemBaseline?.tokens > 0 && Math.abs(stats.systemBaseline.tokens - totals.instructions) < 1 ? stats.systemBaseline : null;
+    // A local baseline is an estimate, never a measured server-side system prompt.
+    for (const [key, field, symbol] of [['System prompt','baseTokens','⚙︎'],['Tools','toolTokens','⌘'],['Rules','ruleTokens','▤']]) {
+      breakdown.append(row(t(key)+':', format(baseline && totals.instructions !== null ? Math.min(totals.instructions, baseline[field] || 0) : null), symbol));
     }
-
-    if (parts.length > 0) {
-      const attachmentsNote = element('div', {
-        class: 'agpa-context-attachments-note',
-        text: `📎 ${parts.join(' · ')}`
-      });
-      popup.append(attachmentsNote);
-    }
-    popup.append(statusNote);
-
+    details.append(breakdown);
+    popup.append(details);
     if (stats.budget.level === 'elevated' || stats.budget.level === 'saturated') {
       const action = element('button', {
-        type: 'button',
-        class: 'agpa-context-compact-btn',
-        text: t('Insert /compact')
+        type: 'button', class: 'agpa-context-compact-btn', text: t('Insert /compact')
       });
       action.addEventListener('click', () => insertCompact(button));
       popup.append(action);
     }
-
     placePopup(button);
   }
 
@@ -511,7 +503,8 @@
       type: 'button',
       class: 'agpa-context-pill',
       'data-agpa-context-budget': '',
-      'aria-haspopup': 'dialog'
+      'aria-haspopup': 'dialog',
+      'aria-expanded': 'false'
     });
     pill.addEventListener('click', e => {
       e.preventDefault();
@@ -519,6 +512,7 @@
       if (popup) closePopup();
       else openDetails(pill, activeStats || rules.extractConversationStats(document));
     });
+    pill.append(element('span', {class:'agpa-context-ring', 'aria-hidden':'true'}));
     return pill;
   }
 
@@ -526,7 +520,7 @@
     if (isPending(stats)) {
       const label = t('Context window');
       pill.setAttribute('data-level', 'pending');
-      pill.textContent = '— tok';
+      pill.style.setProperty('--agpa-context-fill','0%');
       pill.setAttribute('title', t('Context estimates appear after the conversation starts.'));
       pill.setAttribute('aria-label', label);
       return;
@@ -536,10 +530,8 @@
     }
     pill.style.setProperty('--budget-color', stats.budget.color);
 
-    const tokenLabel = stats.formatted.endsWith('k') ? `${stats.formatted} tok` : `${stats.formatted} tok`;
-    const labelText = stats.budget.level === 'saturated' ? `⚠️ ${tokenLabel} · /compact` : tokenLabel;
-
-    if (pill.textContent !== labelText) pill.textContent = labelText;
+    const tokenLabel = `${stats.formatted} tok`;
+    pill.style.setProperty('--agpa-context-fill', Math.max(0, Math.min(100, stats.budget.percentage)) + '%');
     const ceilingFormatted = rules.formatTokens ? rules.formatTokens(stats.ceiling || 200000) : '~200k';
     const titleText = stats.modelName
       ? (t('Context: {tokens}', { tokens: tokenLabel }) + ' / ' + ceilingFormatted + ' (' + stats.budget.percentage + '%) · ' + stats.modelName)
@@ -550,80 +542,6 @@
       turns: String(stats.turns)
     });
     if (pill.getAttribute('aria-label') !== ariaText) pill.setAttribute('aria-label', ariaText);
-  }
-
-  const hydratedKeys = new Set();
-  let hydrating = false;
-  let hydrateTimer = null;
-
-  function tryAutoHydrate(doc = document) {
-    if (stopped || hydrating) return;
-    const convKey = rules.getConversationKey ? rules.getConversationKey(doc) : 'default';
-    if (!convKey || convKey === 'default' || hydratedKeys.has(convKey)) return;
-
-    const active = doc.activeElement;
-    const isInput = active && (active.getAttribute?.('contenteditable') === 'true' || active.tagName === 'TEXTAREA' || active.tagName === 'INPUT');
-    if (isInput) {
-      const text = (active.textContent || active.value || '').trim();
-      if (text.length > 0) return;
-    }
-
-    const viewport = doc.querySelector?.('[data-testid=autoscroll-viewport]');
-    if (!viewport) return;
-
-    const originalTop = viewport.scrollTop;
-    if (originalTop <= 50 || viewport.scrollHeight <= viewport.clientHeight * 1.15) {
-      hydratedKeys.add(convKey);
-      return;
-    }
-
-    hydratedKeys.add(convKey);
-    hydrating = true;
-
-    const clientHeight = viewport.clientHeight || 800;
-    const scrollStep = Math.max(400, Math.round(clientHeight * 0.75));
-    let currentTop = originalTop;
-
-    const cleanup = () => {
-      window.removeEventListener?.('keydown', onUserCancel, true);
-      window.removeEventListener?.('wheel', onUserCancel, true);
-    };
-
-    const onUserCancel = () => {
-      if (!hydrating) return;
-      if (hydrateTimer) {
-        clearInterval(hydrateTimer);
-        hydrateTimer = null;
-      }
-      hydrating = false;
-      viewport.scrollTop = originalTop;
-      cleanup();
-    };
-
-    window.addEventListener?.('keydown', onUserCancel, true);
-    window.addEventListener?.('wheel', onUserCancel, true);
-
-    hydrateTimer = setInterval(() => {
-      if (stopped) {
-        onUserCancel();
-        return;
-      }
-      currentTop = Math.max(0, currentTop - scrollStep);
-      viewport.scrollTop = currentTop;
-
-      if (currentTop <= 0) {
-        clearInterval(hydrateTimer);
-        hydrateTimer = null;
-        setTimeout(() => {
-          if (!stopped) {
-            viewport.scrollTop = originalTop;
-            hydrating = false;
-            cleanup();
-            schedule(true);
-          }
-        }, 30);
-      }
-    }, 16);
   }
 
   function apply() {
@@ -649,8 +567,25 @@
       }
     }
 
-    tryAutoHydrate(document);
     updateTurnBadges(document, stats);
+
+    // Native controls own their values, popup, and events. Our global estimate
+    // is only a fallback while the official feature is unavailable in the rollout.
+    const nativeContext = document.querySelector('[data-testid=context-usage-indicator]');
+    if (nativeContext) {
+      closePopup();
+      document.querySelectorAll('[data-agpa-context-budget]').forEach(node => node.remove());
+      const footer = nativeContext.closest('[data-agpa-composer-footer], .agy-composer-footer');
+      footer?.querySelector('[data-testid=model-selector-trigger]')?.setAttribute('data-agpa-context-adjacent','');
+      return;
+    }
+
+    if (isPending(stats)) {
+      closePopup();
+      document.querySelectorAll('[data-agpa-context-budget]').forEach(node => node.remove());
+      document.querySelectorAll('[data-agpa-context-adjacent]').forEach(node => node.removeAttribute('data-agpa-context-adjacent'));
+      return;
+    }
 
     const triggers = document.querySelectorAll('[data-testid=model-selector-trigger]');
     if (!triggers.length) {
@@ -672,15 +607,9 @@
       const parent = trigger.parentElement;
       let pill = parent?.querySelector('[data-agpa-context-budget]') || document.querySelector('[data-agpa-context-budget]');
 
-      const effort = parent?.querySelector('.agpa-effort-trigger');
-      const anchor = effort || trigger;
-
-      if (!pill) {
-        pill = createPill();
-        anchor.after(pill);
-      } else if (pill.previousElementSibling !== anchor) {
-        anchor.after(pill);
-      }
+      if (!pill) pill = createPill();
+      if (pill.nextElementSibling !== trigger) parent.insertBefore(pill,trigger);
+      trigger.setAttribute('data-agpa-context-adjacent','');
 
       updatePill(pill, stats);
     }
@@ -705,119 +634,66 @@
   style.id = 'agpa-context-budget-styles';
   style.textContent = `
     .agpa-context-pill {
-      order: 22;
-      height: 24px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      flex-shrink: 0;
-      padding: 0 8px;
-      margin-left: 2px;
-      border: 1px solid var(--border, #444);
-      border-radius: 999px;
-      background: var(--card, #252525);
-      color: var(--secondary-foreground, #aaa);
-      font: 500 11px system-ui, sans-serif;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 180ms ease-out;
+      order:19;width:26px;height:28px;display:inline-flex;align-items:center;justify-content:center;
+      flex-shrink:0;padding:0;margin-inline-start:auto;margin-inline-end:2px;border:0;border-radius:50%;
+      background:transparent;color:var(--muted-foreground,#aaa);cursor:pointer;
     }
-    .agpa-context-pill:hover {
-      background: var(--secondary, #333);
-      color: var(--foreground, #eee);
-      border-color: var(--budget-color, #6ba9ff);
-    }
-    .agpa-context-pill[data-level="healthy"] {
-      border-color: #6ba9ff40;
-      color: #8ab4f8;
-    }
-    .agpa-context-pill[data-level="moderate"] {
-      border-color: #41c87840;
-      color: #6ee7b7;
-    }
-    .agpa-context-pill[data-level="elevated"] {
-      border-color: #ffd64770;
-      color: #fde047;
-      background: #ffd64715;
-    }
-    .agpa-context-pill[data-level="saturated"] {
-      border-color: #ff666a;
-      color: #fca5a5;
-      background: #ff666a25;
-      font-weight: 600;
-      animation: agpa-pulse 2s infinite ease-in-out;
-    }
-    @keyframes agpa-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(255,102,106,0.4); }
-      50% { box-shadow: 0 0 0 4px rgba(255,102,106,0); }
-    }
+    .agpa-context-ring {display:block;width:14px;height:14px;border-radius:50%;
+      background:conic-gradient(currentColor var(--agpa-context-fill,0%),color-mix(in srgb,currentColor 25%,transparent) 0);
+      mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0)}
+    .agpa-context-pill:hover {background:var(--secondary,#303030);color:var(--foreground,#eee)}
+    .agpa-context-pill:focus-visible {outline:2px solid #6ba9ff;outline-offset:2px}
+    .agpa-context-pill[data-level="elevated"] {color:#ffd647}
+    .agpa-context-pill[data-level="saturated"] {color:#f08080}
+    [data-testid=context-usage-indicator] {order:19;margin-inline-start:auto}
+    [data-agpa-context-adjacent] {margin-inline-start:0!important}
     .agpa-context-popup {
       position: fixed;
       z-index: 2147483640;
-      width: 240px;
+      width: min(340px, calc(100vw - 16px));
+      max-height: calc(100vh - 16px);
+      overflow: auto;
       box-sizing: border-box;
-      padding: 12px;
-      border: 1px solid var(--border, #444);
+      padding: 16px;
+      border: 1px solid var(--border, #333);
       border-radius: 14px;
-      background: var(--card, #252525);
+      background: var(--card, #1b1b1e);
       color: var(--foreground, #eee);
-      font: 12px/1.4 system-ui, sans-serif;
-      box-shadow: 0 10px 30px #0006;
+      font: 12px/1.5 system-ui, sans-serif;
+      box-shadow: 0 8px 28px #0006;
+      font-variant-numeric: tabular-nums;
     }
-    .agpa-context-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-    .agpa-context-close {
-      border: 0;
-      background: transparent;
-      color: var(--secondary-foreground, #aaa);
-      font: 16px/1 system-ui;
-      cursor: pointer;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-    .agpa-context-close:hover {
-      color: var(--foreground, #eee);
-    }
-    .agpa-context-desc {
-      margin: 0 0 8px;
-      font-size: 11px;
-      color: var(--muted-foreground, #aaa);
-    }
-    .agpa-context-model-note {
-      font-size: 11px;
-      color: var(--secondary-foreground, #aaa);
-      margin: 2px 0 8px 0;
-    }
-    .agpa-context-breakdown {
-      font-size: 11px;
-      color: var(--secondary-foreground, #bbb);
-      margin: 2px 0 8px 0;
-      padding: 4px 6px;
-      background: var(--secondary, rgba(255, 255, 255, 0.05));
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .agpa-context-status {
-      font-size: 11px;
-      margin-bottom: 8px;
-      padding: 6px 8px;
-      border-radius: 8px;
-      background: var(--secondary, #303030);
-    }
-    .agpa-context-status[data-level="saturated"] {
-      background: #ff666a20;
-      color: #fca5a5;
-      border: 1px solid #ff666a40;
-    }
-    .agpa-context-status[data-level="elevated"] {
-      background: #ffd64720;
-      color: #fde047;
-      border: 1px solid #ffd64740;
-    }
+    .agpa-context-header {display:flex;align-items:center;gap:8px;margin-bottom:9px}
+    .agpa-context-title {text-transform:uppercase;letter-spacing:.055em;font-size:10px;font-weight:600;color:var(--muted-foreground,#999);margin-right:auto}
+    .agpa-context-percent {font-size:13px;font-weight:600;color:var(--foreground,#eee);position:relative}
+    .agpa-context-hero {display:flex;align-items:center;gap:14px;margin:10px 0 16px}
+    .agpa-context-donut {width:56px;height:56px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;position:relative;isolation:isolate}
+    .agpa-context-donut::before {content:'';position:absolute;inset:0;border-radius:inherit;background:conic-gradient(var(--context-color,#a78bfa) var(--context-percent,0%),var(--secondary,#303034) 0);mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 0)}
+    .agpa-context-headline {min-width:0}
+    .agpa-context-full {font-size:13px;font-weight:600;color:var(--context-color,#a78bfa);margin-bottom:3px}
+    .agpa-context-close {border:0;background:transparent;color:var(--muted-foreground,#999);font:16px/1 system-ui;cursor:pointer;padding:1px 3px;border-radius:4px}
+    .agpa-context-close:hover {color:var(--foreground,#eee)}
+    .agpa-context-close:focus-visible,.agpa-context-details summary:focus-visible {outline:2px solid #6ba9ff;outline-offset:3px}
+    .agpa-context-used {font-size:12px;font-weight:500;color:var(--secondary-foreground,#bbb)}
+    .agpa-context-meter {display:flex;height:6px;border-radius:4px;overflow:hidden;background:var(--secondary,#2d2d31);margin-bottom:12px}
+    .agpa-context-meter-used {display:block;height:100%;border-radius:inherit;background:#a78bfa}
+    .agpa-context-meter-instructions {display:block;height:100%;background:#6ba9ff}
+    .agpa-context-popup[data-level="elevated"] .agpa-context-meter-used {background:#ffd647}
+    .agpa-context-popup[data-level="saturated"] .agpa-context-meter-used {background:#f08080}
+    .agpa-context-row {display:flex;align-items:center;gap:8px;min-height:25px;font-size:12px}
+    .agpa-context-row-icon {width:15px;flex-shrink:0;text-align:center;color:var(--muted-foreground,#999);font-size:13px}
+    .agpa-context-row-label {flex:1;min-width:0}
+    .agpa-context-row-value {text-align:right;white-space:nowrap;font-weight:500}
+    .agpa-context-instructions .agpa-context-row-icon {color:#6ba9ff}
+    .agpa-context-conversation .agpa-context-row-icon {color:#a78bfa}
+    .agpa-context-free {color:var(--muted-foreground,#999)}
+    .agpa-context-desc {margin:8px 0 0;font-size:11px;line-height:1.5;color:var(--muted-foreground,#999)}
+    .agpa-context-estimate {margin-top:12px}
+    .agpa-context-details {border-top:1px solid var(--border,#333);margin-top:12px;padding-top:9px}
+    .agpa-context-details summary {cursor:pointer;color:var(--muted-foreground,#aaa);font-size:11px}
+    .agpa-context-model-note {font-size:11px;color:var(--muted-foreground,#aaa);margin-top:9px}
+    .agpa-context-breakdown {margin-top:6px}
+    .agpa-context-breakdown .agpa-context-row {font-size:11px;min-height:23px}
     .agpa-context-compact-btn {
       width: 100%;
       height: 28px;
@@ -985,6 +861,15 @@
     }
   };
   document.addEventListener('pointerdown', onPointerDown, true);
+  const onKeyDown = e => {
+    if (e.key === 'Escape' && popup) {
+      const button = popupButton;
+      closePopup();
+      button?.focus({ preventScroll: true });
+      e.stopPropagation();
+    }
+  };
+  document.addEventListener('keydown', onKeyDown);
 
   const onStorage = e => {
     if (e && e.key && e.key.startsWith('agpa_context_budget_')) schedule();
@@ -1028,8 +913,10 @@
       observer.disconnect();
       unsubscribe();
       document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('keydown', onKeyDown);
       window.removeEventListener?.('storage', onStorage);
       style.remove();
+      document.querySelectorAll('[data-agpa-context-adjacent]').forEach(node=>node.removeAttribute('data-agpa-context-adjacent'));
       document.querySelectorAll('[data-agpa-context-budget], [data-agpa-context-ui], .agpa-turn-token-badge, .agpa-turn-tooltip').forEach(n => n.remove());
       delete globalThis.__AGContextBudget;
     }

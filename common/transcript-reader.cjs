@@ -3,6 +3,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const transcriptCache = new Map();
+const MAX_TRANSCRIPT_BYTES = 32 * 1024 * 1024;
 
 function getBrainDir(options = {}) {
   const env = options.env || process.env;
@@ -299,13 +301,16 @@ function readTranscriptStats(conversationKey, options = {}) {
       fileToRead = normalFile;
       fileStat = fs.statSync(normalFile);
     }
-    if (!fileToRead) return null;
+    if (!fileToRead || !fileStat.isFile() || fileStat.size > MAX_TRANSCRIPT_BYTES) return null;
+    const stamp = `${fileStat.mtimeMs}:${fileStat.ctimeMs}:${fileStat.size}:${fileStat.ino}`;
+    const cached = transcriptCache.get(fileToRead);
+    if (cached?.stamp === stamp) return {...cached.stats, updatedAt: Date.now()};
 
     const content = fs.readFileSync(fileToRead, 'utf8');
     const parsed = parseTranscriptContent(content);
     if (!parsed) return null;
 
-    return {
+    const stats = {
       conversationId: id,
       maxChars: parsed.chars,
       maxCodeChars: parsed.codeChars,
@@ -327,6 +332,10 @@ function readTranscriptStats(conversationKey, options = {}) {
       documents: [],
       updatedAt: Date.now()
     };
+    transcriptCache.delete(fileToRead);
+    transcriptCache.set(fileToRead, {stamp, stats});
+    while (transcriptCache.size > 16) transcriptCache.delete(transcriptCache.keys().next().value);
+    return {...stats};
   } catch {
     return null;
   }

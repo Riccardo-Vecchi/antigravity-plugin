@@ -60,9 +60,10 @@ test('download progress reports actual received bytes before a checksum failure'
  assert.ok(events.some(e=>e.phase==='download'&&e.received===6&&e.total===6));assert.equal(events.at(-1).phase,'verify');
 });
 test('update checks filter other Cua products/nightlies/drafts and compare numeric regular versions',async()=>{
- const items=[{tag_name:'nightly-cua-driver-rs-v99.0.0'},{tag_name:'cua-spaces-v88.0.0'},{tag_name:'cua-driver-rs-v99.0.0',draft:true},{tag_name:'cua-driver-rs-v0.9.0'},{tag_name:'cua-driver-rs-v0.38.0',prerelease:true},{tag_name:'cua-driver-rs-v0.37.0'}];
+ const parts=VERSION.split('.').map(Number);const next=parts[0]+'.'+parts[1]+'.'+(parts[2]+1);
+ const items=[{tag_name:'nightly-cua-driver-rs-v99.0.0'},{tag_name:'cua-spaces-v88.0.0'},{tag_name:'cua-driver-rs-v99.0.0',draft:true},{tag_name:'cua-driver-rs-v0.9.0'},{tag_name:'cua-driver-rs-v'+next,prerelease:true},{tag_name:'cua-driver-rs-v0.37.0'}];
  const result=await checkForUpdates(async(url,options)=>{assert.match(url,/^https:\/\/api.github.com\/repos\/trycua\/cua\/releases\?/);assert.ok(options.signal);return new Response(JSON.stringify(items));});
- assert.equal(result.version,'0.38.0');assert.equal(result.available,true);assert.equal(result.prerelease,true);assert.equal(result.reviewedVersion,VERSION);assert.equal(result.url,'https://github.com/trycua/cua/releases/tag/cua-driver-rs-v0.38.0');
+ assert.equal(result.version,next);assert.equal(result.available,true);assert.equal(result.prerelease,true);assert.equal(result.reviewedVersion,VERSION);assert.equal(result.url,'https://github.com/trycua/cua/releases/tag/cua-driver-rs-v'+next);
  const current=await checkForUpdates(async()=>new Response(JSON.stringify([{tag_name:'cua-driver-rs-v'+VERSION}])));assert.equal(current.available,false);
 });
 test('unavailable release discovery is an error, never a false up-to-date result',async()=>{

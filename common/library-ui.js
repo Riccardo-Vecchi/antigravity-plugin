@@ -1,7 +1,7 @@
 /* Artifact library layered over the native pane, preserving its conversation. */
 (() => {
   "use strict";
-  const VERSION = "1.2.0";
+  const VERSION = "1.2.1";
   globalThis.__AGLibrary?.destroy();
   const i18n = globalThis.__AGPAI18n;
   const createPicker = globalThis.__AGPA_LIBRARY_PICKER__;
@@ -141,9 +141,7 @@
       ? railRight
       : Math.max(sidebar?.getBoundingClientRect().right || 0, railRight);
     panel.style.top = top + "px";
-    panel.style.left = document.body.hasAttribute("data-agpa-layout-ready")
-      ? "var(--agpa-navigation-width)"
-      : left + "px";
+    panel.style.left = left + "px";
   }
   function closePreview() {
     previewGeneration++;
@@ -819,6 +817,7 @@
     opener = document.activeElement;
     if (!panel) create();
     panel.hidden = false;
+    observeLayout();
     button?.setAttribute("aria-current", "page");
     bounds();
     paint();

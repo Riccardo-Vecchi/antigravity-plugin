@@ -9,8 +9,10 @@ function probe(version,expected={}){
   settings:!settingsOpen||(exists('[data-testid=settings-nav-item-App]')&&exists('[data-testid=settings-nav-item-Appearance]')&&exists('[data-testid=settings-nav-item-Shortcuts]')),
   guest:typeof globalThis.electronNative?.executeJavaScriptInIsolatedWorld==='function'
  };
+ const appearance=globalThis.__AGProjectAppearance?.status();
+ const projectsResolved=appearance?.projectsResolved===undefined||appearance.projectsFound===appearance.projectsResolved;
  const added={
-  projects:globalThis.__AGProjectAppearance?.version===(expected.appearance||version)&&exists('#agpa-styles'),
+  projects:globalThis.__AGProjectAppearance?.version===(expected.appearance||version)&&exists('#agpa-styles')&&projectsResolved,
   settings:globalThis.__AGAppSettings?.version===(expected.settings||version)&&globalThis.__AGPAI18n?.version===(expected.i18n||version)&&exists('#agpa-app-settings-styles')&&(!settingsOpen||(exists('[data-agpa-app-icon-setting]')&&exists('[data-agpa-startup-setting]'))),
   gemini:(!expected.geminiOrigin||globalThis.__AGGeminiOrigin?.version===expected.geminiOrigin)&&(!expected.headerPlacement||globalThis.__AGHeaderPlacement?.version===expected.headerPlacement)&&!!globalThis.__AGGeminiSwitch&&exists('[data-agpa-open-gemini]')&&exists('#agpa-gemini-styles')&&globalThis.__AGGeminiInline?.version===(expected.inline||version)&&exists('#agpa-gemini-inline-styles')&&exists('#agpa-window-chrome-styles'),
   shortcut:globalThis.__AGShortcuts?.version===(expected.shortcuts||version)&&!!globalThis.__AGShortcuts?.status().installed

@@ -487,7 +487,10 @@ class Client {
         await this.evaluate(
           `globalThis.__AGPASidebarLayoutVersion=${JSON.stringify(SIDEBAR_LAYOUT_VERSION)};globalThis.__AGPAPrimaryLayout=${primaryLayout.toString()};globalThis.__AGPAStartSidebarMotion=${startSidebarMotion.toString()};globalThis.__AGPACreateHoverIntent=${createHoverIntent.toString()};`,
         );
-      if (!(await this.evaluate("!!globalThis.__AGProjectPresentation")))
+      if (
+        (await this.evaluate("globalThis.__AGProjectPresentation?.version")) !==
+        versions.projectPresentation
+      )
         await this.evaluate(PROJECT_PRESENTATION);
       if (data.version !== APPEARANCE_VERSION) {
         await this.evaluate(
@@ -900,6 +903,7 @@ class Client {
     }
   }
   async onTranscriptRequest(params) {
+    if (!pluginControl.enabled || pluginControl.busy) return;
     const context = this.contexts.get(params.executionContextId);
     if (
       !context?.auxData?.isDefault ||
@@ -1129,7 +1133,7 @@ class Client {
     this.geminiLinks = null;
     try {
       await this.evaluate(
-        '(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGLibrary?.destroy();globalThis.__AGWorkspace?.destroy();globalThis.__AGModelControls?.destroy();globalThis.__AGModelUI?.destroy();globalThis.__AGCompanion?.destroy();globalThis.__AGPluginUpdates?.destroy();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGHeaderPlacement?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)globalThis.__AGGeminiOrigin?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()',
+        '(async()=>{document.getElementById("agpa-window-chrome-styles")?.remove();globalThis.__AGLibrary?.destroy();globalThis.__AGWorkspace?.destroy();globalThis.__AGContextBudget?.destroy();globalThis.__AGTeamworkBadge?.destroy();globalThis.__AGModelControls?.destroy();globalThis.__AGModelUI?.destroy();globalThis.__AGCompanion?.destroy();globalThis.__AGPluginUpdates?.destroy();globalThis.__AGComputerUse?.destroy();globalThis.__AGSettingsNavigation?.destroy();globalThis.__AGNativeMcp?.destroy();globalThis.__AGAppSettings?.destroy();globalThis.__AGShortcuts?.destroy();await globalThis.__AGGeminiInline?.destroy();globalThis.__AGHeaderPlacement?.destroy();globalThis.__AGGeminiSwitch?.destroy();if(!globalThis.__AGGeminiSwitch)globalThis.__AGGeminiOrigin?.destroy();if(!globalThis.__AGGeminiSwitch)document.getElementById("agpa-gemini-styles")?.remove();globalThis.__AGProjectAppearance?.destroy();globalThis.__AGProjectPresentation?.destroy();globalThis.__AGPAI18n?.destroy();})()',
       );
     } catch {}
     this.connection?.close();

@@ -1,7 +1,9 @@
 /* Shared icon catalogue and read-only native project identity lookup. */
 (() => {
  'use strict';
- if (globalThis.__AGProjectPresentation) return;
+ const VERSION = '1.1.0';
+ if (globalThis.__AGProjectPresentation?.version === VERSION) return;
+ globalThis.__AGProjectPresentation?.destroy();
  const NS = 'http://www.w3.org/2000/svg';
   const paths = {
     folder: ['M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z'],
@@ -60,14 +62,30 @@
     return node;
   }
   function projectFrom(element) {
+    // 2.29 virtualized section headers have no section= link. The drop target
+    // carries the same stable project ID; never fall back to a display label.
+    const section = element?.closest?.('[data-sidebar-section-drop-id]');
+    if (section) {
+      const headers = section.querySelectorAll('[data-testid="project-header"]');
+      const id = section.getAttribute('data-sidebar-section-drop-id');
+      if (headers.length === 1 && /^[a-zA-Z0-9_-]{1,160}$/.test(id || '')) {
+        const header = headers[0];
+        return {id, name: (header.getAttribute('data-project-label') || header.textContent).trim(),
+          header, link: section.querySelector('a[href*="project="]') || section.querySelector('a[href*="section="]'),
+          trigger: section.querySelector('button[aria-haspopup="menu"]')};
+      }
+    }
     let node = element;
     for (let i=0; node && i<8; i++,node=node.parentElement) {
       const header = node.matches?.('[data-testid="project-header"]') ? node : node.querySelector?.('[data-testid="project-header"]');
-      const link = node.querySelector?.('a[href*="section="]');
+      const link = node.querySelector?.('a[href*="section="],a[href*="project="]');
       if (!header || !link || node.querySelectorAll('[data-testid="project-header"]').length > 1) continue;
-      const id = new URL(link.getAttribute('href'),location.origin).searchParams.get('section');
+      let url;
+      try { url = new URL(link.getAttribute('href'), location.origin); } catch { continue; }
+      if (url.origin !== location.origin) continue;
+      const id = url.searchParams.get('project') || url.searchParams.get('section');
       if (!id || !/^[a-zA-Z0-9_-]{1,160}$/.test(id)) continue;
-      return {id,name:header.getAttribute('data-project-label')||header.textContent,header,link,trigger:node.querySelector('button[aria-haspopup="menu"]')};
+      return {id,name:(header.getAttribute('data-project-label')||header.textContent).trim(),header,link,trigger:node.querySelector('button[aria-haspopup="menu"]')};
     }
     return null;
   }
@@ -80,5 +98,5 @@
   }
   return matches.size === 1 ? [...matches.values()][0] : null;
  }
- globalThis.__AGProjectPresentation = {version:'1.0.0',paths,svg,projectFrom,byName,destroy(){delete globalThis.__AGProjectPresentation;}};
+ globalThis.__AGProjectPresentation = {version:VERSION,paths,svg,projectFrom,byName,destroy(){delete globalThis.__AGProjectPresentation;}};
 })();

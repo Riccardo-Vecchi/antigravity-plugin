@@ -21,6 +21,7 @@ test("renderer versions match the daemon's injection guards", () => {
     contextBudget: "context-budget.js",
     teamworkBadge: "teamwork-badge.js",
     appearance: "renderer.js",
+    projectPresentation: "project-presentation.js",
     geminiOrigin: "gemini-origin.js",
     geminiSwitch: "gemini-switch.js",
     inline: "gemini-inline.js",

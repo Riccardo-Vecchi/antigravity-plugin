@@ -811,6 +811,16 @@ function makeNode(tag) {
       children.length = 0;
       this.append(...nodes);
     },
+    insertBefore(node, reference) {
+      if (node.parentElement) node.remove();
+      node.parentElement = this;
+      const index = children.indexOf(reference);
+      if (index < 0) children.push(node); else children.splice(index, 0, node);
+    },
+    get nextElementSibling() {
+      const siblings = this.parentElement?.children || [];
+      return siblings[siblings.indexOf(this) + 1] || null;
+    },
     after(...nodes) {
       if (this.parentElement) {
         const idx = this.parentElement.children.indexOf(this);
@@ -977,7 +987,7 @@ test('context budget component attaches pill, reflects levels and allows inserti
 
   const pill = footer.querySelector('[data-agpa-context-budget]');
   assert.ok(pill, 'context budget pill attached to footer');
-  assert.ok(pill.textContent.includes('k'), 'pill shows estimated k tokens');
+  assert.ok(pill.getAttribute('aria-label').includes('k'), 'ring exposes estimated tokens accessibly');
 
   // Click pill to open popover
   pill.dispatchEvent({ type: 'click', preventDefault: () => {}, stopPropagation: () => {} });
@@ -991,7 +1001,7 @@ test('context budget component attaches pill, reflects levels and allows inserti
   context.__AGContextBudget.refresh();
 
   assert.equal(pill.getAttribute('data-level'), 'saturated');
-  assert.ok(pill.textContent.includes('/compact'), 'saturated pill mentions /compact');
+  assert.ok(pill.getAttribute('title').includes('86%'), 'saturated ring exposes utilization in its tooltip');
 
   // Click pill to open popover and click /compact button
   pill.dispatchEvent({ type: 'click', preventDefault: () => {}, stopPropagation: () => {} });
@@ -1691,8 +1701,10 @@ test('context-budget component injects .agpa-turn-token-badge into assistant act
   };
 
   const trigger = {
+    setAttribute() {},
     after: () => {},
     parentElement: {
+      insertBefore() {},
       querySelector: () => null,
       append: () => {},
       after: () => {}
@@ -1969,8 +1981,10 @@ test('context-budget turn token badges localize into Italian using locales.json 
   };
 
   const trigger = {
+    setAttribute() {},
     after: () => {},
     parentElement: {
+      insertBefore() {},
       querySelector: () => null,
       append: () => {},
       after: () => {}
@@ -2186,8 +2200,10 @@ test('updateTurnBadges resolves unmounted virtualized turns via responseKey and 
   };
 
   const trigger = {
+    setAttribute() {},
     after: () => {},
     parentElement: {
+      insertBefore() {},
       querySelector: () => null,
       append: () => {},
       after: () => {}

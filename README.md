@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.16.2](https://img.shields.io/badge/version-1.16.2-blue)](CHANGELOG.md)
+[![Version 1.17.0](https://img.shields.io/badge/version-1.17.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -22,13 +22,13 @@
 
 | Platform | Status |
 | --- | --- |
-| 🐧 Linux x86-64 | Verified with Antigravity App 2.28.0 on Zorin/GNOME 46 |
+| 🐧 Linux x86-64 | Verified with Antigravity App 2.29.0 on Zorin/GNOME 46 |
 | <img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows 11 x64 | **Experimental**; community-verified installation on 2.28.0; desktop automation validation is pending |
 
 ## ✨ Features
 
 - Gemini in the same window, with external links opening in your default browser, an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
-- Optional **Computer Use** with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
+- Optional **Computer Use** (Cua Driver **0.38.0 stable**) with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - **Browser use** with browser detection, one-click folder copy/open, selected tabs or whole-profile web-tab sharing and existing logins. [Setup](docs/BROWSER_USE.md).
 - Separate model and reasoning-effort controls with a stepped slider and per-model memory, **Ultra (Teamwork)** for the native agent team, plus favorites, visibility controls and provider logos. Permissions sit on the left; model and effort sit on the right.
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.

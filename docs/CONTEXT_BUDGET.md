@@ -18,7 +18,7 @@ The **Context Budget Subsystem** of `antigravity-plugin` provides a real-time, n
 4. **Proactive action prompts** (one-click `/compact` trigger when context reaches saturation).
 5. **Turn-by-turn token impact telemetry** (inline badges attached to each assistant response showing exact footprint, net context delta, tool call count, multimodal vision weight, and compaction history with pre-compaction peak preservation).
 
-The subsystem is architected as an **out-of-process daemon and in-page renderer bridge**, maintaining **100% mathematical fidelity** with official API counters while requiring **zero external npm dependencies** and **zero manual actions** (such as scrolling) from the user.
+The subsystem combines an out-of-process daemon and an in-page renderer bridge. It uses available transcript counters and local estimates without external npm dependencies. Counts, category splits and inferred model capacities are not a guarantee of the host’s actual active context.
 
 ---
 
@@ -279,20 +279,31 @@ When `loadConversationState` reads from storage:
 
 ## 8. UI Layer & User Experience
 
-### 8.1 The Context Pill (`.agpa-context-pill`)
-Mounted in the Antigravity chat input container next to the model selector:
-* **Compact Text**: Displays formatted tokens (e.g. `~90k tok`, `~1.2M tok`).
-* **Visual Ring Indicator**: Displays SVG ring filled proportionally to the context percentage, colored according to health level.
-* **Tooltips**: Screen-reader accessible `aria-label` with localized status.
+### 8.1 Context Control
 
-### 8.2 Detailed Breakdown Modal (`.agpa-context-popup`)
-Clicking the pill opens a detailed diagnostic popup providing full visibility:
-* **Total Tokens & Turns**: e.g., `~90k tokens (31 turns)`.
-* **Model & Ceiling Ratio**: e.g., `Gemini 3.8 Flash High · 9% (~1M max)`.
-* **Prompt Caching Telemetry**: Cached tokens vs fresh prompt tokens.
-* **Multimodal Assets**: Image count and calculated vision tokens.
-* **System Baseline Overhead**: Tool, MCP, and rule allocations.
-* **One-Click `/compact` Action**: When context exceeds 80%, provides a button to automatically insert the `/compact` command into the composer.
+A compact ring sits immediately before the model selector. Its accessible label
+and tooltip expose the estimate; the control is hidden until conversation data is available. When the native `context-usage-indicator` appears, the fallback
+control and popup are removed. Native markup, counters and click handlers remain
+intact. Rollout flags and native preferences are never forced.
+
+Transcript hydration does not scroll the conversation. Unchanged transcript
+snapshots are cached using file metadata; cached entries are bounded and changes
+invalidate them. Oversized files are skipped instead of blocking the helper.
+
+### 8.2 Context Window Popup (`.agpa-context-popup`)
+
+The popup shows estimated usage against the inferred model capacity, a progress
+bar, and rows for instructions/tools, conversation and remaining space. The
+instruction estimate is bounded by total usage; conversation is the remainder.
+When instruction telemetry is missing, both categories display **Unavailable**
+rather than implying a measured split. Capacity and counts remain estimates,
+not an official host-owned context meter.
+
+**Usage details** keeps the selected model, cache/input/output counters and
+attachment estimates available without crowding the main view. Cache counters
+are not added to the category totals. The existing `/compact` draft action is
+available at high usage. The popup supports Escape and clamps to the viewport,
+including when details expand. New chats hide the control and any previously open popup. The graphic overview includes a percentage ring and colored instruction/conversation segments; system-prompt, tool and rule estimates are shown only when their baseline is available.
 
 ### 8.3 Turn Token Badges (`.agpa-turn-token-badge`)
 Embedded in the action bar of every assistant response bubble alongside `Copy` and `Good response`:
