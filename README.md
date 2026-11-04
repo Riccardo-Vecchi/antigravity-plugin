@@ -31,6 +31,7 @@
 - Optional **Computer Use** (Cua Driver **0.38.0 stable**) with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - **Browser use** with browser detection, one-click folder copy/open, selected tabs or whole-profile web-tab sharing and existing logins. [Setup](docs/BROWSER_USE.md).
 - Separate model and reasoning-effort controls with a stepped slider and per-model memory, **Ultra (Teamwork)** for the native agent team, plus favorites, visibility controls and provider logos. Permissions sit on the left; model and effort sit on the right.
+- Real-time **Context window & token budget** with turn-by-turn token telemetry, capacity breakdown popups, and compaction peak tracking. [Details](docs/CONTEXT_BUDGET.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.
 - Fixed Antigravity/Gemini icons or a Dynamic mode, including supported tray integrations.
@@ -65,6 +66,14 @@ Development and local verification: [Contributing](https://github.com/Riccardo-V
   <tr>
     <td width="50%" align="center" valign="middle"><img src="docs/images/library.png?v=1.10.1" width="560" alt="Blue teapot rendered in Library’s interactive 3D viewer"></td>
     <td width="50%" align="center" valign="middle"><img src="docs/images/computer-use.png?v=1.11.0" width="560" alt="Current Computer use settings with full-desktop access and dedicated Browser use navigation"></td>
+  </tr>
+  <tr>
+    <th width="50%">Context window and token budget</th>
+    <th width="50%">Turn-level token telemetry</th>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/context-window.png" width="560" alt="Real-time context window usage indicator with detailed token breakdown"></td>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/turn-tokens.png" width="560" alt="Inline turn-level token badges with detailed telemetry tooltip"></td>
   </tr>
 </table>
 
