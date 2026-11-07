@@ -1,6 +1,6 @@
 # 🧭 Context window
 
-The global indicator sits immediately before the model selector. It is hidden in new chats until conversation data is available. Open it for context utilization, the estimated capacity, a breakdown of instructions/tools, conversation and free space, and available input/cache/output counters. No per-turn token badges, deltas or footprint calculations are performed.
+The global indicator sits immediately before the model selector. It is hidden in new chats until conversation data is available. Hover for a graphical overview of utilization and tokens used; click for the full breakdown. Open it for context utilization, the estimated capacity, a breakdown of instructions/tools, conversation and free space, and available input/cache/output counters. No per-turn token badges, deltas or footprint calculations are performed.
 
 ## 🔎 Native controls first
 

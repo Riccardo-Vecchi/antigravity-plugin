@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.18.2
+
+- Show a graphical global-context overview on hover; clicking keeps the full breakdown. Replace the native text tooltip and refresh the first README screenshot.
+
 ## 1.18.1
 
 - Start visible Library thumbnails on opening, filtering and scrolling even when Electron defers visibility-observer callbacks. Keep loading bounded and release timers on close.

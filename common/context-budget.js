@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.2.0';
+  const VERSION = '1.3.0';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -18,7 +18,8 @@
   };
 
   let stopped = false, timer = null;
-  let activeStats = null, popup = null, popupButton = null;
+  let activeStats = null, popup = null, popupButton = null, popupMode = null;
+  let hoverTimer = null, hoverCloseTimer = null;
 
   function element(tag, attributes = {}, ...children) {
     const node = document.createElement(tag);
@@ -33,6 +34,10 @@
   }
 
   function closePopup() {
+    clearTimeout(hoverTimer);clearTimeout(hoverCloseTimer);
+    hoverTimer = hoverCloseTimer = null;
+    popupButton?.removeAttribute('aria-describedby');
+    popupMode = null;
     popupButton?.setAttribute('aria-expanded', 'false');
     popupButton = null;
     if (popup) {
@@ -73,15 +78,18 @@
     popup.style.top = Math.max(8, above >= 8 ? above : Math.min(rect.bottom + 8, window.innerHeight - height - 8)) + 'px';
   }
 
-  function openDetails(button, stats) {
+  function openDetails(button, stats, preview = false) {
     closePopup();
     if (stopped) return;
     popupButton = button;
-    button.setAttribute('aria-expanded', 'true');
+    popupMode = preview ? 'preview' : 'details';
+    if (preview) button.setAttribute('aria-describedby','agpa-context-hover');
+    else button.setAttribute('aria-expanded', 'true');
     popup = element('div', {
-      class: 'agpa-context-popup', role: 'dialog',
+      class: 'agpa-context-popup' + (preview ? ' agpa-context-hover' : ''), role: preview ? 'tooltip' : 'dialog',
       'aria-label': t('Context window'), 'data-level': stats.budget.level
     });
+    if (preview) popup.id = 'agpa-context-hover';
     popup.style.setProperty('--context-color', stats.budget.level === 'saturated' ? '#f08080' : stats.budget.level === 'elevated' ? '#e8b75b' : '#a78bfa');
     const header = element('div', { class: 'agpa-context-header' });
     header.append(element('strong', { class: 'agpa-context-title', text: t('Context window') }));
@@ -107,7 +115,7 @@
       return '~' + Number((value / unit).toFixed(1)) + (unit === 1000 ? 'k' : 'M');
     };
     const percent = totals.percentage === null ? '—' : Math.round(totals.percentage) + '%';
-    header.append(closeBtn);
+    if (!preview) header.append(closeBtn);
     const hero = element('div', {class:'agpa-context-hero'});
     const donut = element('div', {class:'agpa-context-donut', 'aria-hidden':'true'});
     donut.style.setProperty('--context-percent', (totals.percentage || 0) + '%');
@@ -118,6 +126,12 @@
       text:t('{used} of {capacity} tokens used', {used:format(totals.used),capacity:format(totals.capacity)})
     }));
     hero.append(donut,headline);popup.append(hero);
+    if (preview) {
+      popup.addEventListener('pointerenter',()=>{clearTimeout(hoverCloseTimer);hoverCloseTimer=null;});
+      popup.addEventListener('pointerleave',schedulePreviewClose);
+      placePopup(button);
+      return;
+    }
 
     const meter = element('div', {
       class: 'agpa-context-meter', role: 'progressbar',
@@ -183,6 +197,23 @@
     placePopup(button);
   }
 
+  function schedulePreviewClose() {
+    clearTimeout(hoverTimer);hoverTimer=null;
+    if (popupMode !== 'preview') return;
+    clearTimeout(hoverCloseTimer);
+    hoverCloseTimer=setTimeout(()=>{hoverCloseTimer=null;if(popupMode==='preview')closePopup();},180);
+  }
+  function schedulePreview(button) {
+    clearTimeout(hoverCloseTimer);hoverCloseTimer=null;
+    if (popupMode === 'details' || (popupMode === 'preview' && popupButton === button)) return;
+    clearTimeout(hoverTimer);
+    hoverTimer=setTimeout(()=>{
+      hoverTimer=null;
+      if(stopped || !button.isConnected || document.querySelector('[data-testid=context-usage-indicator]')) return;
+      const stats=activeStats || rules.extractConversationStats(document);
+      if(!isPending(stats))openDetails(button,stats,true);
+    },180);
+  }
   function createPill() {
     const pill = element('button', {
       type: 'button',
@@ -194,9 +225,11 @@
     pill.addEventListener('click', e => {
       e.preventDefault();
       e.stopPropagation();
-      if (popup) closePopup();
+      if (popup && popupMode === 'details') closePopup();
       else openDetails(pill, activeStats || rules.extractConversationStats(document));
     });
+    pill.addEventListener('pointerenter',()=>schedulePreview(pill));
+    pill.addEventListener('pointerleave',schedulePreviewClose);
     pill.append(element('span', {class:'agpa-context-ring', 'aria-hidden':'true'}));
     return pill;
   }
@@ -206,7 +239,7 @@
       const label = t('Context window');
       pill.setAttribute('data-level', 'pending');
       pill.style.setProperty('--agpa-context-fill','0%');
-      pill.setAttribute('title', t('Context estimates appear after the conversation starts.'));
+      pill.removeAttribute('title');
       pill.setAttribute('aria-label', label);
       return;
     }
@@ -215,13 +248,8 @@
     }
     pill.style.setProperty('--budget-color', stats.budget.color);
 
-    const tokenLabel = `${stats.formatted} tok`;
+    pill.removeAttribute('title');
     pill.style.setProperty('--agpa-context-fill', Math.max(0, Math.min(100, stats.budget.percentage)) + '%');
-    const ceilingFormatted = rules.formatTokens ? rules.formatTokens(stats.ceiling || 200000) : '~200k';
-    const titleText = stats.modelName
-      ? (t('Context: {tokens}', { tokens: tokenLabel }) + ' / ' + ceilingFormatted + ' (' + stats.budget.percentage + '%) · ' + stats.modelName)
-      : (t('Context: {tokens}', { tokens: tokenLabel }) + ' / ' + ceilingFormatted + ' (' + stats.budget.percentage + '%)');
-    if (pill.getAttribute('title') !== titleText) pill.setAttribute('title', titleText);
     const ariaText = t('Context budget: {tokens} tokens ({turns} turns)', {
       tokens: stats.formatted,
       turns: String(stats.turns)
@@ -345,6 +373,7 @@
       box-shadow: 0 8px 28px #0006;
       font-variant-numeric: tabular-nums;
     }
+    .agpa-context-hover .agpa-context-hero {margin-bottom:0}
     .agpa-context-header {display:flex;align-items:center;gap:8px;margin-bottom:9px}
     .agpa-context-title {text-transform:uppercase;letter-spacing:.055em;font-size:10px;font-weight:600;color:var(--muted-foreground,#999);margin-right:auto}
     .agpa-context-percent {font-size:13px;font-weight:600;color:var(--foreground,#eee);position:relative}
@@ -434,7 +463,7 @@
 
   globalThis.__AGContextBudget = {
     version: VERSION,
-    status: () => ({ stats: activeStats, open: !!popup }),
+    status: () => ({ stats: activeStats, open: !!popup, mode: popupMode }),
     getActiveKey: () => (rules.getConversationKey ? rules.getConversationKey(document) : 'default'),
     needsTranscript: (key, optionsOrMtime) => {
       const k = (typeof key === 'string' ? key : key?.convKey) || (rules.getConversationKey ? rules.getConversationKey(document) : 'default');

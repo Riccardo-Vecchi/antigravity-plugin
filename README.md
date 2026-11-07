@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.18.1](https://img.shields.io/badge/version-1.18.1-blue)](CHANGELOG.md)
+[![Version 1.18.2](https://img.shields.io/badge/version-1.18.2-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -48,7 +48,7 @@ Development and local verification: [Contributing](https://github.com/Riccardo-V
     <th width="50%">Gemini in the same window</th>
   </tr>
   <tr>
-    <td width="50%" align="center" valign="middle"><img src="docs/images/antigravity-demo.png?v=1.15.1" width="560" alt="Antigravity with permissions on the left, model and effort on the right, and colored project icons"></td>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/antigravity-demo.png?v=1.18.2" width="560" alt="Antigravity with permissions on the left, model and effort on the right, and colored project icons"></td>
     <td width="50%" align="center" valign="middle"><img src="docs/images/gemini-demo.png" width="560" alt="Gemini with the in-page Antigravity return button"></td>
   </tr>
   <tr>

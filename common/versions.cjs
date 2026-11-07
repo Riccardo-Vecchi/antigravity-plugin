@@ -1,13 +1,13 @@
 "use strict";
 module.exports = Object.freeze({
-  suite: "1.18.1",
+  suite: "1.18.2",
   library: "1.3.2",
   workspace: "1.2.0",
   sidebarLayout: "1.0.1",
   companion: "1.6.0",
   models: "1.2.0",
   modelControls: "1.2.2",
-  contextBudget: "1.2.0",
+  contextBudget: "1.3.0",
   teamworkBadge: "1.0.2",
   updates: "1.2.3",
   projectPresentation: "1.1.0",

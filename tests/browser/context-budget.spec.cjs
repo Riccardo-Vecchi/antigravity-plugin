@@ -199,3 +199,57 @@ test("native context controls replace the fallback without replacing native beha
   ).toBeVisible();
   await expect(model).not.toHaveAttribute("data-agpa-context-adjacent");
 });
+test("hover shows the graphical overview, click expands details and leaving dismisses only the preview", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const rules = globalThis.__AGPA_CONTEXT_BUDGET__,
+      stats = rules.extractConversationStats(document);
+    rules.extractConversationStats = () => ({
+      ...stats,
+      turns: 1,
+      chars: 4000,
+      tokens: 184400,
+      ceiling: 1000000,
+      formatted: "~184k",
+      budget: rules.budgetLevelFor(184400, 1000000),
+    });
+    globalThis.__AGContextBudget.refresh();
+  });
+  const pill = page.locator("[data-agpa-context-budget]"),
+    tip = page.getByRole("tooltip", { name: "Context window" });
+  await expect(pill).not.toHaveAttribute("title");
+  await pill.hover();
+  await expect(tip.locator(".agpa-context-donut")).toBeVisible();
+  await expect(tip.locator(".agpa-context-full")).toHaveText("18% full");
+  await expect(tip.locator(".agpa-context-used")).toHaveText(
+    "~184.4k of ~1M tokens used",
+  );
+  await expect(
+    tip.locator(".agpa-context-row,.agpa-context-details,button"),
+  ).toHaveCount(0);
+  await expect(pill).toHaveAttribute("aria-expanded", "false");
+  await expect(pill).toHaveAttribute("aria-describedby", "agpa-context-hover");
+  await tip.hover();
+  await expect(tip).toBeVisible();
+  await page.mouse.move(5, 5);
+  await expect(tip).toHaveCount(0);
+  await pill.hover();
+  await expect(tip).toBeVisible();
+  await pill.click();
+  const dialog = page.getByRole("dialog", { name: "Context window" });
+  await expect(tip).toHaveCount(0);
+  await expect(dialog.locator(".agpa-context-donut")).toBeVisible();
+  await expect(dialog.locator(".agpa-context-row").first()).toBeVisible();
+  await expect(pill).toHaveAttribute("aria-expanded", "true");
+  await expect(pill).not.toHaveAttribute("aria-describedby");
+  await page.mouse.move(5, 5);
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await pill.hover();
+  await page.evaluate(() => globalThis.__AGContextBudget.destroy());
+  await page.waitForTimeout(250);
+  await expect(page.locator(".agpa-context-popup")).toHaveCount(0);
+});

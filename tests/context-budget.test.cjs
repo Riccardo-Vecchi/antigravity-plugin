@@ -966,6 +966,7 @@ test('context budget component attaches pill, reflects levels and allows inserti
       observe() {}
       disconnect() {}
     },
+    setTimeout, clearTimeout,
     queueMicrotask: fn => fn(),
     DataTransfer: class {
       constructor() { this.data = new Map(); }
@@ -1001,7 +1002,8 @@ test('context budget component attaches pill, reflects levels and allows inserti
   context.__AGContextBudget.refresh();
 
   assert.equal(pill.getAttribute('data-level'), 'saturated');
-  assert.ok(pill.getAttribute('title').includes('86%'), 'saturated ring exposes utilization in its tooltip');
+  assert.ok(!pill.getAttribute('title'), 'native text tooltip is replaced by graphical hover');
+  assert.ok(pill.getAttribute('aria-label').includes('tokens'), 'accessible global usage remains available');
 
   // Click pill to open popover and click /compact button
   pill.dispatchEvent({ type: 'click', preventDefault: () => {}, stopPropagation: () => {} });
