@@ -38,6 +38,10 @@ function blob(bytes, mime) {
   urls.push(u);
   return u;
 }
+function pdfWorkerURL() {
+  // Define the large embedded worker once, shared by previews and thumbnails.
+  return blob(new TextEncoder().encode(AGPA_PDF_WORKER), "text/javascript");
+}
 function archive(bytes) {
   // Bound declared expansion before a renderer allocates or decodes archive parts.
   const d = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -236,7 +240,7 @@ function csv(text, delimiter) {
   wrap.append(table);
   root.append(wrap);
 }
-async function model(bytes, extension) {
+async function model(bytes, extension, thumbnail = false) {
   const manager = new THREE.LoadingManager();
   manager.setURLModifier((url) => {
     if (/^(?:data:|blob:)/.test(url)) return url;
@@ -289,13 +293,68 @@ async function model(bytes, extension) {
   if (box.isEmpty()) throw Error("invalid");
   const center = box.getCenter(new THREE.Vector3()),
     size = box.getSize(new THREE.Vector3()).length();
+  if (!Number.isFinite(size) || size <= 0) throw Error("invalid");
   object.position.sub(center);
   scene.add(object);
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    preserveDrawingBuffer: thumbnail,
+  });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const camera = new THREE.PerspectiveCamera(40, 1, size / 1000, size * 100);
   camera.position.set(size * 0.8, size * 0.6, size * 1.3);
+  camera.lookAt(0, 0, 0);
+  if (thumbnail) {
+    try {
+      renderer.setPixelRatio(1);
+      renderer.setSize(400, 240);
+      camera.aspect = 400 / 240;
+      // Fit all eight centered box corners in camera space, including depth.
+      // Off-center or long models must not be cropped or reduced to a sliver.
+      const rotation = camera.quaternion.clone().invert();
+      const vertical = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const horizontal = vertical * camera.aspect;
+      let distance = 0;
+      for (const x of [box.min.x, box.max.x])
+        for (const y of [box.min.y, box.max.y])
+          for (const z of [box.min.z, box.max.z]) {
+            const point = new THREE.Vector3(x, y, z)
+              .sub(center)
+              .applyQuaternion(rotation);
+            distance = Math.max(
+              distance,
+              point.z +
+                Math.max(
+                  Math.abs(point.x) / horizontal,
+                  Math.abs(point.y) / vertical,
+                ),
+            );
+          }
+      camera.position
+        .normalize()
+        .multiplyScalar(Math.max(distance * 1.15, size * 0.1));
+      camera.lookAt(0, 0, 0);
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+      return { image: renderer.domElement.toDataURL("image/webp", 0.82) };
+    } finally {
+      object.traverse((n) => {
+        n.geometry?.dispose();
+        for (const m of Array.isArray(n.material)
+          ? n.material
+          : n.material
+            ? [n.material]
+            : []) {
+          for (const value of Object.values(m))
+            if (value?.isTexture) value.dispose();
+          m.dispose();
+        }
+      });
+      renderer.dispose();
+      renderer.forceContextLoss();
+    }
+  }
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.minDistance = size * 0.05;
   controls.maxDistance = size * 20;
@@ -335,10 +394,7 @@ async function model(bytes, extension) {
   );
 }
 async function pdf(bytes, labels) {
-  GlobalWorkerOptions.workerSrc = blob(
-    new TextEncoder().encode(AGPA_PDF_WORKER),
-    "text/javascript",
-  );
+  GlobalWorkerOptions.workerSrc = pdfWorkerURL();
   const style = node("style", pdfStyles);
   document.head.append(style);
   const task = getDocument({
@@ -472,6 +528,113 @@ async function render(payload, labels) {
   const pre = node("pre", new TextDecoder().decode(bytes));
   root.append(pre);
 }
+// A single, opaque worker renders visible library cards. No artifact scripts run.
+async function thumbnail(payload, labels) {
+  const bytes = Uint8Array.from(atob(payload.data), (c) => c.charCodeAt(0));
+  if (payload.category === "models")
+    return model(bytes, payload.extension, true);
+  if (payload.category === "images") {
+    const image = new Image();
+    image.src = blob(
+      bytes,
+      payload.extension === "svg"
+        ? "image/svg+xml"
+        : "image/" + (payload.extension === "jpg" ? "jpeg" : payload.extension),
+    );
+    await image.decode();
+    if (image.naturalWidth * image.naturalHeight > 64 * 1024 * 1024)
+      throw Error("tooLarge");
+    const scale = Math.min(
+      1,
+      400 / image.naturalWidth,
+      240 / image.naturalHeight,
+    );
+    const canvas = node("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    return { image: canvas.toDataURL("image/webp", 0.82) };
+  }
+  if (payload.extension === "pdf") {
+    GlobalWorkerOptions.workerSrc = pdfWorkerURL();
+    const task = getDocument({
+      data: bytes,
+      useSystemFonts: true,
+      isEvalSupported: false,
+      useWasm: false,
+    });
+    try {
+      const doc = await task.promise;
+      const page = await doc.getPage(1),
+        base = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({
+          scale: Math.min(400 / base.width, 240 / base.height),
+        }),
+        canvas = node("canvas");
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      // Offscreen thumbnails cannot rely on animation frames; print intent
+      // uses PDF.js microtask rendering instead of a visibility-throttled rAF.
+      await page.render({
+        canvasContext: canvas.getContext("2d"),
+        viewport,
+        intent: "print",
+      }).promise;
+      return { image: canvas.toDataURL("image/webp", 0.82) };
+    } finally {
+      await task.destroy();
+    }
+  }
+  if (payload.category === "interactive") {
+    const doc = new DOMParser().parseFromString(
+      new TextDecoder().decode(bytes),
+      "text/html",
+    );
+    for (const n of doc.querySelectorAll("script,style,template,noscript"))
+      n.remove();
+    return {
+      text: (doc.body.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 900),
+      heading: doc.title.slice(0, 100),
+    };
+  }
+  await render(payload, labels);
+  const heading = root.querySelector("h1,h2,h3")?.textContent?.slice(0, 100);
+  return { heading, text: root.innerText.trim().slice(0, 900) };
+}
+let thumbnailBusy = false;
+window.addEventListener("message", async (event) => {
+  if (
+    event.source !== parent ||
+    event.data?.kind !== "agpa-thumbnail" ||
+    !event.ports[0]
+  )
+    return;
+  const port = event.ports[0];
+  if (thumbnailBusy) {
+    port.postMessage({ ok: false });
+    port.close();
+    return;
+  }
+  thumbnailBusy = true;
+  root.replaceChildren();
+  root.className = "";
+  try {
+    port.postMessage({
+      ok: true,
+      thumbnail: await thumbnail(event.data.payload, event.data.labels),
+    });
+  } catch {
+    port.postMessage({ ok: false });
+  } finally {
+    root.replaceChildren();
+    for (const url of urls.splice(0)) URL.revokeObjectURL(url);
+    thumbnailBusy = false;
+    port.close();
+  }
+});
 const receive = async (event) => {
   if (
     event.source !== parent ||

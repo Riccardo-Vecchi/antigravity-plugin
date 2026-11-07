@@ -71,15 +71,20 @@ async function readBounded(file, max) {
   }
 }
 // Source, format and favorite filters are independent; originals are deduplicated by path.
-function filterItems(items, { source = "generated", type = "all", favorites = false, query = "" } = {}) {
+function filterItems(items, { source = "generated", type = "all", favorites = false, query = "", sort = "none" } = {}) {
   const search = String(query).toLocaleLowerCase().trim();
-  return items.filter((item) => {
+  const filtered = items.filter((item) => {
     const sources = item.sources || [item.source];
     return (source === "all" || sources.includes(source) ||
         (source === "uploaded" && sources.includes("added"))) &&
       (type === "all" || item.category === type) && (!favorites || item.favorite) &&
       (!search || [item.name, item.summary].some((v) => v?.toLocaleLowerCase().includes(search)));
   });
+  if (sort === "newest") filtered.sort((a,b)=>b.modified-a.modified);
+  else if (sort === "oldest") filtered.sort((a,b)=>a.modified-b.modified);
+  else if (sort === "name") filtered.sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+  else if (sort === "size") filtered.sort((a,b)=>b.size-a.size);
+  return filtered;
 }
 function createLibrary({
   brain = path.join(os.homedir(), ".gemini", "antigravity", "brain"),
@@ -316,12 +321,12 @@ function createLibrary({
     if (!enabled) throw Error("disabled");
     return e;
   }
-  async function preview(id, { thumbnail = false } = {}) {
+  async function preview(id) {
     const e = await item(id);
     const stat = await regular(e.path);
-    if (stat.size > (thumbnail ? 512 * 1024 : MAX_FILE))
+    if (stat.size > (MAX_FILE))
       throw Error("tooLarge");
-    const bytes = await readBounded(e.path, thumbnail ? 512 * 1024 : MAX_FILE);
+    const bytes = await readBounded(e.path, MAX_FILE);
     if (!enabled) throw Error("disabled");
     if (bytes.length > MAX_FILE) throw Error("tooLarge");
     return {

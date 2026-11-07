@@ -98,13 +98,15 @@ function validatePackage(data, expected) {
     if (
       !safePath(item?.name) ||
       typeof item.data !== "string" ||
-      !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
-        item.data,
-      ) ||
+      item.data.length > Math.ceil(25 * 1024 * 1024 / 3) * 4 ||
+      item.data.length % 4 !== 0 ||
+      /[^A-Za-z0-9+/=]/.test(item.data) ||
       files.has(item.name.toLowerCase())
     )
       throw Error("invalidUpdate");
+    // Avoid repeated-group regex backtracking/stack growth on viewer bundles.
     const bytes = Buffer.from(item.data, "base64");
+    if (bytes.toString("base64") !== item.data) throw Error("invalidUpdate");
     total += bytes.length;
     if (
       total > 25 * 1024 * 1024 ||

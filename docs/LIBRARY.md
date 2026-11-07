@@ -1,6 +1,6 @@
 # 📚 Library
 
-Open **Library**, below **Automations**. **Generated** is the initial view; **Uploaded** shows conversation attachments and manually added files, and **All** combines them. Search, file type and **Favorites** work independently within each view. Each card shows its source, and duplicate paths appear once. **Add files** adds supported local files without copying them. **Remove from Library** untracks a manually added file; it never deletes the original.
+Open **Library**, below **Automations**. **Generated** is the initial view; **Uploaded** shows conversation attachments and manually added files, and **All** combines them. Search, file type and **Favorites** work independently within each view. Sort by date, name or size. Each card shows its source, and duplicate paths appear once. **Add files** adds supported local files without copying them. **Remove from Library** untracks a manually added file; it never deletes the original.
 
 ## 🔎 What appears
 
@@ -11,6 +11,8 @@ Use **Refresh Library** for new or changed outputs. Very large transcripts and c
 Disable **Settings → Appearance → Library → Enable Library** to remove Library from navigation, close previews and stop discovery. Favorites and manually added paths are kept for reactivation; originals are never deleted.
 
 ## 👁️ Previews
+
+Cards load previews as they enter the visible area: raster images (including files over 512 KB), first-page PDFs and self-contained 3D models get thumbnails; documents and HTML get content excerpts. HTML card previews never execute artifact scripts or load online resources. Unsupported or oversized files retain a type icon. One sandbox renderer and a bounded, in-memory thumbnail cache keep resource use predictable. Closing or disabling Library releases its renderer; thumbnails are never written to disk.
 
 | Format | Built-in preview |
 | --- | --- |
@@ -30,7 +32,7 @@ Select text in a supported document preview, then choose **Discuss selection**. 
 
 ## 🔒 Local processing
 
-Preview engines ship with the plugin and load on demand. Documents are not uploaded to an online converter. Viewers run in sandboxed iframes with opaque origins, without Node, native application APIs or agent tools. File contents are loaded only for a requested preview or a small image thumbnail. HTML can run scripts inside its isolated preview; allowing online resources enables HTTPS code and requests that can send its content to websites. The online-resources choice resets when the preview closes; there is no additional confirmation dialog. Resource CSP is not a general network-containment guarantee for arbitrary executable HTML.
+Preview engines ship with the plugin and load on demand. Documents are not uploaded to an online converter. Viewers run in sandboxed iframes with opaque origins, without Node, native application APIs or agent tools. File contents are loaded only for a requested preview or a visible card thumbnail, within the same 25 MiB limit. HTML can run scripts inside its isolated preview; allowing online resources enables HTTPS code and requests that can send its content to websites. The online-resources choice resets when the preview closes; there is no additional confirmation dialog. Resource CSP is not a general network-containment guarantee for arbitrary executable HTML.
 
 Only favorites and manually added paths persist in the plugin's private `library.json`. The discovery catalog and extracted transcript references remain in memory. `workspace.json` stores the independent sidebar-mode choice and Library enable/disable preference. Sidebar transitions are always smooth while the plugin is active. Official conversation files and document originals remain read-only.
 

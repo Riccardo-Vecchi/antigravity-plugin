@@ -1,7 +1,7 @@
 /* Guided desktop access in a dedicated native Settings page. */
 (() => {
  'use strict';
- const VERSION = '1.4.4';
+ const VERSION = '1.4.5';
  if (globalThis.__AGComputerUse?.version === VERSION) return;
  globalThis.__AGComputerUse?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -18,6 +18,7 @@
   configChanged: 'The MCP configuration changed. Refresh and try again.',
   installFirst: 'Install Cua Driver first.', connectFirst: 'Enable computer use first.',
   protocolFailed: 'The driver did not complete the MCP check. Review desktop setup and reconnect.',
+  desktopUnavailable: 'The desktop session could not be detected. Sign in to your desktop and select Refresh status.',
   operationFailed: 'Computer-use setup failed. Check the setup guide and try again.',
   skillConflict: 'The computer-use skill was edited locally. Resolve the conflict before connecting.',
   unownedDriver: 'The driver folder is not a verified plugin installation. It was left untouched.',
@@ -47,7 +48,7 @@
     }
    }
    if(check.id==='desktop' && state.needsHelper && state.helperInstalled && ['signInRequired','unknown'].includes(state.helperState))label.append(node('span',{class:'agpa-cu-check-help',text:'Log out of Linux, then sign back in. Locking and unlocking the screen is not enough.'}));
-   return node('li',{'data-cu-check-id':check.id,'data-passed':String(check.passed),'data-working':String(active)},icon,label,node('span',{class:'agpa-cu-check-state',text:active?'Working…':check.passed?'Passed':'Pending'}));
+   return node('li',{'data-cu-check-id':check.id,'data-passed':String(check.passed),'data-working':String(active)},icon,label,node('span',{class:'agpa-cu-check-state',text:active?'Working…':check.passed?'Passed':check.failed?'Failed':'Pending'}));
   });
  }
  function paint() {

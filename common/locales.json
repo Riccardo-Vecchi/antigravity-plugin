@@ -514,7 +514,18 @@
       "{percent} full": "{percent} full",
       "System prompt": "System prompt",
       "Tools": "Tools",
-      "Rules": "Rules"
+      "Rules": "Rules",
+      "Desktop session unavailable": "Desktop session unavailable",
+      "The desktop session could not be detected. Sign in to your desktop and select Refresh status.": "The desktop session could not be detected. Sign in to your desktop and select Refresh status.",
+      "Refresh usage": "Refresh usage",
+      "Could not load usage. Try Refresh.": "Could not load usage. Try Refresh.",
+      "{percent}% left": "{percent}% left",
+      "Resets in {time}": "Resets in {time}",
+      "Sort Library": "Sort Library",
+      "Newest first": "Newest first",
+      "Oldest first": "Oldest first",
+      "Name": "Name",
+      "Largest first": "Largest first"
     },
     "icons": {
       "folder": "Folder",
@@ -1082,7 +1093,18 @@
       "{percent} full": "{percent} utilizzato",
       "System prompt": "Prompt di sistema",
       "Tools": "Strumenti",
-      "Rules": "Regole"
+      "Rules": "Regole",
+      "Desktop session unavailable": "Sessione desktop non disponibile",
+      "The desktop session could not be detected. Sign in to your desktop and select Refresh status.": "Impossibile rilevare la sessione desktop. Accedi al desktop e seleziona Aggiorna stato.",
+      "Refresh usage": "Aggiorna utilizzo",
+      "Could not load usage. Try Refresh.": "Impossibile caricare l’utilizzo. Riprova con Aggiorna.",
+      "{percent}% left": "{percent}% rimanente",
+      "Resets in {time}": "Si ripristina tra {time}",
+      "Sort Library": "Ordina libreria",
+      "Newest first": "Prima i più recenti",
+      "Oldest first": "Prima i meno recenti",
+      "Name": "Nome",
+      "Largest first": "Prima i più grandi"
     },
     "icons": {
       "folder": "Cartella",
@@ -1650,7 +1672,18 @@
       "{percent} full": "{percent} belegt",
       "System prompt": "System-Prompt",
       "Tools": "Werkzeuge",
-      "Rules": "Regeln"
+      "Rules": "Regeln",
+      "Desktop session unavailable": "Desktopsitzung nicht verfügbar",
+      "The desktop session could not be detected. Sign in to your desktop and select Refresh status.": "Die Desktopsitzung konnte nicht erkannt werden. Melde dich am Desktop an und aktualisiere den Status.",
+      "Refresh usage": "Nutzung aktualisieren",
+      "Could not load usage. Try Refresh.": "Nutzung konnte nicht geladen werden. Bitte aktualisieren.",
+      "{percent}% left": "{percent}% übrig",
+      "Resets in {time}": "Zurücksetzung in {time}",
+      "Sort Library": "Bibliothek sortieren",
+      "Newest first": "Neueste zuerst",
+      "Oldest first": "Älteste zuerst",
+      "Name": "Name",
+      "Largest first": "Größte zuerst"
     },
     "icons": {
       "folder": "Ordner",
@@ -2218,7 +2251,18 @@
       "{percent} full": "{percent} utilizado",
       "System prompt": "Prompt del sistema",
       "Tools": "Herramientas",
-      "Rules": "Reglas"
+      "Rules": "Reglas",
+      "Desktop session unavailable": "Sesión de escritorio no disponible",
+      "The desktop session could not be detected. Sign in to your desktop and select Refresh status.": "No se pudo detectar la sesión de escritorio. Inicia sesión en el escritorio y actualiza el estado.",
+      "Refresh usage": "Actualizar uso",
+      "Could not load usage. Try Refresh.": "No se pudo cargar el uso. Intenta actualizar.",
+      "{percent}% left": "{percent}% restante",
+      "Resets in {time}": "Se restablece en {time}",
+      "Sort Library": "Ordenar biblioteca",
+      "Newest first": "Más recientes primero",
+      "Oldest first": "Más antiguos primero",
+      "Name": "Nombre",
+      "Largest first": "Más grandes primero"
     },
     "icons": {
       "folder": "Carpeta",
@@ -2786,7 +2830,18 @@
       "{percent} full": "{percent} utilisé",
       "System prompt": "Prompt système",
       "Tools": "Outils",
-      "Rules": "Règles"
+      "Rules": "Règles",
+      "Desktop session unavailable": "Session de bureau indisponible",
+      "The desktop session could not be detected. Sign in to your desktop and select Refresh status.": "Impossible de détecter la session de bureau. Connectez-vous au bureau et actualisez le statut.",
+      "Refresh usage": "Actualiser l’utilisation",
+      "Could not load usage. Try Refresh.": "Impossible de charger l’utilisation. Réessayez en actualisant.",
+      "{percent}% left": "{percent}% restant",
+      "Resets in {time}": "Réinitialisation dans {time}",
+      "Sort Library": "Trier la bibliothèque",
+      "Newest first": "Les plus récents",
+      "Oldest first": "Les plus anciens",
+      "Name": "Nom",
+      "Largest first": "Les plus volumineux"
     },
     "icons": {
       "folder": "Dossier",
@@ -3354,7 +3409,18 @@
       "{percent} full": "已用 {percent}",
       "System prompt": "系统提示词",
       "Tools": "工具",
-      "Rules": "规则"
+      "Rules": "规则",
+      "Desktop session unavailable": "Desktop session unavailable",
+      "The desktop session could not be detected. Sign in to your desktop and select Refresh status.": "The desktop session could not be detected. Sign in to your desktop and select Refresh status.",
+      "Refresh usage": "Refresh usage",
+      "Could not load usage. Try Refresh.": "Could not load usage. Try Refresh.",
+      "{percent}% left": "{percent}% left",
+      "Resets in {time}": "Resets in {time}",
+      "Sort Library": "Sort Library",
+      "Newest first": "Newest first",
+      "Oldest first": "Oldest first",
+      "Name": "Name",
+      "Largest first": "Largest first"
     },
     "icons": {
       "folder": "文件夹",
@@ -3922,7 +3988,18 @@
       "{percent} full": "{percent} 使用中",
       "System prompt": "システムプロンプト",
       "Tools": "ツール",
-      "Rules": "ルール"
+      "Rules": "ルール",
+      "Desktop session unavailable": "デスクトップセッションを利用できません",
+      "The desktop session could not be detected. Sign in to your desktop and select Refresh status.": "デスクトップセッションを検出できませんでした。デスクトップにログインして状態を更新してください。",
+      "Refresh usage": "使用状況を更新",
+      "Could not load usage. Try Refresh.": "使用状況を読み込めません。更新してください。",
+      "{percent}% left": "残り {percent}%",
+      "Resets in {time}": "{time}後にリセット",
+      "Sort Library": "ライブラリを並べ替え",
+      "Newest first": "新しい順",
+      "Oldest first": "古い順",
+      "Name": "名前",
+      "Largest first": "サイズの大きい順"
     },
     "icons": {
       "folder": "フォルダー",

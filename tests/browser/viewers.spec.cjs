@@ -79,7 +79,7 @@ for (const [extension, category, bytes, expected] of [
     const fixture = await mountLibrary(page, [{ extension, category, bytes }]);
     expect(fixture.requests).not.toContain("viewerBundle");
     await page.getByTitle(`sample-0.${extension}`, { exact: true }).click();
-    const frame = page.frameLocator("iframe");
+    const frame = page.frameLocator(".agpa-library-preview iframe");
     await expect(frame.locator("#preview")).toContainText(expected);
     await expect(page.locator(".agpa-library-preview-status")).toHaveCount(0);
     expect(await page.evaluate(() => window.hacked)).toBeUndefined();
@@ -117,9 +117,9 @@ test("oversized or malformed archives fail without allocating their declared exp
   ]);
   for (const name of ["sample-0.docx", "sample-1.xlsx"]) {
     await page.getByTitle(name, { exact: true }).click();
-    await expect(page.frameLocator("iframe").locator("#preview")).toContainText(
-      /too large|unavailable/i,
-    );
+    await expect(
+      page.frameLocator(".agpa-library-preview iframe").locator("#preview"),
+    ).toContainText(/too large|unavailable/i);
     await page.locator(".agpa-library-preview header button").first().click();
   }
 });
@@ -161,13 +161,15 @@ test("3D preview renders locally and rejects external glTF dependencies", async 
     },
   ]);
   await page.getByTitle("sample-0.obj", { exact: true }).click();
-  await expect(page.frameLocator("iframe").locator("canvas")).toBeVisible();
+  await expect(
+    page.frameLocator(".agpa-library-preview iframe").locator("canvas"),
+  ).toBeVisible();
   await expect(page.locator(".agpa-library-preview-status")).toHaveCount(0);
   await page.locator(".agpa-library-preview header button").first().click();
   await page.getByTitle("sample-1.gltf", { exact: true }).click();
-  await expect(page.frameLocator("iframe").locator("#preview")).toContainText(
-    "external",
-  );
+  await expect(
+    page.frameLocator(".agpa-library-preview iframe").locator("#preview"),
+  ).toContainText("external");
   expect(fixture.network).toEqual([]);
 });
 test("HTML does not load the parser bundle and failed reads can retry", async ({
@@ -187,12 +189,12 @@ test("HTML does not load the parser bundle and failed reads can retry", async ({
         bytes: Buffer.from("# Retried fixture"),
       },
     ],
-    { failBundleOnce: true },
+    { failBundleOnce: true, deferThumbnails: true },
   );
   await page.getByTitle("sample-0.html", { exact: true }).click();
-  await expect(page.frameLocator("iframe").locator("h1")).toHaveText(
-    "Interactive fixture",
-  );
+  await expect(
+    page.frameLocator(".agpa-library-preview iframe").locator("h1"),
+  ).toHaveText("Interactive fixture");
   expect(fixture.requests).not.toContain("viewerBundle");
   await page.locator(".agpa-library-preview header button").first().click();
   await page.getByTitle("sample-1.md", { exact: true }).click();
@@ -201,9 +203,9 @@ test("HTML does not load the parser bundle and failed reads can retry", async ({
   );
   await page.locator(".agpa-library-preview header button").first().click();
   await page.getByTitle("sample-1.md", { exact: true }).click();
-  await expect(page.frameLocator("iframe").locator("h1")).toHaveText(
-    "Retried fixture",
-  );
+  await expect(
+    page.frameLocator(".agpa-library-preview iframe").locator("h1"),
+  ).toHaveText("Retried fixture");
   expect(
     fixture.requests.filter((action) => action === "viewerBundle"),
   ).toHaveLength(2);
@@ -241,7 +243,7 @@ test("CSV bounds rows and columns while preserving quoted delimiters and newline
     { extension: "csv", category: "spreadsheets", bytes: Buffer.from(text) },
   ]);
   await page.getByTitle("sample-0.csv", { exact: true }).click();
-  const frame = page.frameLocator("iframe");
+  const frame = page.frameLocator(".agpa-library-preview iframe");
   await expect(frame.locator("tr")).toHaveCount(1000);
   await expect(frame.locator("tr").nth(1).locator("td")).toHaveCount(100);
   await expect(frame.locator("tr").first().locator("td")).toHaveText([
@@ -259,9 +261,9 @@ test("HTML retains one-click online resources without an extra dialog", async ({
     { extension: "html", category: "interactive", bytes: Buffer.from(html) },
   ]);
   await page.getByTitle("sample-0.html", { exact: true }).click();
-  await expect(page.frameLocator("iframe").locator("h1")).toHaveText(
-    "Online fixture",
-  );
+  await expect(
+    page.frameLocator(".agpa-library-preview iframe").locator("h1"),
+  ).toHaveText("Online fixture");
   expect(fixture.network).toEqual([]);
   const grant = page
     .locator(".agpa-library-preview header")
@@ -275,4 +277,149 @@ test("HTML retains one-click online resources without an extra dialog", async ({
   await page.locator(".agpa-library-preview header button").first().click();
   await page.getByTitle("sample-0.html", { exact: true }).click();
   await expect(grant).toBeVisible();
+});
+test("Library renders real card previews, blocks HTML scripts, caches results and releases its worker", async ({
+  page,
+}) => {
+  const fixture = await mountLibrary(page, [
+    {
+      extension: "md",
+      category: "documents",
+      bytes: Buffer.from("# Project plan\n\nBuild a useful artifact library."),
+    },
+    {
+      extension: "png",
+      category: "images",
+      bytes: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    },
+    { extension: "pdf", category: "pdf", bytes: pdf() },
+    {
+      extension: "obj",
+      category: "models",
+      bytes: Buffer.from("v -1 0 0\nv 1 0 0\nv 0 2 0\nf 1 2 3"),
+    },
+    {
+      extension: "html",
+      category: "interactive",
+      bytes: Buffer.from(
+        '<title>Local dashboard</title><h1>Quarterly progress</h1><script>window.hacked=1;fetch("https://blocked.test/secret")</script>',
+      ),
+    },
+  ]);
+  const cards = page.locator(".agpa-library-card");
+  await expect(cards.nth(0).locator(".agpa-library-page")).toContainText(
+    "Build a useful artifact library",
+  );
+  for (const index of [1, 2, 3])
+    await expect(
+      cards.nth(index).locator(".agpa-library-thumbnail img"),
+    ).toBeVisible({ timeout: 15000 });
+  await expect(cards.nth(4).locator(".agpa-library-page")).toContainText(
+    "Quarterly progress",
+  );
+  expect(await page.evaluate(() => window.hacked)).toBeUndefined();
+  expect(fixture.network).toEqual([]);
+  const count = fixture.requests.filter((a) => a === "thumbnail").length;
+  await page
+    .getByRole("searchbox", { name: "Search Library" })
+    .fill("sample-0");
+  await expect(page.locator(".agpa-library-card")).toHaveCount(1);
+  await expect(page.locator(".agpa-library-page")).toContainText(
+    "Project plan",
+  );
+  expect(fixture.requests.filter((a) => a === "thumbnail")).toHaveLength(count);
+  await page.evaluate(() => __AGLibrary.close());
+  await expect(page.locator("iframe")).toHaveCount(0);
+});
+test("3D card camera centers a translated model and fits it without clipping", async ({
+  page,
+}) => {
+  const points = [
+    [100, 50, -30],
+    [108, 50, -30],
+    [108, 52, -30],
+    [100, 52, -30],
+    [100, 50, -28],
+    [108, 50, -28],
+    [108, 52, -28],
+    [100, 52, -28],
+  ];
+  const faces = [
+    [1, 3, 2],
+    [1, 4, 3],
+    [5, 6, 7],
+    [5, 7, 8],
+    [1, 2, 6],
+    [1, 6, 5],
+    [4, 8, 7],
+    [4, 7, 3],
+    [1, 5, 8],
+    [1, 8, 4],
+    [2, 3, 7],
+    [2, 7, 6],
+  ];
+  const bytes = Buffer.from(
+    [
+      ...points.map((p) => "v " + p.join(" ")),
+      ...faces.map((f) => "f " + f.join(" ")),
+    ].join("\n"),
+  );
+  await mountLibrary(page, [{ extension: "obj", category: "models", bytes }]);
+  const image = page.locator(".agpa-library-thumbnail img");
+  await expect(image).toBeVisible();
+  const pixels = await image.evaluate(async (image) => {
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(image, 0, 0);
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let minX = canvas.width,
+      minY = canvas.height,
+      maxX = 0,
+      maxY = 0,
+      count = 0;
+    for (let y = 0; y < canvas.height; y++)
+      for (let x = 0; x < canvas.width; x++) {
+        const i = (y * canvas.width + x) * 4;
+        if (
+          Math.abs(data[i] - 23) +
+            Math.abs(data[i + 1] - 25) +
+            Math.abs(data[i + 2] - 29) >
+          45
+        ) {
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+          count++;
+        }
+      }
+    return {
+      minX,
+      minY,
+      maxX,
+      maxY,
+      count,
+      width: canvas.width,
+      height: canvas.height,
+    };
+  });
+  expect(pixels.count).toBeGreaterThan(7000);
+  expect(pixels.maxX - pixels.minX).toBeGreaterThan(180);
+  expect(pixels.maxY - pixels.minY).toBeGreaterThan(70);
+  expect(pixels.minX).toBeGreaterThan(10);
+  expect(pixels.minY).toBeGreaterThan(10);
+  expect(pixels.maxX).toBeLessThan(pixels.width - 10);
+  expect(pixels.maxY).toBeLessThan(pixels.height - 10);
+  expect(
+    Math.abs((pixels.minX + pixels.maxX) / 2 - pixels.width / 2),
+  ).toBeLessThan(40);
+  expect(
+    Math.abs((pixels.minY + pixels.maxY) / 2 - pixels.height / 2),
+  ).toBeLessThan(25);
 });

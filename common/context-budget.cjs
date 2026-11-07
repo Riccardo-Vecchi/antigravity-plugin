@@ -110,7 +110,6 @@ function hydrateFromTranscript(convKey, data, storage) {
       pendingCodeChars: 0,
       pendingTurns: 0,
       transcriptChars: 0,
-      turnsList: []
     };
     conversationCache.set(convKey, entry);
   }
@@ -133,7 +132,6 @@ function hydrateFromTranscript(convKey, data, storage) {
   entry.maxCodeChars = data.maxCodeChars || entry.maxCodeChars || 0;
   entry.maxTurns = data.maxTurns || entry.maxTurns || 0;
   entry.maxImageTokens = data.maxImageTokens || 0;
-  entry.turnsList = Array.isArray(data.turnsList) ? data.turnsList : (entry.turnsList || []);
   if (data.apiTokens && typeof data.apiTokens === 'number') {
     entry.apiTokens = data.apiTokens;
   }
@@ -152,7 +150,6 @@ function hydrateFromTranscript(convKey, data, storage) {
     blocks: Array.from(entry.blocks.entries()),
     images: Array.from(entry.images.entries()),
     documents: Array.from(entry.documents.entries()),
-    turnsList: entry.turnsList || [],
     maxChars: entry.maxChars,
     maxCodeChars: entry.maxCodeChars,
     maxTurns: entry.maxTurns,
@@ -177,7 +174,6 @@ function hydrateFromTranscript(convKey, data, storage) {
 
   return true;
 }
-
 
 function estimateImageTokens(width, height, modelFamilyOrName = '') {
   let w = Math.max(0, Number(width) || 0);
@@ -797,7 +793,6 @@ function extractConversationStats(doc = document, storage = undefined) {
         blocks: new Map(stored.blocks || []),
         images: new Map(stored.images || []),
         documents: new Map(stored.documents || []),
-        turnsList: Array.isArray(stored.turnsList) ? stored.turnsList : [],
         maxChars: stored.maxChars || 0,
         maxCodeChars: stored.maxCodeChars || 0,
         maxTurns: stored.transcriptTurns ? (stored.transcriptTurns + (stored.pendingTurns || 0)) : (stored.maxTurns || 0),
@@ -828,7 +823,7 @@ function extractConversationStats(doc = document, storage = undefined) {
       const oldest = conversationCache.keys().next().value;
       conversationCache.delete(oldest);
     }
-    entry = { blocks: new Map(), images: new Map(), documents: new Map(), turnsList: [], maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0, maxDocTokens: 0, systemTokens: 0, systemBaseline: null, apiTokens: 0, inputTokens: 0, cacheReadTokens: 0, outputTokens: 0, mtime: 0, pendingChars: 0, pendingCodeChars: 0, pendingTurns: 0, transcriptChars: 0, transcriptTurns: 0 };
+    entry = { blocks: new Map(), images: new Map(), documents: new Map(), maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0, maxDocTokens: 0, systemTokens: 0, systemBaseline: null, apiTokens: 0, inputTokens: 0, cacheReadTokens: 0, outputTokens: 0, mtime: 0, pendingChars: 0, pendingCodeChars: 0, pendingTurns: 0, transcriptChars: 0, transcriptTurns: 0 };
     conversationCache.set(convKey, entry);
   }
   if (!entry.images) entry.images = new Map();
@@ -848,7 +843,6 @@ function extractConversationStats(doc = document, storage = undefined) {
     entry.blocks.clear();
     entry.images.clear();
     entry.documents.clear();
-    entry.turnsList = [];
     entry.maxChars = 0;
     entry.maxCodeChars = 0;
     entry.maxTurns = 0;
@@ -920,7 +914,6 @@ function extractConversationStats(doc = document, storage = undefined) {
     entry.blocks.clear();
     entry.images.clear();
     entry.documents.clear();
-    entry.turnsList = [];
   }
 
   let docSum = 0;
@@ -988,7 +981,6 @@ function extractConversationStats(doc = document, storage = undefined) {
       blocks: [...entry.blocks.entries()],
       images: [...entry.images.entries()],
       documents: [...entry.documents.entries()],
-      turnsList: entry.turnsList || [],
       maxChars: entry.maxChars,
       maxCodeChars: entry.maxCodeChars,
       maxTurns: entry.maxTurns,
@@ -1071,7 +1063,6 @@ function extractConversationStats(doc = document, storage = undefined) {
     cacheReadTokens: entry.cacheReadTokens || 0,
     outputTokens: entry.outputTokens || 0,
     mtime: entry.mtime || 0,
-    turnsList: entry.turnsList || [],
     tokens,
     ceiling,
     modelName,

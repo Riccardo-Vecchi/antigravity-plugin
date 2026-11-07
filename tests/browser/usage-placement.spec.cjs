@@ -16,7 +16,8 @@ async function setup(page) {
   await page.goto("https://native.test/");
   await page.evaluate(() => {
     globalThis.__AGPAI18n = {
-      t: (k) => k,
+      t: (k, p = {}) =>
+        k.replace(/\{(\w+)\}/g, (_, name) => String(p[name] ?? `{${name}}`)),
       attrs() {},
       set(n, k, p = {}, a = "text") {
         if (a === "text") n.textContent = k;
@@ -108,3 +109,70 @@ for (const compact of [false, true])
         .evaluate((n) => getComputedStyle(n).backdropFilter),
     ).toContain("blur");
   });
+test("Usage stays available on Automations without creating a conversation or opening the model menu", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    document.querySelector("[data-testid=model-selector-trigger]").remove();
+    const settings = document.querySelector("[data-testid=settings-button]");
+    const service = {
+      async retrieveUserQuotaSummary() {
+        return {
+          response: {
+            groups: [
+              {
+                displayName: "Gemini Models",
+                buckets: [
+                  {
+                    window: "weekly",
+                    remaining: { case: "remainingFraction", value: 0.37 },
+                    resetTime: {
+                      seconds: Math.floor(Date.now() / 1000) + 3600,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        };
+      },
+    };
+    settings.__reactFiber$fixture = {
+      memoizedProps: { value: { core: { cloudCodeService: service } } },
+    };
+  });
+  await page.locator("[data-agpa-view-usage]").hover();
+  const popup = page.locator(".agpa-standalone-usage");
+  await expect(popup).toContainText("37% left");
+  await expect(popup).toContainText("Weekly limit");
+  const rect = await popup.boundingBox(),
+    anchor = await page.locator("[data-agpa-view-usage]").boundingBox();
+  expect(
+    Math.abs(rect.y + rect.height - anchor.y - anchor.height),
+  ).toBeLessThan(2);
+  await expect(page.locator("[data-testid=model-selector-panel]")).toHaveCount(
+    0,
+  );
+  await page.mouse.move(900, 200);
+  await expect(popup).toHaveCount(0);
+  await page.locator("[data-agpa-view-usage]").click();
+  await expect(popup).toContainText("37% left");
+  await page.keyboard.press("Escape");
+  await expect(popup).toHaveCount(0);
+});
+test("Usage shows an actionable unavailable state instead of silent failure outside conversations", async ({
+  page,
+}) => {
+  await setup(page);
+  await page
+    .locator("[data-testid=model-selector-trigger]")
+    .evaluate((n) => n.remove());
+  await page.locator("[data-agpa-view-usage]").hover();
+  await expect(page.locator(".agpa-standalone-usage")).toContainText(
+    "Could not load usage",
+  );
+  await expect(
+    page.getByRole("button", { name: "Refresh usage" }),
+  ).toBeVisible();
+});

@@ -8,7 +8,7 @@ const root = path.join(__dirname, "../..");
 async function mountLibrary(
   page,
   files,
-  { failBundleOnce = false, delayBundle = false } = {},
+  { failBundleOnce = false, delayBundle = false, deferThumbnails = false } = {},
 ) {
   const requests = [],
     network = [];
@@ -27,6 +27,14 @@ async function mountLibrary(
     network.push(route.request().url());
     return route.abort();
   });
+  if (deferThumbnails)
+    await page.addInitScript(() => {
+      window.IntersectionObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+    });
   await page.goto("https://native.test/");
   const items = files.map((file, index) => ({
     id: `file-${index}`,

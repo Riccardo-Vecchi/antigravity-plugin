@@ -351,3 +351,15 @@ test("automatic installation waits while settings or setup are busy; a later idl
   assert.equal(dispatched, 1);
   updater.close();
 });
+test('update payload validation handles viewer-sized Base64 and rejects malformed padding',async t=>{
+ const f=await fixture(t);
+ const target=f.data.files.find(file=>file.name==='assets/viewers/viewers.js');
+ const bytes=Buffer.concat([Buffer.from(target.data,'base64'),Buffer.alloc(4*1024*1024,32)]);
+ const enlarged={...target,data:bytes.toString('base64'),size:bytes.length,sha256:core.hash(bytes)};
+ const large={...f.data,files:f.data.files.map(file=>file===target?enlarged:file)};
+ assert.doesNotThrow(()=>core.validatePackage(large,f.data));
+ for(const invalid of ['YQ=','YQ===','YQ==\n','YQ==YQ==','YR==']){
+  const data={...f.data,files:[{...f.data.files[0],data:invalid},...f.data.files.slice(1)]};
+  assert.throws(()=>core.validatePackage(data,f.data),/invalidUpdate/);
+ }
+});

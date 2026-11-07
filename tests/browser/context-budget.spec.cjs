@@ -42,9 +42,20 @@ test("context is hidden in new chats and appears when transcript data arrives", 
       apiTokens: 8000,
       inputTokens: 6000,
       outputTokens: 2000,
-      turnsList: [],
     });
   });
+  await page.evaluate(() => {
+    const response = document.createElement("div");
+    response.innerHTML =
+      '<div><button aria-label="Good response">Like</button><button aria-label="Copy">Copy</button></div>';
+    document
+      .querySelector("[data-testid=autoscroll-viewport]")
+      .append(response);
+    globalThis.__AGContextBudget.refresh();
+  });
+  await expect(
+    page.locator(".agpa-turn-token-badge,.agpa-turn-tooltip"),
+  ).toHaveCount(0);
   await expect(pill).toBeVisible();
   await expect(pill.locator(".agpa-context-ring")).toBeVisible();
   await expect(pill).toHaveAttribute("aria-label", /tokens/);

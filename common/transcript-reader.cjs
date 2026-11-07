@@ -70,54 +70,17 @@ function parseTranscriptContent(content) {
   let pendingTurnsAfterApi = 0;
   const blocks = [];
   const images = [];
-  const turnsList = [];
-  let currentTurn = null;
-  let prevTurnTotalTokens = 0;
-
-  function finalizeTurn(turn, prevTotal) {
-    if (!turn) return;
-    turn.realDelta = prevTotal > 0 ? (turn.totalTokens - prevTotal) : turn.totalTokens;
-    turn.deltaTokens = Math.max(0, turn.realDelta);
-    if (turn.realDelta <= -30000) {
-      turn.hasCompaction = true;
-    }
-    if (turn.hasCompaction && (!turn.preCompactionTokens || turn.preCompactionTokens === 0)) {
-      if (turn.peakTokens && turn.peakTokens > turn.totalTokens) {
-        turn.preCompactionTokens = turn.peakTokens;
-      } else if (prevTotal > 0) {
-        turn.preCompactionTokens = prevTotal;
-      } else {
-        turn.preCompactionTokens = turn.totalTokens;
-      }
-    }
-    if (turn.hasCompaction && (!turn.postCompactionTokens || turn.postCompactionTokens === 0)) {
-      turn.postCompactionTokens = turn.totalTokens;
-    }
-    const activeInput = (turn.inputTokens > 0 && turn.inputTokens < 20000)
-      ? turn.inputTokens
-      : Math.max((turn.promptEst || 0) + (turn.imageTokens || 0), 100);
-    const activeOutput = turn.finalOutputTokens || turn.outputTokens || 0;
-    turn.footprint = activeInput + activeOutput;
-  }
-
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!line) continue;
     try {
       const obj = JSON.parse(line);
       if (obj.type === 'USER_INPUT') {
-        if (currentTurn) {
-          finalizeTurn(currentTurn, prevTurnTotalTokens);
-          prevTurnTotalTokens = currentTurn.totalTokens;
-          turnsList.push(currentTurn);
-        }
 
         turns++;
         pendingTurnsAfterApi++;
         const rawPrompt = (obj.content || '').replace(/<[^>]+>/g, ' ').trim();
         const promptSnippet = rawPrompt.slice(0, 80);
-        const promptKey = rawPrompt.replace(/\s+/g, ' ').toLowerCase().slice(0, 40);
-        const promptEst = Math.round(rawPrompt.length / 3.5);
         const promptCode = (obj.content?.match(/```[\s\S]*?```/g) || []).reduce((acc, c) => acc + c.length, 0);
         const len = obj.content?.length || 0;
         const key = 'p:turn-' + turns + ':' + (promptSnippet || ('Turn ' + turns));
@@ -127,39 +90,15 @@ function parseTranscriptContent(content) {
         pendingCharsAfterApi += len;
         pendingCodeCharsAfterApi += promptCode;
 
-        let turnImageTokens = 0;
         if (Array.isArray(obj.media)) {
           for (const m of obj.media) {
             imageCount++;
             const imgKey = m.uri || ('img-' + imageCount);
             images.push([imgKey, 258]);
             imageTokens += 258;
-            turnImageTokens += 258;
           }
         }
 
-        currentTurn = {
-          turnIndex: turns,
-          prompt: promptSnippet,
-          promptKey,
-          promptEst,
-          responseKey: '',
-          finalResponseKey: '',
-          outputTokens: 0,
-          finalOutputTokens: 0,
-          inputTokens: 0,
-          cacheReadTokens: 0,
-          totalTokens: 0,
-          peakTokens: 0,
-          deltaTokens: 0,
-          realDelta: 0,
-          footprint: 0,
-          toolCallsCount: 0,
-          hasCompaction: false,
-          preCompactionTokens: 0,
-          postCompactionTokens: 0,
-          imageTokens: turnImageTokens
-        };
       } else if (obj.type === 'PLANNER_RESPONSE') {
         if (typeof obj.input_tokens === 'number' || typeof obj.output_tokens === 'number' || typeof obj.cache_read_tokens === 'number') {
           const inTok = typeof obj.input_tokens === 'number' ? obj.input_tokens : 0;
@@ -175,40 +114,13 @@ function parseTranscriptContent(content) {
             pendingCodeCharsAfterApi = 0;
             pendingTurnsAfterApi = 0;
 
-            if (currentTurn) {
-              if (t > currentTurn.peakTokens) {
-                currentTurn.peakTokens = t;
-              }
-              currentTurn.totalTokens = t;
-              currentTurn.inputTokens = inTok;
-              currentTurn.cacheReadTokens = cacheTok;
-              if (currentTurn.hasCompaction && !currentTurn.postCompactionTokens && currentTurn.preCompactionTokens > 0) {
-                currentTurn.postCompactionTokens = t;
-              }
-            }
           }
         }
-        if (currentTurn) {
-          if (typeof obj.output_tokens === 'number') {
-            currentTurn.outputTokens += obj.output_tokens;
-            currentTurn.finalOutputTokens = obj.output_tokens;
-          }
-          if (Array.isArray(obj.tool_calls) && obj.tool_calls.length > 0) {
-            currentTurn.toolCallsCount += obj.tool_calls.length;
-          }
-        }
+
         let stepChars = 0;
         let stepCode = 0;
         if (obj.content) {
-          if (currentTurn && typeof obj.content === 'string') {
-            const cleanResp = obj.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-            if (cleanResp.length > 10) {
-              if (!currentTurn.responseKey) {
-                currentTurn.responseKey = cleanResp.toLowerCase().slice(0, 50);
-              }
-              currentTurn.finalResponseKey = cleanResp.toLowerCase().slice(0, 50);
-            }
-          }
+
           const respCode = (obj.content.match(/```[\s\S]*?```/g) || []).reduce((acc, c) => acc + c.length, 0);
           stepChars += obj.content.length;
           stepCode += respCode;
@@ -239,11 +151,6 @@ function parseTranscriptContent(content) {
           pendingCharsAfterApi += len;
           pendingCodeCharsAfterApi += code;
         }
-      } else if (obj.type === 'CHECKPOINT') {
-        if (currentTurn) {
-          currentTurn.hasCompaction = true;
-          currentTurn.preCompactionTokens = currentTurn.peakTokens || currentTurn.totalTokens || prevTurnTotalTokens;
-        }
       } else if (obj.type === 'SYSTEM_MESSAGE') {
         const len = obj.content?.length || 0;
         if (len > 0) {
@@ -257,11 +164,6 @@ function parseTranscriptContent(content) {
         }
       }
     } catch {}
-  }
-
-  if (currentTurn) {
-    finalizeTurn(currentTurn, prevTurnTotalTokens);
-    turnsList.push(currentTurn);
   }
 
   return {
@@ -279,7 +181,6 @@ function parseTranscriptContent(content) {
     pendingTurns: pendingTurnsAfterApi,
     blocks,
     images,
-    turnsList
   };
 }
 
@@ -328,7 +229,6 @@ function readTranscriptStats(conversationKey, options = {}) {
       mtime: fileStat ? fileStat.mtimeMs : Date.now(),
       blocks: parsed.blocks,
       images: parsed.images,
-      turnsList: parsed.turnsList || [],
       documents: [],
       updatedAt: Date.now()
     };

@@ -1,6 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
- 'use strict';const VERSION='1.1.7';
+ 'use strict';const VERSION='1.2.0';
  if(globalThis.__AGModelUI?.version===VERSION)return;
  globalThis.__AGModelUI?.destroy();
  const i=globalThis.__AGPAI18n,providerFor=globalThis.__AGPAProviderFor,permissionFor=globalThis.__AGPAPermissionFor,assets=globalThis.__AGPA_LAB_ICONS__;
@@ -25,8 +25,78 @@
   for(const e of document.querySelectorAll('[data-testid=permissions-selector-trigger]')){const mode=permissionFor(e.textContent);if(mode)setAttr(e,'data-agpa-permission',mode);else e.removeAttribute('data-agpa-permission');}
  }
  let usageOpening=false,usageButton=null,usageTimer=null,usageCloseTimer=null;
+ // Outside conversations there is no model trigger. Use the same native quota
+ // service instead of navigating away or opening a hidden conversation.
+ let quotaPopup=null,quotaCache=null,quotaPending=null,quotaServiceOwner=null,quotaEpoch=0;
+ function quotaService(){
+  for(const anchor of [document.querySelector('[data-testid=settings-button]'),document.querySelector('[data-agpa-view-usage]')].filter(Boolean)){
+   const key=Object.keys(anchor).find(k=>k.startsWith('__reactFiber$'));
+   for(let fiber=anchor[key],depth=0;fiber&&depth<180;fiber=fiber.return,depth++){
+    const values=[fiber.memoizedProps?.value];
+    for(let dependency=fiber.dependencies?.firstContext;dependency;dependency=dependency.next)values.push(dependency.memoizedValue);
+    for(const value of values){const service=value?.core?.cloudCodeService;if(typeof service?.retrieveUserQuotaSummary==='function')return service;}
+   }
+  }
+  return null;
+ }
+ function quotaReset(bucket){
+  const value=bucket.resetTime;let milliseconds;
+  if(value&&typeof value==='object'&&value.seconds!==undefined)milliseconds=Number(value.seconds)*1000+Number(value.nanos||0)/1e6;
+  else if(typeof value==='string')milliseconds=Date.parse(value);
+  if(!Number.isFinite(milliseconds))return bucket.description||'';
+  const minutes=Math.max(1,Math.ceil((milliseconds-Date.now())/60000));
+  return i.t('Resets in {time}',{time:minutes>=1440?`${Math.floor(minutes/1440)}d ${Math.floor(minutes%1440/60)}h`:minutes>=60?`${Math.floor(minutes/60)}h ${minutes%60}m`:`${minutes}m`});
+ }
+ function paintQuota(groups,loading=false,failed=false){
+  if(!quotaPopup)return;
+  quotaPopup.replaceChildren();
+  const refresh=node('button',{type:'button',text:'↻','aria-label':'Refresh usage',class:'agpa-quota-refresh'});
+  refresh.disabled=loading;refresh.onclick=()=>loadQuota(true);
+  quotaPopup.append(node('header',{},node('span',{text:'Usage'}),refresh));
+  if(!groups?.length){quotaPopup.append(node('p',{role:'status',text:loading?'Refreshing…':failed?'Could not load usage. Try Refresh.':'No quota information available.'}));return;}
+  for(const group of groups){
+   if(!Array.isArray(group.buckets)||!group.buckets.length)continue;
+   const section=node('section',{});
+   if(group.displayName)section.append(node('strong',{text:group.displayName}));
+   for(const bucket of group.buckets){
+    const row=node('div',{class:'agpa-quota-row'});
+    const label=bucket.window==='weekly'?'Weekly limit':bucket.window==='daily'?'Daily limit':/^\d+[smhd]$/.test(bucket.window||'')?`${bucket.window} limit`:bucket.displayName||bucket.bucketId;
+    const remaining=bucket.remaining?.case==='remainingFraction'?bucket.remaining.value:undefined;
+    const known=typeof remaining==='number'&&Number.isFinite(remaining);
+    const percent=known?Math.round(Math.max(0,Math.min(1,remaining))*100):null;
+    const value=node('span',{class:'agpa-quota-value',text:known?i.t('{percent}% left',{percent}):'—'});
+    if(known){const ring=node('span',{'aria-hidden':'true',class:'agpa-quota-ring'});ring.style.setProperty('--quota-left',`${percent}%`);ring.style.setProperty('--quota-color',percent<10?'#ed6a68':percent<30?'#d8a548':'#66a34f');value.append(ring);}
+    row.append(node('span',{text:label}),value);
+    const reset=quotaReset(bucket);if(reset)row.append(node('small',{text:reset}));
+    if(bucket.disabled)row.setAttribute('aria-disabled','true');section.append(row);
+   }
+   quotaPopup.append(section);
+  }
+  if(failed)quotaPopup.append(node('p',{role:'status',text:'Could not load usage. Try Refresh.'}));
+ }
+ async function loadQuota(force=false){
+  const service=quotaService(),epoch=quotaEpoch;
+  if(service!==quotaServiceOwner){quotaCache=null;quotaServiceOwner=service;quotaPending=null;}
+  if(!service){paintQuota(null,false,true);return;}
+  if(!force&&quotaCache&&Date.now()-quotaCache.time<5000){paintQuota(quotaCache.groups);return;}
+  paintQuota(quotaCache?.groups,true);
+  quotaPending ||= service.retrieveUserQuotaSummary(undefined,true).then(result=>{
+   const groups=result?.response?.groups;if(!Array.isArray(groups))throw Error('unavailable');
+   if(quotaServiceOwner===service)quotaCache={groups,time:Date.now()};return groups;
+  }).finally(()=>{if(quotaServiceOwner===service)quotaPending=null;});
+  try{const groups=await quotaPending;if(!stopped&&quotaPopup&&epoch===quotaEpoch)paintQuota(groups);}
+  catch{if(!stopped&&quotaPopup&&epoch===quotaEpoch)paintQuota(quotaCache?.groups,false,true);}
+ }
+ function standaloneUsage(button){
+  quotaEpoch++;quotaPopup=node('div',{class:'agpa-standalone-usage','data-agpa-usage-menu':'',role:'dialog','aria-label':'Usage'});
+  const rect=button.getBoundingClientRect();
+  quotaPopup.style.left=Math.min(rect.right+8,Math.max(8,innerWidth-336))+'px';
+  quotaPopup.style.bottom=Math.max(8,innerHeight-rect.bottom)+'px';
+  document.body.append(quotaPopup);loadQuota();
+ }
+
  function usageRow(panel){return [...panel.querySelectorAll('[role=menuitem][aria-haspopup=menu]')].find(e=>e.querySelector('path[d^="M479.04-325.92"]')||e.textContent.trim()==='View Usage');}
- function closeUsage(){clearTimeout(usageCloseTimer);usageCloseTimer=null;document.body.removeAttribute('data-agpa-usage-open');usageButton?.setAttribute('aria-expanded','false');}
+ function closeUsage(){quotaEpoch++;quotaPopup?.remove();quotaPopup=null;clearTimeout(usageCloseTimer);usageCloseTimer=null;document.body.removeAttribute('data-agpa-usage-open');usageButton?.setAttribute('aria-expanded','false');}
  function nativeModelClick(event){if(!document.body.hasAttribute('data-agpa-usage-open')&&event.target.closest?.('[data-testid=model-selector-trigger]'))for(const root of document.querySelectorAll('[data-agpa-usage-only]'))root.removeAttribute('data-agpa-usage-only');}
  function usagePointer(event){
   if(!document.body.hasAttribute('data-agpa-usage-open'))return;
@@ -38,9 +108,10 @@
  function openUsage(button){
     clearTimeout(usageCloseTimer);usageCloseTimer=null;
     if(usageOpening||document.body.hasAttribute('data-agpa-usage-open'))return;
-    const trigger=document.querySelector('[data-testid=model-selector-trigger]');if(!trigger)return;
+    const trigger=document.querySelector('[data-testid=model-selector-trigger]');
     usageOpening=true;usageButton=button;button.setAttribute('aria-expanded','true');document.body.setAttribute('data-agpa-usage-open','');
     const rect=button.getBoundingClientRect();document.body.style.setProperty('--agpa-usage-left',Math.min(rect.right+8,Math.max(8,innerWidth-336))+'px');document.body.style.setProperty('--agpa-usage-bottom',Math.max(8,innerHeight-rect.bottom)+'px');
+    if(!trigger){usageOpening=false;standaloneUsage(button);return;}
     if(trigger.getAttribute('aria-expanded')!=='true')trigger.click();
     let attempts=0;
     const open=()=>{if(stopped)return;const panel=document.querySelector('[data-testid=model-selector-panel]'),row=panel&&usageRow(panel);if(row){row.click();usageOpening=false;schedule();}else if(++attempts<15)usageTimer=setTimeout(open,30);else{usageOpening=false;closeUsage();}};open();
@@ -51,7 +122,7 @@
    const button=node('button',{type:'button',class:settings.className,'data-agpa-view-usage':'','aria-haspopup':'menu','aria-expanded':'false',title:'View Usage'});
    button.innerHTML='<span class="shrink-0 flex items-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 19a10 10 0 1 1 16 0H4Z"/><path d="m12 14 5-6"/><circle cx="12" cy="14" r="1"/></svg></span>';
    button.append(node('span',{class:'truncate text-sm',text:'View Usage'}));
-   button.onclick=()=>{if(document.body.hasAttribute('data-agpa-usage-open')){document.querySelector('[data-testid=model-selector-trigger]')?.click();closeUsage();}else openUsage(button);};
+   button.onclick=()=>openUsage(button);
    button.addEventListener('pointerenter',()=>openUsage(button));
    settings.before(button);
   }
@@ -61,7 +132,7 @@
    const root=panel.closest('[role=menu]');if(root){setAttr(root,'data-agpa-usage-root','');if(document.body.hasAttribute('data-agpa-usage-open'))setAttr(root,'data-agpa-usage-only','');setAttr(root.parentElement,'data-agpa-usage-anchor','');}
    const submenu=row.parentElement.querySelector('[role=menu][data-nested]');if(submenu){setAttr(submenu,'data-agpa-usage-menu','');setAttr(submenu.parentElement,'data-agpa-usage-positioner','');}
   }
-  if(!usageOpening&&!document.querySelector('[data-testid=model-selector-panel]'))closeUsage();
+  if(!usageOpening&&!quotaPopup&&!document.querySelector('[data-testid=model-selector-panel]'))closeUsage();
  }
  function apply(){
   scheduled=0;if(stopped)return;
@@ -112,6 +183,7 @@
  }
  let search='',lastSearch=0;
  function keyboard(event){
+  if(event.key==='Escape'&&quotaPopup){closeUsage();usageButton?.focus();return;}
   if(event.target.closest?.('[data-agpa-effort-ui]'))return;
   if(dialog?.open&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();dialog.close();return;}
   if(event.ctrlKey||event.altKey||event.metaKey)return;
@@ -138,6 +210,8 @@
  [data-agpa-permission=review]{--agpa-permission:#70aaff}[data-agpa-permission=default]{--agpa-permission:#55bd8a}[data-agpa-permission=auto]{--agpa-permission:#d6a246}[data-agpa-permission=turbo]{--agpa-permission:#ee6f78}
  [data-testid=permissions-selector-trigger][data-agpa-permission]{color:color-mix(in srgb,var(--foreground,#eee) 18%,var(--agpa-permission))!important;background:color-mix(in srgb,var(--agpa-permission) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--agpa-permission) 23%,transparent)}
  [data-testid^=permissions-preset-option-][data-agpa-permission]>[data-icon],[data-testid^=permissions-preset-option-][data-agpa-permission]>span.flex.min-w-0>span:first-child{color:color-mix(in srgb,var(--foreground,#eee) 18%,var(--agpa-permission))!important}
+
+ .agpa-standalone-usage{box-sizing:border-box;position:fixed;z-index:10000;width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;padding:10px;border:1px solid var(--border,#36373c);border-radius:13px;background:var(--background,#17181c);color:var(--foreground,#eee);font:12px/1.5 system-ui;box-shadow:0 12px 30px #0005}.agpa-standalone-usage header{display:flex;align-items:center;justify-content:space-between;color:var(--muted-foreground,#aaa);padding:0 2px 4px}.agpa-quota-refresh{border:0;background:transparent;color:inherit;cursor:pointer;font:18px system-ui}.agpa-quota-refresh:disabled{opacity:.4}.agpa-standalone-usage section+section{margin-top:10px}.agpa-standalone-usage strong{display:block;font-weight:500;padding:2px}.agpa-quota-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:1px 12px;padding:4px 2px;color:var(--muted-foreground,#aaa)}.agpa-quota-row small{grid-column:1/-1;text-align:right;font-size:11px}.agpa-quota-value{display:flex;align-items:center;gap:6px}.agpa-quota-ring{width:14px;height:14px;display:inline-block;border-radius:50%;background:conic-gradient(var(--quota-color) var(--quota-left),#62636b var(--quota-left));mask:radial-gradient(circle,transparent 48%,#000 52%)}.agpa-quota-row[aria-disabled=true]{opacity:.5}
  body:not([data-agpa-usage-open]) [data-agpa-native-usage],body:not([data-agpa-usage-open]) [data-agpa-usage-separator]{display:none!important}
  body[data-agpa-usage-open] [data-agpa-usage-anchor]{position:fixed!important;left:0!important;top:0!important;transform:none!important;will-change:auto!important;filter:none!important;backdrop-filter:none!important;contain:none!important;perspective:none!important}
  /* Native transform hints and Onyx backdrop blur also establish containing

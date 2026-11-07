@@ -218,6 +218,7 @@ function createManager({platform = process.platform, home = os.homedir(), config
     abortOperation = new AbortController();
     async function checkConnection() {
       const current = await status();
+      if (action === 'capture' && !['wayland','x11','windows'].includes(current.session)) throw Error('desktopUnavailable');
       const desktop = current.scope === 'desktop' && !current.needsHelper && ['wayland','x11','windows'].includes(current.session);
       if (desktop) captureAttemptedRevision = (await record()).revision;
       stage('protocol','Checking the MCP connection…');

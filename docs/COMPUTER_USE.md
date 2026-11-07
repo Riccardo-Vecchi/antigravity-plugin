@@ -20,6 +20,8 @@ If an upstream app change prevents automatic MCP refresh, use native **Customiza
 
 ![Connection checks with individual passed and pending states](images/computer-use-checks.png)
 
+On Linux, a service started before graphical sign-in recovers only the desktop display variables from the user systemd session. This lets the driver recognize Wayland/X11 and check the GNOME helper accurately. An unknown session remains pending; a manual capture test reports a detection error rather than silently checking only MCP.
+
 ## 🔄 Check Cua Driver updates
 
 Use the refresh icon beside the driver version in **Connection details**. It spins during the lookup and opens a dialog with the reviewed and latest upstream versions, release notes, or a connection error. Discovery reads official GitHub releases for `trycua/cua`, matches regular numeric `cua-driver-rs-vX.Y.Z` tags, and excludes other products, drafts, nightly and suffixed preview tags. A numeric release can still carry GitHub’s prerelease flag; the dialog states that explicitly. Successful results are cached for one minute.

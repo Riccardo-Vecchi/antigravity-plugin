@@ -228,3 +228,16 @@ test("a linked upload directory cannot expose files outside the official convers
   await fs.symlink(outside, path.join(f.folder, ".user_uploaded"));
   assert.equal((await f.store.list()).items.length, 0);
 });
+test('thumbnail reads include normal-sized generated images without bypassing catalog checks',async t=>{
+ const f=await fixture(t);await fs.writeFile(path.join(f.folder,'preview.png'),Buffer.alloc(800*1024,42));
+ const {items}=await f.store.list();const result=await f.store.preview(items[0].id,{thumbnail:true});
+ assert.equal(Buffer.from(result.data,'base64').length,800*1024);
+ await assert.rejects(f.store.preview('forged',{thumbnail:true}));
+});
+test('Library sort orders do not mutate the original catalog',()=>{
+ const items=[{name:'file10',modified:10,size:1,source:'generated'},{name:'file2',modified:20,size:8,source:'generated'}];
+ assert.deepEqual(filterItems(items,{sort:'name'}).map(i=>i.name),['file2','file10']);
+ assert.deepEqual(filterItems(items,{sort:'newest'}).map(i=>i.modified),[20,10]);
+ assert.deepEqual(filterItems(items,{sort:'oldest'}).map(i=>i.modified),[10,20]);
+ assert.equal(filterItems(items,{sort:'size'})[0].size,8);assert.equal(items[0].name,'file10');
+});

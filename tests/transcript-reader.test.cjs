@@ -295,121 +295,19 @@ test('readTranscriptStats exposes granular token breakdown and file mtime from d
   assert.ok(typeof stats.mtime === 'number' && stats.mtime > 0);
 });
 
-test('parseTranscriptContent and readTranscriptStats compute per-turn deltaTokens and turnsList', (t) => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ag-test-turns-list-'));
-  t.after(() => fs.rmSync(tmpDir, { recursive: true, force: true }));
-
-  const convId = '99999999-8888-7777-6666-555555555555';
-  const logsDir = path.join(tmpDir, convId, '.system_generated', 'logs');
-  fs.mkdirSync(logsDir, { recursive: true });
-
-  const sampleJsonl = [
-    // Turn 1
-    JSON.stringify({ step_index: 0, type: 'USER_INPUT', content: 'Turn 1 prompt' }),
-    JSON.stringify({ step_index: 1, type: 'PLANNER_RESPONSE', tool_calls: [{ name: 'read_file' }], output_tokens: 100, input_tokens: 2000, cache_read_tokens: 10000 }),
-    JSON.stringify({ step_index: 2, type: 'GENERIC', content: 'file content' }),
-    JSON.stringify({ step_index: 3, type: 'PLANNER_RESPONSE', output_tokens: 300, input_tokens: 2500, cache_read_tokens: 10000 }),
-    // Turn 2
-    JSON.stringify({ step_index: 4, type: 'USER_INPUT', content: 'Turn 2 prompt' }),
-    JSON.stringify({ step_index: 5, type: 'PLANNER_RESPONSE', output_tokens: 250, input_tokens: 1500, cache_read_tokens: 12500 }),
-    // Turn 3 (context contraction / cache optimization)
-    JSON.stringify({ step_index: 6, type: 'USER_INPUT', content: 'Turn 3 prompt' }),
-    JSON.stringify({ step_index: 7, type: 'PLANNER_RESPONSE', output_tokens: 180, input_tokens: 1200, cache_read_tokens: 10000 }),
-    // Turn 4 (Compaction checkpoint event with pre-compaction peak)
-    JSON.stringify({ step_index: 8, type: 'USER_INPUT', content: 'Turn 4 prompt' }),
-    JSON.stringify({ step_index: 9, type: 'PLANNER_RESPONSE', output_tokens: 500, input_tokens: 5000, cache_read_tokens: 15000 }), // 20,500 peak!
-    JSON.stringify({ step_index: 10, type: 'CHECKPOINT', content: '# Resuming from a compaction\n\nTruncated context summary' }),
-    JSON.stringify({ step_index: 11, type: 'PLANNER_RESPONSE', output_tokens: 150, input_tokens: 1000, cache_read_tokens: 2000 }),
-    // Turn 5 (Compaction checkpoint event occurring immediately after USER_INPUT before any PLANNER_RESPONSE)
-    JSON.stringify({ step_index: 12, type: 'USER_INPUT', content: 'Turn 5 prompt reaching 258k' }),
-    JSON.stringify({ step_index: 13, type: 'CHECKPOINT', content: '# Resuming from a compaction' }),
-    JSON.stringify({ step_index: 14, type: 'PLANNER_RESPONSE', output_tokens: 100, input_tokens: 800, cache_read_tokens: 500 })
-  ].join('\n');
-
-  const fullPath = path.join(logsDir, 'transcript_full.jsonl');
-  fs.writeFileSync(fullPath, sampleJsonl, 'utf8');
-
-  const stats = readTranscriptStats(`/c/${convId}`, { brainDir: tmpDir });
-  assert.ok(stats);
-  assert.ok(Array.isArray(stats.turnsList));
-  assert.equal(stats.turnsList.length, 5);
-
-  // Turn 1 assertions
-  const t1 = stats.turnsList[0];
-  assert.equal(t1.turnIndex, 1);
-  assert.equal(t1.prompt, 'Turn 1 prompt');
-  assert.equal(t1.outputTokens, 400); // 100 + 300
-  assert.equal(t1.finalOutputTokens, 300);
-  assert.equal(t1.inputTokens, 2500);
-  assert.equal(t1.cacheReadTokens, 10000);
-  assert.equal(t1.totalTokens, 12800); // 2500 + 10000 + 300
-  assert.equal(t1.realDelta, 12800);
-  assert.equal(t1.deltaTokens, 12800); // initial turn growth
-  assert.equal(t1.footprint, 2800);    // active input (2500) + final output (300)
-  assert.equal(t1.toolCallsCount, 1);
-  assert.equal(t1.hasCompaction, false);
-
-  // Turn 2 assertions
-  const t2 = stats.turnsList[1];
-  assert.equal(t2.turnIndex, 2);
-  assert.equal(t2.prompt, 'Turn 2 prompt');
-  assert.equal(t2.outputTokens, 250);
-  assert.equal(t2.finalOutputTokens, 250);
-  assert.equal(t2.inputTokens, 1500);
-  assert.equal(t2.cacheReadTokens, 12500);
-  assert.equal(t2.totalTokens, 14250); // 1500 + 12500 + 250
-  assert.equal(t2.realDelta, 1450);    // 14250 - 12800 = +1450 context growth
-  assert.equal(t2.deltaTokens, 1450);
-  assert.equal(t2.footprint, 1750);    // active input (1500) + final output (250)
-  assert.equal(t2.toolCallsCount, 0);
-  assert.equal(t2.hasCompaction, false);
-
-  // Turn 3 assertions (negative net delta due to cache optimization / log trimming)
-  const t3 = stats.turnsList[2];
-  assert.equal(t3.turnIndex, 3);
-  assert.equal(t3.prompt, 'Turn 3 prompt');
-  assert.equal(t3.outputTokens, 180);
-  assert.equal(t3.finalOutputTokens, 180);
-  assert.equal(t3.inputTokens, 1200);
-  assert.equal(t3.cacheReadTokens, 10000);
-  assert.equal(t3.totalTokens, 11380); // 1200 + 10000 + 180
-  assert.equal(t3.realDelta, -2870);   // 11380 - 14250 = -2870 contraction
-  assert.equal(t3.deltaTokens, 0);     // clamped non-negative
-  assert.equal(t3.footprint, 1380);    // active input (1200) + final output (180)
-  assert.equal(t3.toolCallsCount, 0);
-  assert.equal(t3.hasCompaction, false);
-
-  // Turn 4 assertions (explicit compaction checkpoint with peak tracking)
-  const t4 = stats.turnsList[3];
-  assert.equal(t4.turnIndex, 4);
-  assert.equal(t4.prompt, 'Turn 4 prompt');
-  assert.equal(t4.outputTokens, 650); // 500 + 150
-  assert.equal(t4.finalOutputTokens, 150);
-  assert.equal(t4.inputTokens, 1000);
-  assert.equal(t4.cacheReadTokens, 2000);
-  assert.equal(t4.totalTokens, 3150); // 1000 + 2000 + 150
-  assert.equal(t4.realDelta, -8230);  // 3150 - 11380
-  assert.equal(t4.footprint, 1150);
-  assert.equal(t4.hasCompaction, true);
-  assert.equal(t4.peakTokens, 20500);           // peak reached before compaction
-  assert.equal(t4.preCompactionTokens, 20500);  // pre-compaction peak
-  assert.equal(t4.postCompactionTokens, 3150);  // post-compaction reset
-
-  // Turn 5 assertions (compaction occurring immediately at prompt start before PLANNER_RESPONSE)
-  const t5 = stats.turnsList[4];
-  assert.equal(t5.turnIndex, 5);
-  assert.equal(t5.prompt, 'Turn 5 prompt reaching 258k');
-  assert.equal(t5.outputTokens, 100);
-  assert.equal(t5.finalOutputTokens, 100);
-  assert.equal(t5.inputTokens, 800);
-  assert.equal(t5.cacheReadTokens, 500);
-  assert.equal(t5.totalTokens, 1400); // 800 + 500 + 100
-  assert.equal(t5.realDelta, -1750);  // 1400 - 3150
-  assert.equal(t5.hasCompaction, true);
-  assert.equal(t5.preCompactionTokens, 3150); // captures peak from previous turn!
-  assert.equal(t5.postCompactionTokens, 1400); // post-compaction first response
+test('transcript parsing retains global counters without computing per-turn footprints',()=>{
+ const content=[
+  {type:'USER_INPUT',content:'First task'},
+  {type:'PLANNER_RESPONSE',content:'Answer',input_tokens:1000,cache_read_tokens:5000,output_tokens:200},
+  {type:'CHECKPOINT',content:'Compaction marker'},
+  {type:'USER_INPUT',content:'Continue'},
+  {type:'PLANNER_RESPONSE',content:'Final answer',input_tokens:1500,cache_read_tokens:2000,output_tokens:300}
+ ].map(JSON.stringify).join('\n');
+ const result=parseTranscriptContent(content);
+ assert.equal(result.turns,2);assert.equal(result.apiTokens,3800);assert.equal(result.inputTokens,1500);
+ assert.equal(result.cacheReadTokens,2000);assert.equal(result.outputTokens,300);assert.equal(result.turnsList,undefined);
+ assert.ok(!JSON.stringify(result).includes('footprint'));
 });
-
 
 test('unchanged transcript files are cached and changed files invalidate their snapshot', (t) => {
   const os = require('node:os');

@@ -26,7 +26,25 @@ async function extract(archive, target) {
     await fs.writeFile(destination, stdout, {mode: member.endsWith('cua-driver') || member.endsWith('cua-cursor-theme') || member.endsWith('.sh') ? 0o700 : 0o600});
   }
 }
-async function environment(env = process.env) {
+// User services may start before the graphical login imports its environment.
+// Read only desktop variables from the same user's systemd manager; never copy
+// credentials, CUA policies or executable search paths into the driver.
+async function desktopEnvironment(env = process.env, command = run) {
+  const keys = ['DISPLAY', 'WAYLAND_DISPLAY', 'XDG_SESSION_TYPE', 'XDG_CURRENT_DESKTOP'];
+  const resolved = {...env};
+  if (keys.some(key => !resolved[key])) {
+    try {
+      const {stdout} = await command('/usr/bin/systemctl', ['--user', 'show-environment'], {env, timeout: 3000, maxBuffer: 256 * 1024});
+      for (const line of stdout.split('\n')) {
+        const split = line.indexOf('='), key = line.slice(0, split), value = line.slice(split + 1);
+        if (keys.includes(key) && !resolved[key] && /^[a-zA-Z0-9_:./-]+$/.test(value)) resolved[key] = value;
+      }
+    } catch { /* No user manager: retain the explicit process environment. */ }
+  }
+  return resolved;
+}
+async function environment(env = process.env, command = run) {
+  env = await desktopEnvironment(env, command);
   const wayland = env.XDG_SESSION_TYPE === 'wayland' || !!env.WAYLAND_DISPLAY;
   const gnome = /gnome|zorin/i.test(env.XDG_CURRENT_DESKTOP || '');
   let helperReady = !wayland || !gnome;
@@ -40,13 +58,13 @@ async function environment(env = process.env) {
   }
   if (wayland && gnome) {
     try {
-      const {stdout} = await run('/usr/bin/gnome-extensions', ['info', 'winrects@cua'], {env: {...env, LC_ALL: 'C'}, timeout: 4000});
+      const {stdout} = await command('/usr/bin/gnome-extensions', ['info', 'winrects@cua'], {env: {...env, LC_ALL: 'C'}, timeout: 4000});
       helperState = helperStatus(helperInstalled, stdout);
     } catch (error) { helperState = helperStatus(helperInstalled, '', error.stderr || ''); }
     helperReady = helperState === 'active';
   }
   return {platform: 'linux', session: wayland ? 'wayland' : env.DISPLAY ? 'x11' : 'unknown', needsHelper: wayland && gnome && !helperReady, helperInstalled, helperState,
-    environment: wayland ? {CUA_DRIVER_RS_ENABLE_WAYLAND: '1'} : {}, experimental: false};
+    environment: {...Object.fromEntries(['DISPLAY', 'WAYLAND_DISPLAY', 'XDG_SESSION_TYPE', 'XDG_CURRENT_DESKTOP'].filter(key => env[key]).map(key => [key, env[key]])), ...(wayland ? {CUA_DRIVER_RS_ENABLE_WAYLAND: '1'} : {})}, experimental: false};
 }
 async function defaultApps() {
   for (const file of ['/usr/bin/gnome-calculator', '/usr/bin/kcalc']) {
@@ -66,4 +84,4 @@ async function applications() {
 async function setupHelper(driverDirectory) {
   await run('/bin/bash', [path.join(driverDirectory, 'wayland-helper/install.sh')], {timeout: 15000, maxBuffer: 16000});
 }
-module.exports = {extract, environment, defaultApps, applications, setupHelper, helperStatus, executable: 'cua-driver'};
+module.exports = {extract, environment, defaultApps, applications, setupHelper, helperStatus, desktopEnvironment, executable: 'cua-driver'};

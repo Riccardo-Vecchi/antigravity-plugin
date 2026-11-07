@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.17.0](https://img.shields.io/badge/version-1.17.0-blue)](CHANGELOG.md)
+[![Version 1.18.0](https://img.shields.io/badge/version-1.18.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -31,12 +31,12 @@
 - Optional **Computer Use** (Cua Driver **0.38.0 stable**) with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - **Browser use** with browser detection, one-click folder copy/open, selected tabs or whole-profile web-tab sharing and existing logins. [Setup](docs/BROWSER_USE.md).
 - Separate model and reasoning-effort controls with a stepped slider and per-model memory, **Ultra (Teamwork)** for the native agent team, plus favorites, visibility controls and provider logos. Permissions sit on the left; model and effort sit on the right.
-- Real-time **Context window & token budget** with turn-by-turn token telemetry, capacity breakdown popups, and compaction peak tracking. [Details](docs/CONTEXT_BUDGET.md).
+- Global **Context window & token budget** beside the model selector, with a capacity breakdown popup. [Details](docs/CONTEXT_BUDGET.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.
 - Fixed Antigravity/Gemini icons or a Dynamic mode, including supported tray integrations.
 - Startup view, Remember last view, desktop autostart, and automatic or manual plugin updates.
-- Optional **Library** for generated files and uploads, with search, favorites and local document, media and 3D previews. [Details](docs/LIBRARY.md).
+- Optional **Library** for generated files and uploads, with content thumbnails, sorting, search, favorites and local document, media and 3D previews. [Details](docs/LIBRARY.md).
 
 Development and local verification: [Contributing](https://github.com/Riccardo-Vecchi/antigravity-plugin/blob/main/CONTRIBUTING.md) · [Developer guide](docs/DEVELOPMENT.md).
 
@@ -68,12 +68,10 @@ Development and local verification: [Contributing](https://github.com/Riccardo-V
     <td width="50%" align="center" valign="middle"><img src="docs/images/computer-use.png?v=1.11.0" width="560" alt="Current Computer use settings with full-desktop access and dedicated Browser use navigation"></td>
   </tr>
   <tr>
-    <th width="50%">Context window and token budget</th>
-    <th width="50%">Turn-level token telemetry</th>
+    <th colspan="2">Global context window and token budget</th>
   </tr>
   <tr>
-    <td width="50%" align="center" valign="middle"><img src="docs/images/context-window.png" width="560" alt="Real-time context window usage indicator with detailed token breakdown"></td>
-    <td width="50%" align="center" valign="middle"><img src="docs/images/turn-tokens.png" width="560" alt="Inline turn-level token badges with detailed telemetry tooltip"></td>
+    <td colspan="2" align="center" valign="middle"><img src="docs/images/context-window.png" width="560" alt="Global context window usage indicator with detailed token breakdown"></td>
   </tr>
 </table>
 

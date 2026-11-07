@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.18.0
+
+- Remove per-turn context calculations, badges and tooltips; preserve the global context indicator beside the model selector.
+- Center and fit 3D thumbnail cameras around the whole model.
+- Add visible-card thumbnails and document excerpts to Library, with sorting, bounded caching and an isolated offline renderer.
+- Keep native quota information available from Usage outside conversations, with hover, refresh and automatic dismissal.
+- Validate large update payloads without recursive Base64 regex matching, preserving strict size, hash and encoding checks.
+- Recover the graphical session for boot-started Linux services, correctly report GNOME helper state and run the actual desktop capture check.
+
 ## 1.17.0
 
 - Restore project icons, colors and editing on Antigravity 2.29, and keep Usage docked beside its sidebar button with native glass styling.
