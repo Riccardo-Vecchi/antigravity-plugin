@@ -423,3 +423,26 @@ test("3D card camera centers a translated model and fits it without clipping", a
     Math.abs((pixels.minY + pixels.maxY) / 2 - pixels.height / 2),
   ).toBeLessThan(25);
 });
+test("visible cards load when Electron defers IntersectionObserver callbacks", async ({
+  page,
+}) => {
+  await mountLibrary(
+    page,
+    [
+      {
+        extension: "md",
+        category: "documents",
+        bytes: Buffer.from(
+          "# Visible without compositor events\n\nContent preview.",
+        ),
+      },
+    ],
+    { missingVisibilityEvents: true },
+  );
+  await expect(page.locator(".agpa-library-page")).toContainText(
+    "Visible without compositor events",
+  );
+  await expect(
+    page.locator(".agpa-library-thumbnail[aria-busy=true]"),
+  ).toHaveCount(0);
+});

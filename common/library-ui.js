@@ -1,7 +1,7 @@
 /* Artifact library layered over the native pane, preserving its conversation. */
 (() => {
   "use strict";
-  const VERSION = "1.3.1";
+  const VERSION = "1.3.2";
   globalThis.__AGLibrary?.destroy();
   const i18n = globalThis.__AGPAI18n;
   const createPicker = globalThis.__AGPA_LIBRARY_PICKER__;
@@ -38,6 +38,7 @@
     observedRail = null,
     notice,
     thumbs = 0,
+    thumbnailVisibilityTimer = null,
     thumbnailWorker = null,
     thumbnailWorkerEpoch = 0,
     thumbnailWorkerReady = null,
@@ -56,7 +57,10 @@
         if (entry.isIntersecting) {
           thumbnailObserver.unobserve(entry.target);
           const task = thumbnailTasks.get(entry.target);
-          if (task) thumbnailQueue.push(task);
+          if (task) {
+            thumbnailTasks.delete(entry.target);
+            thumbnailQueue.push(task);
+          }
         }
       pumpThumbnails();
     },
@@ -174,6 +178,8 @@
     objectURLs.clear();
   }
   function close() {
+    clearTimeout(thumbnailVisibilityTimer);
+    thumbnailVisibilityTimer = null;
     requestGeneration++;
     thumbnailQueue = [];
     thumbnailObserver.disconnect();
@@ -560,6 +566,38 @@
     thumbnailTasks.set(holder, { item, holder, generation, key });
     thumbnailObserver.observe(holder);
   }
+  function queueVisibleThumbnails() {
+    clearTimeout(thumbnailVisibilityTimer);
+    thumbnailVisibilityTimer = null;
+    if (stopped || !panel || panel.hidden || !grid) return;
+    // Electron may defer IntersectionObserver even for an explicitly opened
+    // window. Check only on paint/scroll/resize; never poll the desktop.
+    const viewport = panel
+      .querySelector(".agpa-library-scroll")
+      .getBoundingClientRect();
+    for (const holder of grid.querySelectorAll("[aria-busy=true]")) {
+      const task = thumbnailTasks.get(holder);
+      if (!task) continue;
+      const rect = holder.getBoundingClientRect();
+      if (
+        rect.width &&
+        rect.height &&
+        rect.bottom > Math.max(0, viewport.top) - 120 &&
+        rect.top < Math.min(innerHeight, viewport.bottom) + 120 &&
+        rect.right > Math.max(0, viewport.left) &&
+        rect.left < Math.min(innerWidth, viewport.right)
+      ) {
+        thumbnailTasks.delete(holder);
+        thumbnailObserver.unobserve(holder);
+        thumbnailQueue.push(task);
+      }
+    }
+    pumpThumbnails();
+  }
+  function scheduleThumbnails() {
+    if (thumbnailVisibilityTimer === null)
+      thumbnailVisibilityTimer = setTimeout(queueVisibleThumbnails, 40);
+  }
   function pumpThumbnails() {
     // One sandbox worker: large models/documents never multiply GPU contexts.
     while (thumbs < 1 && thumbnailQueue.length) {
@@ -718,6 +756,7 @@
       thumbnail(item, holder, generation);
     }
     grid.append(fragment);
+    queueVisibleThumbnails();
     panel.querySelector("[data-agpa-library-more]").hidden =
       filtered.length <= limit;
     for (const b of panel.querySelectorAll("[data-agpa-library-source]"))
@@ -986,6 +1025,12 @@
       el("div", { class: "agpa-library-scroll" }, grid, empty, more),
     );
     document.body.append(panel);
+    on(
+      panel.querySelector(".agpa-library-scroll"),
+      "scroll",
+      scheduleThumbnails,
+      { passive: true },
+    );
   }
   function open() {
     if (!enabled) return;
@@ -1041,6 +1086,7 @@
     attributeFilter: ["aria-expanded"],
   });
   on(window, "resize", bounds);
+  on(window, "resize", scheduleThumbnails);
   on(
     document,
     "click",
@@ -1133,6 +1179,8 @@
     }),
     destroy() {
       stopped = true;
+      clearTimeout(thumbnailVisibilityTimer);
+      thumbnailVisibilityTimer = null;
       requestGeneration++;
       observer.disconnect();
       resizeObserver.disconnect();

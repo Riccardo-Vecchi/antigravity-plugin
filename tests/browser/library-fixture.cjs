@@ -8,7 +8,12 @@ const root = path.join(__dirname, "../..");
 async function mountLibrary(
   page,
   files,
-  { failBundleOnce = false, delayBundle = false, deferThumbnails = false } = {},
+  {
+    failBundleOnce = false,
+    delayBundle = false,
+    deferThumbnails = false,
+    missingVisibilityEvents = false,
+  } = {},
 ) {
   const requests = [],
     network = [];
@@ -27,14 +32,22 @@ async function mountLibrary(
     network.push(route.request().url());
     return route.abort();
   });
-  if (deferThumbnails)
-    await page.addInitScript(() => {
+  if (deferThumbnails || missingVisibilityEvents)
+    await page.addInitScript((defer) => {
       window.IntersectionObserver = class {
         observe() {}
         unobserve() {}
         disconnect() {}
       };
-    });
+      if (defer) {
+        const original = HTMLElement.prototype.getBoundingClientRect;
+        HTMLElement.prototype.getBoundingClientRect = function () {
+          return this.classList.contains("agpa-library-thumbnail")
+            ? new DOMRect(0, 0, 0, 0)
+            : original.call(this);
+        };
+      }
+    }, deferThumbnails);
   await page.goto("https://native.test/");
   const items = files.map((file, index) => ({
     id: `file-${index}`,

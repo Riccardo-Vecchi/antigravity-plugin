@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.18.1
+
+- Start visible Library thumbnails on opening, filtering and scrolling even when Electron defers visibility-observer callbacks. Keep loading bounded and release timers on close.
+
 ## 1.18.0
 
 - Remove per-turn context calculations, badges and tooltips; preserve the global context indicator beside the model selector.
