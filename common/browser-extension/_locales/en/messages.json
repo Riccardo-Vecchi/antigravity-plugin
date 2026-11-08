@@ -27,7 +27,7 @@
     "message": "All tabs in this profile"
   },
   "profileHelp": {
-    "message": "Includes current and new web tabs until you stop sharing or disconnect."
+    "message": "Current and new web tabs. Remembers your choice until you disconnect."
   },
   "shareTab": {
     "message": "Share this tab"
@@ -83,5 +83,23 @@
   },
   "operationError": {
     "message": "Could not connect. Open Antigravity and try again."
+  },
+  "connectBrowser": {
+    "message": "Connect this browser"
+  },
+  "connectBrowserHelp": {
+    "message": "Allow current and new web tabs once. Reconnects automatically when Antigravity or the browser restarts."
+  },
+  "browserReady": {
+    "message": "Ready for Antigravity"
+  },
+  "browserReadyHelp": {
+    "message": "Ask Antigravity to use this browser. No need to share tabs one by one."
+  },
+  "accessSettings": {
+    "message": "Access settings"
+  },
+  "disconnectBrowser": {
+    "message": "Disconnect this browser"
   }
 }

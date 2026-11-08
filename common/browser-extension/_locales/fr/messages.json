@@ -27,7 +27,7 @@
     "message": "Tous les onglets de ce profil"
   },
   "profileHelp": {
-    "message": "Inclut les onglets web actuels et nouveaux jusqu’à l’arrêt ou la déconnexion."
+    "message": "Onglets web actuels et nouveaux. Le choix est conservé jusqu’à la déconnexion."
   },
   "shareTab": {
     "message": "Partager cet onglet"
@@ -83,5 +83,23 @@
   },
   "operationError": {
     "message": "Connexion impossible. Ouvrez Antigravity et réessayez."
+  },
+  "connectBrowser": {
+    "message": "Connecter ce navigateur"
+  },
+  "connectBrowserHelp": {
+    "message": "Autorisez une fois les onglets web actuels et nouveaux. La connexion reprend au redémarrage d’Antigravity ou du navigateur."
+  },
+  "browserReady": {
+    "message": "Prêt pour Antigravity"
+  },
+  "browserReadyHelp": {
+    "message": "Demandez à Antigravity d’utiliser ce navigateur. Inutile de partager chaque onglet séparément."
+  },
+  "accessSettings": {
+    "message": "Paramètres d’accès"
+  },
+  "disconnectBrowser": {
+    "message": "Déconnecter ce navigateur"
   }
 }

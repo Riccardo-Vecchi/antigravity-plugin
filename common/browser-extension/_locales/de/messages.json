@@ -27,7 +27,7 @@
     "message": "Alle Tabs dieses Profils"
   },
   "profileHelp": {
-    "message": "Umfasst aktuelle und neue Web-Tabs bis zum Beenden der Freigabe oder Trennen."
+    "message": "Aktuelle und neue Web-Tabs. Die Auswahl bleibt bis zur Trennung gespeichert."
   },
   "shareTab": {
     "message": "Diesen Tab freigeben"
@@ -83,5 +83,23 @@
   },
   "operationError": {
     "message": "Verbindung fehlgeschlagen. Öffne Antigravity und versuche es erneut."
+  },
+  "connectBrowser": {
+    "message": "Diesen Browser verbinden"
+  },
+  "connectBrowserHelp": {
+    "message": "Aktuelle und neue Web-Tabs einmal erlauben. Die Verbindung wird nach einem Neustart von Antigravity oder dem Browser wiederhergestellt."
+  },
+  "browserReady": {
+    "message": "Bereit für Antigravity"
+  },
+  "browserReadyHelp": {
+    "message": "Bitte Antigravity, diesen Browser zu verwenden. Tabs müssen nicht einzeln freigegeben werden."
+  },
+  "accessSettings": {
+    "message": "Zugriffseinstellungen"
+  },
+  "disconnectBrowser": {
+    "message": "Diesen Browser trennen"
   }
 }

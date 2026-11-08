@@ -6,12 +6,16 @@
  <p id="status" role="status"></p>
  <section id="disconnected"><p data-i18n="connectHelp"></p><button id="connect" class="primary" data-i18n="reconnect"></button></section>
  <main id="access" hidden>
-  <h2 data-i18n="sharingTitle"></h2>
-  <fieldset id="scope"><legend class="sr-only" data-i18n="sharingTitle"></legend>
-   <label><input type="radio" name="scope" value="tabs"><span><strong data-i18n="selectedTabs"></strong><small data-i18n="selectedHelp"></small></span></label>
-   <label><input type="radio" name="scope" value="profile"><span><strong data-i18n="allTabs"></strong><small data-i18n="profileHelp"></small></span></label>
-  </fieldset>
-  <button id="share" class="primary"></button><p id="tabHint" data-i18n="openPage"></p>
+  <h2 id="accessTitle"></h2>
+  <p id="accessHelp"></p>
+  <button id="connectBrowser" class="primary" data-i18n="connectBrowser"></button>
+  <details id="accessSettings"><summary data-i18n="accessSettings"></summary>
+   <fieldset id="scope"><legend class="sr-only" data-i18n="sharingTitle"></legend>
+    <label><input type="radio" name="scope" value="profile"><span><strong data-i18n="allTabs"></strong><small data-i18n="profileHelp"></small></span></label>
+    <label><input type="radio" name="scope" value="tabs"><span><strong data-i18n="selectedTabs"></strong><small data-i18n="selectedHelp"></small></span></label>
+   </fieldset>
+   <button id="share" class="primary"></button><p id="tabHint" data-i18n="openPage"></p>
+  </details>
   <details id="shared"><summary id="sharedCount"></summary><ul id="tabs"></ul></details>
   <button id="stop" class="danger" data-i18n="stopAll"></button>
   <p class="privacy" data-i18n="privacy"></p>

@@ -9,7 +9,47 @@ let port,
   paused = false,
   scope = "tabs",
   scopeEpoch = 0;
+// Persist the explicit whole-profile choice, not page data or debugger sessions.
+let desiredScope = "tabs", preferenceEpoch = 0, preferenceLoad;
+let preferenceWrites = Promise.resolve();
 const excluded = new Set();
+function loadPreference() {
+  if (!preferenceLoad) {
+    const epoch = preferenceEpoch;
+    preferenceLoad = Promise.all([
+      chrome.storage.local.get(["browserAccess"]),
+      chrome.storage.session.get(["excludedTabs"]),
+    ]).then(([saved, session]) => {
+      if (epoch !== preferenceEpoch) return;
+      desiredScope = saved.browserAccess === "profile" ? "profile" : "tabs";
+      for (const id of session.excludedTabs || [])
+        if (Number.isSafeInteger(id) && id >= 0) excluded.add(id);
+    });
+  }
+  return preferenceLoad;
+}
+function rememberScope(next) {
+  desiredScope = next; preferenceEpoch++;
+  const write = preferenceWrites.catch(() => {}).then(() =>
+    chrome.storage.local.set({browserAccess: next}));
+  preferenceWrites = write;
+  return write;
+}
+function rememberExclusions() {
+  return chrome.storage.session.set({excludedTabs: [...excluded]});
+}
+async function resumeSharing() {
+  const epoch = scopeEpoch;
+  await loadPreference();
+  if (!ready || paused || epoch !== scopeEpoch) return;
+  if (desiredScope === "profile") {
+    const allowed = await chrome.permissions.contains({permissions: ["tabs"]});
+    if (!ready || paused || epoch !== scopeEpoch || desiredScope !== "profile") return;
+    if (!allowed) { await rememberScope("tabs"); await announceTabs(); return; }
+    scope = "profile";
+    await syncProfile();
+  } else await announceTabs();
+}
 const grants = new Map(),
   queues = new Map();
 async function profile() {
@@ -66,9 +106,15 @@ async function revoke(id) {
   } catch {}
   chrome.action.setBadgeText({ tabId: id, text: "" }).catch(() => {});
 }
-async function revokeAll() {
-  scope="tabs";scopeEpoch++;excluded.clear();
-  for (const id of [...grants.keys()]) await revoke(id);
+async function revokeAll({forget = true} = {}) {
+  scope="tabs";scopeEpoch++;
+  // Clear authority synchronously before awaiting storage or debugger detaches.
+  const ids = [...grants.keys()];
+  const cleanup = Promise.all(ids.map(id => revoke(id)));
+  if (forget) {
+    excluded.clear();
+    await Promise.all([rememberScope("tabs"), rememberExclusions(), cleanup]);
+  } else await cleanup;
 }
 async function connect() {
   if (connecting || port) return;
@@ -81,17 +127,17 @@ async function connect() {
       if (message.reply === "announce") {
         if (message.error) {
           ready = false;
-          revokeAll();
+          revokeAll({forget:false}).catch(() => {});
           return;
         }
         ready = true;
-        announceTabs();
+        resumeSharing().catch(() => { revokeAll({forget:false}).catch(() => {}); });
         return;
       }
-      if (message.action === "revoke" || message.action === "disconnected") {
+      if (["revoke", "disconnected", "suspend"].includes(message.action)) {
         ready = false;
         if (message.action === "revoke") paused = true;
-        revokeAll();
+        revokeAll({forget:message.action === "revoke"}).catch(() => {});
         return;
       }
       if (message.action === "execute" && message.id) {
@@ -124,7 +170,7 @@ async function connect() {
       if (port !== p) return;
       port = null;
       ready = false;
-      revokeAll();
+      revokeAll({forget:false}).catch(() => {});
       clearTimeout(retry);
       if (!paused) retry = setTimeout(connect, 15000);
     });
@@ -185,10 +231,18 @@ async function syncProfile() {
   await announceTabs();
 }
 async function setScope(next) {
+  await loadPreference();
+  const epoch=scopeEpoch;
   if(!["tabs","profile"].includes(next))throw Error("Invalid sharing mode.");
   if(!ready)throw Error("Open Antigravity and enable Browser use in Settings.");
   if(next==="profile"&&!await chrome.permissions.contains({permissions:["tabs"]}))throw Error("Allow access to all tabs in your browser first.");
-  await revokeAll();
+  if (!ready || epoch !== scopeEpoch) throw Error("Browser access was revoked.");
+  const transition=scopeEpoch+1;
+  await revokeAll({forget:false});
+  if (!ready || transition !== scopeEpoch) throw Error("Browser access was revoked.");
+  excluded.clear(); await rememberExclusions();
+  await rememberScope(next);
+  if (!ready || transition !== scopeEpoch) throw Error("Browser access was revoked.");
   scope=next;
   if(scope==="profile")await syncProfile();
   else await announceTabs();
@@ -439,14 +493,14 @@ chrome.runtime.onMessage.addListener((m, sender, respond) => {
     if (m.action === "status") return uiState();
     if (m.action === "connect") {
       paused = false;
-      if(port&&!ready){const previous=port;port=null;previous.disconnect();await revokeAll();}
+      if(port&&!ready){const previous=port;port=null;previous.disconnect();await revokeAll({forget:false});}
       await connect();
       return uiState();
     }
     if (m.action === "scope") await setScope(m.scope);
     else if (m.action === "share") await shareCurrent();
     else if (m.action === "revoke") {
-      if(scope==="profile")excluded.add(m.tab);
+      if(scope==="profile"){excluded.add(m.tab);await rememberExclusions();}
       await revoke(m.tab);
       await announceTabs();
     } else if (m.action === "revokeAll") {
@@ -473,8 +527,8 @@ chrome.runtime.onMessage.addListener((m, sender, respond) => {
   return true;
 });
 chrome.debugger.onDetach.addListener((source,reason) => {
-  if(reason==="canceled_by_user"){revokeAll().then(announceTabs);return;}
-  if(scope==="profile"&&grants.get(source.tabId)?.attached)excluded.add(source.tabId);
+  if(reason==="canceled_by_user"){revokeAll().then(announceTabs).catch(()=>{});return;}
+  if(scope==="profile"&&grants.get(source.tabId)?.attached){excluded.add(source.tabId);rememberExclusions().catch(()=>{});}
   if (grants.has(source.tabId)) {
     grants.delete(source.tabId);
     chrome.action
@@ -501,9 +555,9 @@ chrome.debugger.onEvent.addListener((source, method, params) => {
 });
 chrome.tabs.onCreated.addListener(() => {syncProfile().catch(()=>{});});
 chrome.tabs.onUpdated.addListener((id,change) => {if(change.url||change.status==="complete")syncProfile().catch(()=>{});});
-chrome.permissions.onRemoved.addListener(p => {if(p.permissions?.includes("tabs")&&scope==="profile")revokeAll().then(announceTabs);});
+chrome.permissions.onRemoved.addListener(p => {if(p.permissions?.includes("tabs")&&scope==="profile")revokeAll().then(announceTabs).catch(()=>{});});
 chrome.tabs.onRemoved.addListener((id) => {
-  excluded.delete(id);
+  if(excluded.delete(id))rememberExclusions().catch(()=>{});
   if (grants.delete(id)) announceTabs();
 });
 chrome.runtime.onStartup.addListener(connect);

@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.18.2](https://img.shields.io/badge/version-1.18.2-blue)](CHANGELOG.md)
+[![Version 1.19.0](https://img.shields.io/badge/version-1.19.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -29,8 +29,8 @@
 
 - Gemini in the same window, with external links opening in your default browser, an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
 - Optional **Computer Use** (Cua Driver **0.38.0 stable**) with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
-- **Browser use** with browser detection, one-click folder copy/open, selected tabs or whole-profile web-tab sharing and existing logins. [Setup](docs/BROWSER_USE.md).
-- Separate model and reasoning-effort controls with a stepped slider and per-model memory, **Ultra (Teamwork)** for the native agent team, plus favorites, visibility controls and provider logos. Permissions sit on the left; model and effort sit on the right.
+- **Browser use** with guided setup, one-time browser authorization, automatic reconnection and existing logins. Individual-tab sharing remains available. [Setup](docs/BROWSER_USE.md).
+- Separate model and reasoning-effort controls with a stepped slider and per-model memory, **Ultra (Teamwork)** for the native agent team, plus favorites, a collapsible **Other** group for hidden models, and provider logos in the model and usage menus. Permissions sit on the left; model and effort sit on the right.
 - Global **Context window & token budget** beside the model selector, with a capacity breakdown popup. [Details](docs/CONTEXT_BUDGET.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.

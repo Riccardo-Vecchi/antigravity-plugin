@@ -27,7 +27,7 @@
     "message": "Todas las pestañas de este perfil"
   },
   "profileHelp": {
-    "message": "Incluye pestañas web actuales y nuevas hasta dejar de compartir o desconectar."
+    "message": "Pestañas web actuales y nuevas. Recuerda tu elección hasta que te desconectes."
   },
   "shareTab": {
     "message": "Compartir esta pestaña"
@@ -83,5 +83,23 @@
   },
   "operationError": {
     "message": "No se pudo conectar. Abre Antigravity e inténtalo de nuevo."
+  },
+  "connectBrowser": {
+    "message": "Conectar este navegador"
+  },
+  "connectBrowserHelp": {
+    "message": "Autoriza una vez las pestañas web actuales y nuevas. Se reconecta al reiniciar Antigravity o el navegador."
+  },
+  "browserReady": {
+    "message": "Listo para Antigravity"
+  },
+  "browserReadyHelp": {
+    "message": "Pide a Antigravity que use este navegador. No hace falta compartir pestañas una por una."
+  },
+  "accessSettings": {
+    "message": "Ajustes de acceso"
+  },
+  "disconnectBrowser": {
+    "message": "Desconectar este navegador"
   }
 }

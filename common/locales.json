@@ -525,7 +525,18 @@
       "Newest first": "Newest first",
       "Oldest first": "Oldest first",
       "Name": "Name",
-      "Largest first": "Largest first"
+      "Largest first": "Largest first",
+      "▾ Other ({count})": "▾ Other ({count})",
+      "▸ Other ({count})": "▸ Other ({count})",
+      "Move {model} to main menu": "Move {model} to main menu",
+      "Move {model} to Other": "Move {model} to Other",
+      "Pin favorites to the top. Move models to Other to keep the main menu tidy, and uncheck Hidden to restore them. Your selected model is unchanged.": "Pin favorites to the top. Move models to Other to keep the main menu tidy, and uncheck Hidden to restore them. Your selected model is unchanged.",
+      "Authorize browser": "Authorize browser",
+      "Connect this browser once": "Connect this browser once",
+      "Click Antigravity Browser in the browser toolbar, then Connect this browser. Approve once to include current and new web tabs.": "Click Antigravity Browser in the browser toolbar, then Connect this browser. Approve once to include current and new web tabs.",
+      "Your browser is connected. Ask Antigravity to use it; no tab selection is needed in whole-browser mode.": "Your browser is connected. Ask Antigravity to use it; no tab selection is needed in whole-browser mode.",
+      "The connection is remembered across app and browser restarts. You can disconnect at any time. For individual tabs, open Access settings in the extension.": "The connection is remembered across app and browser restarts. You can disconnect at any time. For individual tabs, open Access settings in the extension.",
+      "Turn on Developer mode (top right) to show the Reload icon (↻). After Reload, whole-browser access reconnects automatically if you previously authorized it. Individually shared tabs must be selected again.": "Turn on Developer mode (top right) to show the Reload icon (↻). After Reload, whole-browser access reconnects automatically if you previously authorized it. Individually shared tabs must be selected again."
     },
     "icons": {
       "folder": "Folder",
@@ -1104,7 +1115,18 @@
       "Newest first": "Prima i più recenti",
       "Oldest first": "Prima i meno recenti",
       "Name": "Nome",
-      "Largest first": "Prima i più grandi"
+      "Largest first": "Prima i più grandi",
+      "▾ Other ({count})": "▾ Altri ({count})",
+      "▸ Other ({count})": "▸ Altri ({count})",
+      "Move {model} to main menu": "Riporta {model} nel menu principale",
+      "Move {model} to Other": "Sposta {model} in Altri",
+      "Pin favorites to the top. Move models to Other to keep the main menu tidy, and uncheck Hidden to restore them. Your selected model is unchanged.": "Metti i preferiti in cima. Sposta i modelli in Altri per tenere ordinato il menu principale e deseleziona Nascosto per ripristinarli. Il modello selezionato rimane invariato.",
+      "Authorize browser": "Autorizza il browser",
+      "Connect this browser once": "Connetti questo browser una volta",
+      "Click Antigravity Browser in the browser toolbar, then Connect this browser. Approve once to include current and new web tabs.": "Fai clic su Antigravity Browser nella barra del browser, poi su Connetti questo browser. Autorizza una volta per includere le schede web attuali e nuove.",
+      "Your browser is connected. Ask Antigravity to use it; no tab selection is needed in whole-browser mode.": "Il browser è connesso. Chiedi ad Antigravity di usarlo: in modalità browser intero non serve selezionare le schede.",
+      "The connection is remembered across app and browser restarts. You can disconnect at any time. For individual tabs, open Access settings in the extension.": "La connessione viene ricordata al riavvio dell’app e del browser. Puoi disconnetterti in qualsiasi momento. Per le singole schede, apri Impostazioni di accesso nell’estensione.",
+      "Turn on Developer mode (top right) to show the Reload icon (↻). After Reload, whole-browser access reconnects automatically if you previously authorized it. Individually shared tabs must be selected again.": "Attiva Modalità sviluppatore (in alto a destra) per vedere Ricarica (↻). Dopo la ricarica, l’accesso al browser intero si ripristina se già autorizzato. Le schede condivise singolarmente vanno selezionate di nuovo."
     },
     "icons": {
       "folder": "Cartella",
@@ -1683,7 +1705,18 @@
       "Newest first": "Neueste zuerst",
       "Oldest first": "Älteste zuerst",
       "Name": "Name",
-      "Largest first": "Größte zuerst"
+      "Largest first": "Größte zuerst",
+      "▾ Other ({count})": "▾ Weitere ({count})",
+      "▸ Other ({count})": "▸ Weitere ({count})",
+      "Move {model} to main menu": "{model} ins Hauptmenü verschieben",
+      "Move {model} to Other": "{model} nach Weitere verschieben",
+      "Pin favorites to the top. Move models to Other to keep the main menu tidy, and uncheck Hidden to restore them. Your selected model is unchanged.": "Favoriten oben anheften. Modelle unter Weitere ablegen und zum Wiederherstellen Ausgeblendet deaktivieren. Das ausgewählte Modell bleibt unverändert.",
+      "Authorize browser": "Browser autorisieren",
+      "Connect this browser once": "Diesen Browser einmal verbinden",
+      "Click Antigravity Browser in the browser toolbar, then Connect this browser. Approve once to include current and new web tabs.": "Klicke in der Browserleiste auf Antigravity Browser und dann auf Diesen Browser verbinden. Erlaube einmal den Zugriff auf aktuelle und neue Web-Tabs.",
+      "Your browser is connected. Ask Antigravity to use it; no tab selection is needed in whole-browser mode.": "Der Browser ist verbunden. Bitte Antigravity, ihn zu verwenden; im gesamten Browser müssen keine Tabs ausgewählt werden.",
+      "The connection is remembered across app and browser restarts. You can disconnect at any time. For individual tabs, open Access settings in the extension.": "Die Verbindung bleibt nach App- und Browser-Neustarts erhalten. Du kannst sie jederzeit trennen. Einzelne Tabs lassen sich unter Zugriffseinstellungen in der Erweiterung auswählen.",
+      "Turn on Developer mode (top right) to show the Reload icon (↻). After Reload, whole-browser access reconnects automatically if you previously authorized it. Individually shared tabs must be selected again.": "Aktiviere den Entwicklermodus (oben rechts), um Neu laden (↻) zu sehen. Bereits erlaubter Zugriff auf den gesamten Browser wird danach wiederhergestellt. Einzelne Tabs müssen erneut freigegeben werden."
     },
     "icons": {
       "folder": "Ordner",
@@ -2262,7 +2295,18 @@
       "Newest first": "Más recientes primero",
       "Oldest first": "Más antiguos primero",
       "Name": "Nombre",
-      "Largest first": "Más grandes primero"
+      "Largest first": "Más grandes primero",
+      "▾ Other ({count})": "▾ Otros ({count})",
+      "▸ Other ({count})": "▸ Otros ({count})",
+      "Move {model} to main menu": "Mover {model} al menú principal",
+      "Move {model} to Other": "Mover {model} a Otros",
+      "Pin favorites to the top. Move models to Other to keep the main menu tidy, and uncheck Hidden to restore them. Your selected model is unchanged.": "Fija los favoritos arriba. Mueve modelos a Otros y desmarca Oculto para restaurarlos. El modelo seleccionado no cambia.",
+      "Authorize browser": "Autorizar navegador",
+      "Connect this browser once": "Conecta este navegador una vez",
+      "Click Antigravity Browser in the browser toolbar, then Connect this browser. Approve once to include current and new web tabs.": "Haz clic en Antigravity Browser en la barra del navegador y después en Conectar este navegador. Autoriza una vez las pestañas web actuales y nuevas.",
+      "Your browser is connected. Ask Antigravity to use it; no tab selection is needed in whole-browser mode.": "El navegador está conectado. Pide a Antigravity que lo use; en modo de navegador completo no hay que seleccionar pestañas.",
+      "The connection is remembered across app and browser restarts. You can disconnect at any time. For individual tabs, open Access settings in the extension.": "La conexión se recuerda al reiniciar la app o el navegador. Puedes desconectarte cuando quieras. Para pestañas individuales, abre Ajustes de acceso en la extensión.",
+      "Turn on Developer mode (top right) to show the Reload icon (↻). After Reload, whole-browser access reconnects automatically if you previously authorized it. Individually shared tabs must be selected again.": "Activa Modo de desarrollador (arriba a la derecha) para ver Recargar (↻). Tras recargar, se restaura el acceso al navegador completo si ya estaba autorizado. Las pestañas individuales deben compartirse de nuevo."
     },
     "icons": {
       "folder": "Carpeta",
@@ -2841,7 +2885,18 @@
       "Newest first": "Les plus récents",
       "Oldest first": "Les plus anciens",
       "Name": "Nom",
-      "Largest first": "Les plus volumineux"
+      "Largest first": "Les plus volumineux",
+      "▾ Other ({count})": "▾ Autres ({count})",
+      "▸ Other ({count})": "▸ Autres ({count})",
+      "Move {model} to main menu": "Remettre {model} dans le menu principal",
+      "Move {model} to Other": "Déplacer {model} dans Autres",
+      "Pin favorites to the top. Move models to Other to keep the main menu tidy, and uncheck Hidden to restore them. Your selected model is unchanged.": "Épinglez les favoris en haut. Déplacez les modèles dans Autres et décochez Masqué pour les restaurer. Le modèle sélectionné reste inchangé.",
+      "Authorize browser": "Autoriser le navigateur",
+      "Connect this browser once": "Connectez ce navigateur une fois",
+      "Click Antigravity Browser in the browser toolbar, then Connect this browser. Approve once to include current and new web tabs.": "Cliquez sur Antigravity Browser dans la barre du navigateur, puis sur Connecter ce navigateur. Autorisez une fois les onglets web actuels et nouveaux.",
+      "Your browser is connected. Ask Antigravity to use it; no tab selection is needed in whole-browser mode.": "Le navigateur est connecté. Demandez à Antigravity de l’utiliser ; le mode navigateur complet ne nécessite aucune sélection d’onglets.",
+      "The connection is remembered across app and browser restarts. You can disconnect at any time. For individual tabs, open Access settings in the extension.": "La connexion est conservée après le redémarrage de l’app ou du navigateur. Vous pouvez la couper à tout moment. Pour des onglets individuels, ouvrez Paramètres d’accès dans l’extension.",
+      "Turn on Developer mode (top right) to show the Reload icon (↻). After Reload, whole-browser access reconnects automatically if you previously authorized it. Individually shared tabs must be selected again.": "Activez le mode développeur (en haut à droite) pour afficher Recharger (↻). Après rechargement, l’accès déjà autorisé au navigateur complet reprend automatiquement. Les onglets individuels doivent être partagés à nouveau."
     },
     "icons": {
       "folder": "Dossier",
@@ -3420,7 +3475,18 @@
       "Newest first": "Newest first",
       "Oldest first": "Oldest first",
       "Name": "Name",
-      "Largest first": "Largest first"
+      "Largest first": "Largest first",
+      "▾ Other ({count})": "▾ 其他 ({count})",
+      "▸ Other ({count})": "▸ 其他 ({count})",
+      "Move {model} to main menu": "将 {model} 移回主菜单",
+      "Move {model} to Other": "将 {model} 移至其他",
+      "Pin favorites to the top. Move models to Other to keep the main menu tidy, and uncheck Hidden to restore them. Your selected model is unchanged.": "将收藏置顶。将模型移至其他以简化主菜单，取消勾选隐藏即可恢复。当前选中的模型不会改变。",
+      "Authorize browser": "授权浏览器",
+      "Connect this browser once": "一次连接此浏览器",
+      "Click Antigravity Browser in the browser toolbar, then Connect this browser. Approve once to include current and new web tabs.": "在浏览器工具栏中点击 Antigravity Browser，然后选择连接此浏览器。一次授权即可包含当前和新建的网页标签。",
+      "Your browser is connected. Ask Antigravity to use it; no tab selection is needed in whole-browser mode.": "浏览器已连接。让 Antigravity 使用它即可；整个浏览器模式下无需选择标签页。",
+      "The connection is remembered across app and browser restarts. You can disconnect at any time. For individual tabs, open Access settings in the extension.": "应用和浏览器重启后会记住此连接。您可以随时断开。若只想共享单个标签，请打开扩展中的访问设置。",
+      "Turn on Developer mode (top right) to show the Reload icon (↻). After Reload, whole-browser access reconnects automatically if you previously authorized it. Individually shared tabs must be selected again.": "开启右上角的开发者模式以显示重新加载 (↻)。重新加载后，已授权的整个浏览器访问会自动恢复。单独共享的标签页需要重新选择。"
     },
     "icons": {
       "folder": "文件夹",
@@ -3999,7 +4065,18 @@
       "Newest first": "新しい順",
       "Oldest first": "古い順",
       "Name": "名前",
-      "Largest first": "サイズの大きい順"
+      "Largest first": "サイズの大きい順",
+      "▾ Other ({count})": "▾ その他 ({count})",
+      "▸ Other ({count})": "▸ その他 ({count})",
+      "Move {model} to main menu": "{model} をメインメニューに戻す",
+      "Move {model} to Other": "{model} をその他に移動",
+      "Pin favorites to the top. Move models to Other to keep the main menu tidy, and uncheck Hidden to restore them. Your selected model is unchanged.": "お気に入りを上部に固定します。モデルをその他に移動し、非表示を解除すると元に戻せます。選択中のモデルは変わりません。",
+      "Authorize browser": "ブラウザを許可",
+      "Connect this browser once": "このブラウザを一度接続",
+      "Click Antigravity Browser in the browser toolbar, then Connect this browser. Approve once to include current and new web tabs.": "ブラウザのツールバーで Antigravity Browser をクリックし、このブラウザを接続を選択します。一度の許可で現在と今後のウェブタブを含めます。",
+      "Your browser is connected. Ask Antigravity to use it; no tab selection is needed in whole-browser mode.": "ブラウザは接続済みです。Antigravity に使用を依頼できます。ブラウザ全体モードではタブの選択は不要です。",
+      "The connection is remembered across app and browser restarts. You can disconnect at any time. For individual tabs, open Access settings in the extension.": "アプリやブラウザを再起動しても接続は保存されます。いつでも切断できます。タブを個別に共有する場合は拡張機能のアクセス設定を開いてください。",
+      "Turn on Developer mode (top right) to show the Reload icon (↻). After Reload, whole-browser access reconnects automatically if you previously authorized it. Individually shared tabs must be selected again.": "右上のデベロッパーモードを有効にすると再読み込み (↻) が表示されます。再読み込み後、許可済みのブラウザ全体へのアクセスは自動で復元されます。個別タブは再選択が必要です。"
     },
     "icons": {
       "folder": "フォルダー",

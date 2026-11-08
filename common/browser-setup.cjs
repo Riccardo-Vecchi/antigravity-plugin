@@ -11,7 +11,7 @@ function setupState(browser,selected){
  const prepared=browser.enabled&&browser.registered,connected=browser.connections?.length>0,shared=browser.connections?.some(c=>c.tabs>0);
  if(!prepared)return 'prepare';
  // Legacy scope metadata is optional; shared tabs prove a usable connection.
- if(connected)return shared?'ready':'share';
+ if(connected)return shared||browser.connections.some(c=>c.scope==='profile')?'ready':'share';
  return ['installed','disabled'].includes(browser.installations?.[selected]?.status)?'reconnect':'install';
 }
 module.exports={BROWSERS,setupState};

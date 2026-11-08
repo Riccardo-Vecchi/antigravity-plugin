@@ -317,7 +317,7 @@ async function createCompanion({
           await store.configure({ browserEnabled: false });
           for (const c of connections.values()) {
             try {
-              c.peer.send({ action: "revoke" });
+              c.peer.send({ action: "suspend" });
             } catch {}
             c.peer.close();
           }

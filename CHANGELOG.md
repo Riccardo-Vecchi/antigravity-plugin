@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.19.0
+
+- Simplify Browser use with one-time whole-browser authorization, remembered reconnection and optional individual-tab sharing under Access settings. Explicit disconnect and browser cancellation revoke saved access.
+- Add provider logos to native and standalone Usage, including both Claude and GPT logos for their shared quota.
+- Keep hidden models in a collapsible Other group with direct hide/restore controls.
+
 ## 1.18.2
 
 - Show a graphical global-context overview on hover; clicking keeps the full breakdown. Replace the native text tooltip and refresh the first README screenshot.

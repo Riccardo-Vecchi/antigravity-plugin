@@ -1,7 +1,7 @@
 /* Optional browser connections. No access from the Gemini guest. */
 (() => {
   "use strict";
-  const VERSION = "1.6.0";
+  const VERSION = "1.7.0";
   if (globalThis.__AGCompanion?.version === VERSION) return;
   globalThis.__AGCompanion?.destroy();
   const i18n = globalThis.__AGPAI18n,
@@ -160,14 +160,14 @@
       i18n.set(control,"Open {browser} Extensions",{browser:name});control.setAttribute("data-agpa-browser-extensions","");return control;
     }
     const steps=node("ol",{class:"agpa-comp-progress","aria-label":"Browser setup"});
-    for(const [index,key]of ["Connect","Add extension","Share tabs"].entries()){
+    for(const [index,key]of ["Connect","Add extension","Authorize browser"].entries()){
       const li=node("li",{"data-state":stage>index?"done":stage===index?"current":"pending"},text(stage>index?"✓":String(index+1)),node("span",{text:key}));
       if(stage===index)li.setAttribute("aria-current","step");steps.append(li);
     }
     content.push(steps);
     const hero=node("div",{class:"agpa-comp-hero","data-ready":String(phase==="ready")});
-    const titles={reconnect:"Browser extension already installed",prepare:"Connect your browser",install:"Add browser extension",share:"Choose what to share",ready:"Ready for your next task"};
-    const descriptions={reconnect:"In your browser, click Extensions (puzzle icon) → Antigravity Browser → Reconnect. You do not need to install it again.",prepare:"Let the Antigravity agent use the pages you choose, with your existing browser logins.",install:"The extension is named Antigravity Browser in your browser. It connects your browser to Antigravity Plugin.",share:"In your browser, click the puzzle icon, then Antigravity Browser.",ready:"Ask the Antigravity agent to work with your shared tabs."};
+    const titles={reconnect:"Browser extension already installed",prepare:"Connect your browser",install:"Add browser extension",share:"Connect this browser once",ready:"Ready for your next task"};
+    const descriptions={reconnect:"In your browser, click Extensions (puzzle icon) → Antigravity Browser → Reconnect. You do not need to install it again.",prepare:"Let the Antigravity agent use the pages you choose, with your existing browser logins.",install:"The extension is named Antigravity Browser in your browser. It connects your browser to Antigravity Plugin.",share:"Click Antigravity Browser in the browser toolbar, then Connect this browser. Approve once to include current and new web tabs.",ready:"Your browser is connected. Ask Antigravity to use it; no tab selection is needed in whole-browser mode."};
     hero.append(node("h3",{text:needsReload?"Update browser extension":recovery?.status==="broken"?"Repair browser extension":titles[phase]}),node("p",{text:needsReload?"Open the browser’s Extensions page and turn on Developer mode (top right). Find Antigravity Browser and click the Reload icon (↻) on its card.":recovery?.status==="broken"?"The installed entry points to a missing folder. Load the current extension folder once to repair it.":recovery?.status==="disabled"?"Antigravity Browser is installed but disabled. Open its details and switch it on, then use the extension’s Reconnect button.":descriptions[phase]}));content.push(hero);
     const actions=node("div",{class:"agpa-comp-actions"});
     if(b.enabled){
@@ -193,7 +193,7 @@
       content.push(actions,node("p",{class:"agpa-comp-muted",text:"Detected in a standard browser profile. The button opens that profile; nothing is shared until you choose it in the extension."}));
     }else if(phase==="share"){
 
-      content.push(node("div",{class:"agpa-comp-access"},heading("Selected tabs","Open a web page, click the extension and choose Share this tab."),heading("All tabs in this profile","Includes current and new web tabs until you stop sharing or disconnect.")));
+      content.push(node("p",{class:"agpa-comp-notice",text:"The connection is remembered across app and browser restarts. You can disconnect at any time. For individual tabs, open Access settings in the extension."}));
       content.push(node("p",{class:"agpa-comp-muted",text:"Private tabs, browser settings and password fields are excluded."}));
 
     }else{
@@ -224,7 +224,7 @@
     if(b.enabled){
       advanced.append(node("h3",{text:"Reload the browser extension"}),
         node("p",{text:"Antigravity Browser is the browser extension included with Antigravity Plugin. Reload is on its card on the browser’s Extensions page, not in its popup."}),
-        node("p",{text:"Turn on Developer mode (top right) to show the Reload icon (↻). Reloading the extension stops tab sharing; choose your tabs again afterwards."}));
+        node("p",{text:"Turn on Developer mode (top right) to show the Reload icon (↻). After Reload, whole-browser access reconnects automatically if you previously authorized it. Individually shared tabs must be selected again."}));
       advanced.append(node("p",{text:"Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there."}));
     }
     const checks=node("ul",{class:"agpa-comp-checks"});

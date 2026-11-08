@@ -2,14 +2,14 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path'),crypto=require('node:crypto');
 const policy=require('../common/browser-extension/policy.js');
 const event=()=>({listeners:[],addListener(f){this.listeners.push(f);},emit(...args){for(const f of this.listeners)f(...args);}});
-async function fixture(){
+async function fixture({saved={},session={},permission=false}={}){
  const tabs=new Map([[1,{id:1,url:'https://one.test/',title:'One'}],[2,{id:2,url:'https://two.test/',title:'Two'}],[3,{id:3,url:'chrome://settings',title:'Internal'}],[4,{id:4,url:'https://private.test/',incognito:true}]]),sent=[],attached=new Set();
- let allowed=false;
+ let allowed=permission;
  const port={postMessage:m=>sent.push(m),onMessage:event(),onDisconnect:event()};
- const chrome={runtime:{id:'test',getURL:p=>'chrome-extension://test/'+p,connectNative:()=>port,onMessage:event(),onStartup:event(),onInstalled:event()},storage:{local:{get:async()=>({profileId:crypto.randomUUID(),profileLabel:'Test'}),set:async()=>{}}},action:{setBadgeBackgroundColor:async()=>{},setBadgeText:async()=>{}},permissions:{contains:async()=>allowed,onRemoved:event()},tabs:{get:async id=>{if(!tabs.has(id))throw Error('Closed');return tabs.get(id);},query:async q=>q.active?[tabs.get(1)]:[...tabs.values()],onCreated:event(),onUpdated:event(),onRemoved:event()},debugger:{getTargets:async()=>[],attach:async target=>attached.add(target.tabId),detach:async target=>attached.delete(target.tabId),sendCommand:async(target,method)=>method==='Accessibility.getFullAXTree'?{nodes:[]}: {},onEvent:event(),onDetach:event()}};
+ const chrome={runtime:{id:'test',getURL:p=>'chrome-extension://test/'+p,connectNative:()=>port,onMessage:event(),onStartup:event(),onInstalled:event()},storage:{local:{get:async()=>({profileId:'fixture-profile',profileLabel:'Test',...saved}),set:async value=>Object.assign(saved,value)},session:{get:async()=>({...session}),set:async value=>Object.assign(session,value)}},action:{setBadgeBackgroundColor:async()=>{},setBadgeText:async()=>{}},permissions:{contains:async()=>allowed,onRemoved:event()},tabs:{get:async id=>{if(!tabs.has(id))throw Error('Closed');return tabs.get(id);},query:async q=>q.active?[tabs.get(1)]:[...tabs.values()],onCreated:event(),onUpdated:event(),onRemoved:event()},debugger:{getTargets:async()=>[],attach:async target=>attached.add(target.tabId),detach:async target=>attached.delete(target.tabId),sendCommand:async(target,method)=>method==='Accessibility.getFullAXTree'?{nodes:[]}: {},onEvent:event(),onDetach:event()}};
  const context={chrome,crypto,AGPApolicy:policy,importScripts(){},setTimeout:()=>0,clearTimeout(){},URL,console};vm.createContext(context);vm.runInContext(await fs.readFile(path.join(__dirname,'../common/browser-extension/worker.js'),'utf8'),context);
  await new Promise(setImmediate);port.onMessage.emit({reply:'announce',result:true});await new Promise(setImmediate);
- return {tabs,sent,attached,chrome,run:expression=>vm.runInContext(expression,context),allow:()=>{allowed=true;},state:()=>vm.runInContext('uiState()',context),tick:()=>new Promise(setImmediate),disconnect:()=>port.onDisconnect.emit()};
+ return {tabs,sent,attached,chrome,saved,session,run:expression=>vm.runInContext(expression,context),allow:()=>{allowed=true;},state:()=>vm.runInContext('uiState()',context),tick:()=>new Promise(setImmediate),disconnect:()=>port.onDisconnect.emit()};
 }
 test('selected-tab access stays origin-bound and never shares other open tabs',async()=>{
  const f=await fixture();await f.run('shareCurrent()');assert.deepEqual([...f.attached],[1]);assert.equal((await f.state()).shared.length,1);
@@ -25,7 +25,7 @@ test('whole-profile sharing requires permission, excludes private/internal pages
  f.tabs.set(2,{id:2,url:'https://different.test/'});await f.run('execute("browser_snapshot",{tab:2})');assert.equal((await f.state()).scope,'profile');
  await f.run('execute("browser_navigate",{tab:2,url:"https://third.test/"})');
 });
-test('whole-profile per-tab exclusions survive navigation, and stop/disconnect cannot silently reactivate sharing',async()=>{
+test('whole-profile exclusions survive navigation and temporary disconnect clears live access',async()=>{
  const f=await fixture();f.allow();await f.run('setScope("profile")');
  const sender={id:'test',url:'chrome-extension://test/popup.html'};
  await new Promise(resolve=>f.chrome.runtime.onMessage.listeners[0]({action:'revoke',tab:2},sender,resolve));
@@ -78,4 +78,37 @@ test('installed-extension recovery opens only its fixed details URL in a validat
  await require('../linux/browser.cjs').openExtensions('brave',{env:{HOME:root,PATH:root},profileDirectory:'Profile 2',details:true});
  let args;for(let n=0;n<30;n++){args=await fs.readFile(path.join(root,'args'),'utf8').catch(()=>null);if(args)break;await new Promise(r=>setTimeout(r,10));}
  assert.deepEqual(args.trim().split('\n'),['--profile-directory=Profile 2','brave://extensions?id='+require('../common/browser-identity.json').extensionId]);
+});
+
+test('an explicitly authorized browser reconnects after a transport restart without attaching every tab',async()=>{
+ const f=await fixture();f.allow();await f.run('setScope("profile")');assert.equal(f.saved.browserAccess,'profile');
+ const sender={id:'test',url:'chrome-extension://test/popup.html'};
+ await new Promise(resolve=>f.chrome.runtime.onMessage.listeners[0]({action:'revoke',tab:2},sender,resolve));
+ f.disconnect();await f.tick();assert.equal((await f.state()).shared.length,0);
+ await f.run('connect()');f.chrome.runtime.connectNative().onMessage.emit({reply:'announce',result:true});await f.tick();await f.tick();
+ assert.equal((await f.state()).scope,'profile');assert.deepEqual(Array.from((await f.state()).shared,t=>t.id),[1]);assert.equal(f.attached.size,0);
+ const restarted=await fixture({saved:f.saved,session:f.session,permission:true});await restarted.tick();assert.equal((await restarted.state()).scope,'profile');assert.deepEqual(Array.from((await restarted.state()).shared,t=>t.id),[1]);
+});
+test('profile choice survives browser restart but stop, explicit app revocation and permission removal revoke saved access',async()=>{
+ for(const stop of ['revokeAll()', 'chrome.debugger.onDetach.emit({tabId:1},"canceled_by_user")', 'chrome.permissions.onRemoved.emit({permissions:["tabs"]})', 'port.onMessage.emit({action:"revoke"})']){
+  const f=await fixture();f.allow();await f.run('setScope("profile")');await f.run(stop);await f.tick();await f.tick();assert.equal(f.saved.browserAccess,'tabs');
+  const restarted=await fixture({saved:f.saved,permission:true});await restarted.tick();assert.equal((await restarted.state()).scope,'tabs');assert.equal((await restarted.state()).shared.length,0);
+ }
+ const f=await fixture({saved:{browserAccess:'profile'},permission:true});await f.tick();assert.equal((await f.state()).scope,'profile');assert.equal((await f.state()).shared.length,2);
+});
+test('old permission alone never enables automatic browser access, and a revoked permission blocks remembered access',async()=>{
+ const legacy=await fixture({permission:true});await legacy.tick();assert.equal((await legacy.state()).scope,'tabs');assert.equal((await legacy.state()).shared.length,0);
+ const removed=await fixture({saved:{browserAccess:'profile'},permission:false});await removed.tick();assert.equal((await removed.state()).scope,'tabs');assert.equal(removed.saved.browserAccess,'tabs');
+});
+test('a late permission check cannot resume sharing after explicit cancellation',async()=>{
+ const f=await fixture();f.allow();await f.run('setScope("profile")');await f.run('revokeAll({forget:false})');
+ let release;f.chrome.permissions.contains=()=>new Promise(r=>release=r);
+ const pending=f.run('resumeSharing()');await f.tick();await f.run('revokeAll()');release(true);await pending;
+ assert.equal((await f.state()).scope,'tabs');assert.equal((await f.state()).shared.length,0);assert.equal(f.saved.browserAccess,'tabs');
+});
+
+test('disabling Browser use suspends live authority and keeps only the explicit saved whole-browser choice',async()=>{
+ const f=await fixture();f.allow();await f.run('setScope("profile")');await f.run('execute("browser_snapshot",{tab:1})');
+ f.chrome.runtime.connectNative().onMessage.emit({action:'suspend'});await f.tick();assert.equal((await f.state()).ready,false);assert.equal((await f.state()).shared.length,0);assert.equal(f.attached.size,0);assert.equal(f.saved.browserAccess,'profile');
+ await assert.rejects(f.run('execute("browser_snapshot",{tab:1})'),/Share this tab/);
 });

@@ -8,14 +8,16 @@ function controls(){
  const locked=busy||requestedScope!==null;
  for(const b of document.querySelectorAll('button,input[type=radio]'))b.disabled=locked;
  for(const radio of document.querySelectorAll('[name=scope]')){radio.checked=radio.value===(requestedScope||latest.scope||'tabs');radio.disabled=locked||!latest.ready;}
+ $('connectBrowser').hidden=latest.scope==='profile';$('connectBrowser').disabled=locked||!latest.ready;
  $('share').hidden=latest.scope==='profile';$('share').textContent=t(latest.current?.shared?'stopTab':'shareTab');$('share').disabled=locked||!latest.ready||!latest.current;
  $('tabHint').hidden=latest.scope==='profile'||!!latest.current;
  $('save').disabled=locked||!dirty||!$('name').value.trim();
+ $('stop').textContent=t(latest.scope==='profile'?'disconnectBrowser':'stopAll');
  $('stop').hidden=!latest.shared?.length&&latest.scope!=='profile';
  document.body.setAttribute('aria-busy',String(locked));
 }
 function render(state){
- latest=state;$('status').textContent=t(state.ready?'connected':'notConnected');$('status').dataset.ready=String(!!state.ready);
+ latest=state;$('accessTitle').textContent=t(state.scope==='profile'?'browserReady':'connectBrowser');$('accessHelp').textContent=t(state.scope==='profile'?'browserReadyHelp':'connectBrowserHelp');$('status').textContent=t(state.ready?'connected':'notConnected');$('status').dataset.ready=String(!!state.ready);
  $('disconnected').hidden=!!state.ready;$('access').hidden=!state.ready;
  if(!dirty)$('name').value=state.profile?.label||'';
  $('shared').hidden=!state.shared?.length;$('sharedCount').textContent=t('sharedTabs',[String(state.shared?.length||0)]);
@@ -31,15 +33,18 @@ async function act(action,extra){
  finally{busy=false;controls();}
 }
 $('share').onclick=()=>latest.current?.shared?act('revoke',{tab:latest.current.id}):act('share');
-for(const radio of document.querySelectorAll('[name=scope]'))radio.onchange=async()=>{
- if(!radio.checked||busy||requestedScope!==null)return;
- requestedScope=radio.value;controls();
+async function chooseScope(value){
+ if(busy||requestedScope!==null)return;
+ requestedScope=value;$('error').textContent='';controls();
  try{
-  if(radio.value==='profile'&&!await chrome.permissions.request({permissions:['tabs']})){$('error').textContent=t('allowTabs');return;}
-  await act('scope',{scope:radio.value});
+  // Request optional permission directly from this browser-button gesture.
+  if(value==='profile'&&!await chrome.permissions.request({permissions:['tabs']})){$('error').textContent=t('allowTabs');return;}
+  await act('scope',{scope:value});
  }catch{$('error').textContent=t('allowTabs');}
  finally{requestedScope=null;controls();}
-};
+}
+for(const radio of document.querySelectorAll('[name=scope]'))radio.onchange=()=>{if(radio.checked)chooseScope(radio.value);};
+$('connectBrowser').onclick=()=>chooseScope('profile');
 $('connect').onclick=()=>act('connect');$('stop').onclick=()=>act('revokeAll');$('save').onclick=()=>act('label',{label:$('name').value});
 $('name').oninput=()=>{dirty=$('name').value!==(latest.profile?.label||'');controls();};
 setInterval(()=>{if(!busy)request('status').then(render).catch(()=>{});},1500);

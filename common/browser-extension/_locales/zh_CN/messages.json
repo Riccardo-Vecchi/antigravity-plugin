@@ -27,7 +27,7 @@
     "message": "此配置的所有标签页"
   },
   "profileHelp": {
-    "message": "包含当前及新增的网页标签，直到停止共享或断开连接。"
+    "message": "当前和新建的网页标签。断开连接前会记住此选择。"
   },
   "shareTab": {
     "message": "共享此标签页"
@@ -83,5 +83,23 @@
   },
   "operationError": {
     "message": "连接失败，请打开 Antigravity 后重试。"
+  },
+  "connectBrowser": {
+    "message": "连接此浏览器"
+  },
+  "connectBrowserHelp": {
+    "message": "一次授权当前和新建的网页标签。Antigravity 或浏览器重启后会自动重新连接。"
+  },
+  "browserReady": {
+    "message": "已准备好供 Antigravity 使用"
+  },
+  "browserReadyHelp": {
+    "message": "让 Antigravity 使用此浏览器，无需逐个共享标签页。"
+  },
+  "accessSettings": {
+    "message": "访问设置"
+  },
+  "disconnectBrowser": {
+    "message": "断开此浏览器"
   }
 }
