@@ -25,14 +25,13 @@ jobs:
           npm run build:viewers
           git diff --exit-code -- assets/viewers
           node --test tests/*.test.cjs
-          python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Sandboxed browser regression tests (temporary profiles)
         run: |
           npx playwright install --with-deps --only-shell chromium
           npm run test:browser
       - name: JavaScript and shell syntax
         run: |
-          for file in common/*.cjs common/*.js common/browser-extension/*.js linux/*.cjs windows/*.cjs scripts/*.cjs; do node --check "$file"; done
+          for file in common/*.cjs common/*.js linux/*.cjs windows/*.cjs scripts/*.cjs; do node --check "$file"; done
           bash -n linux/install.sh linux/disable.sh
           python3 -m py_compile linux/*.py
       - name: PowerShell syntax (no Windows execution)

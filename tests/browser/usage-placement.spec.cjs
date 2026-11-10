@@ -176,3 +176,15 @@ test("Usage shows an actionable unavailable state instead of silent failure outs
     page.getByRole("button", { name: "Refresh usage" }),
   ).toBeVisible();
 });
+
+test("sidebar View Usage inherits the Settings typography", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.addStyleTag({
+    content: "button{font-size:14px;line-height:20px}.text-sm{font-size:12px}",
+  });
+  const label = page.locator("[data-agpa-view-usage] > span").last();
+  await expect(label).toHaveCSS("font-size", "14px");
+  await expect(label).toHaveCSS("line-height", "20px");
+});

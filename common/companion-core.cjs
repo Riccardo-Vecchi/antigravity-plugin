@@ -142,22 +142,52 @@ async function connect(role, onMessage = () => {}, onClose, configDir) {
   await p.request("hello", { role, token }, 2000);
   return p;
 }
-// Keep only browser preferences. Remove data from the unpublished Activity preview.
+// Browser choice only. No page content, browsing history or browser credentials.
 async function createSettings(configDir) {
   const loc = locations(configDir);
   let data = {};
-  try { data = JSON.parse(await privateRead(loc.settings, "{}")); } catch {}
-  let enabled = data?.browserEnabled === true;
-  if (data && ("recordActivity" in Object(data) || "retentionDays" in Object(data)))
-    await save(loc.settings, {browserEnabled: enabled});
-  await fs.rm(path.join(loc.directory, "activity.json"), {force: true});
+  try {
+    data = JSON.parse(await privateRead(loc.settings, "{}"));
+  } catch {}
+  let settings = {
+    browserEnabled: data?.browserEnabled === true,
+    selectedBrowser: require("./browser-setup.cjs").BROWSERS.some(
+      (b) => b.id === data?.selectedBrowser,
+    )
+      ? data.selectedBrowser
+      : null,
+  };
+  if (
+    data &&
+    ("recordActivity" in Object(data) || "retentionDays" in Object(data))
+  )
+    await save(loc.settings, settings);
+  await fs.rm(path.join(loc.directory, "activity.json"), { force: true });
   return {
-    get settings() { return {browserEnabled: enabled}; },
+    get settings() {
+      return { ...settings };
+    },
     async configure(next) {
-      if (typeof next.browserEnabled !== "boolean") throw Error("Invalid browser preference.");
-      await save(loc.settings, {browserEnabled: next.browserEnabled});
-      enabled = next.browserEnabled;
+      const value = { ...settings, ...next };
+      if (
+        typeof value.browserEnabled !== "boolean" ||
+        (value.selectedBrowser !== null &&
+          !require("./browser-setup.cjs").BROWSERS.some(
+            (b) => b.id === value.selectedBrowser,
+          ))
+      )
+        throw Error("Invalid browser preference.");
+      await save(loc.settings, value);
+      settings = value;
     },
   };
 }
-module.exports = {locations, privateRead, save, peer, connect, createSettings, MAX_FRAME};
+module.exports = {
+  locations,
+  privateRead,
+  save,
+  peer,
+  connect,
+  createSettings,
+  MAX_FRAME,
+};

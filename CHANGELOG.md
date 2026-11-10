@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.20.0
+
+- Replace the browser extension with official Chrome DevTools MCP tools: choose a Chromium browser and authorize the native connection. Remove the extension, Native Messaging runtime and extension packaging.
+- Release browser control at task completion with `release_browser`, or after one idle minute. Keep browser windows open and avoid reconnecting during Settings refreshes.
+- Restore Browser use controls when reopening Settings and match native text sizing for Browser use, Computer use and View Usage.
+- Preserve remote-project identity with a smaller native cloud badge; restore custom project icons in pinned and grouped conversation subtitles, including after module reloads.
+- Update Cua Driver to stable **0.46.1** with pinned release checksums. Tested with **Antigravity 2.31.0 on Linux**; the new browser connection was verified with Brave. Other Chromium variants and Windows still require live compatibility testing.
+
 ## 1.19.0
 
 - Simplify Browser use with one-time whole-browser authorization, remembered reconnection and optional individual-tab sharing under Access settings. Explicit disconnect and browser cancellation revoke saved access.

@@ -5,11 +5,11 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const VERSION = '0.38.0';
+const VERSION = '0.46.1';
 const ASSETS = Object.freeze({
-  'linux-x64': ['linux-x86_64-binary.tar.gz', '31ab9709dd91ce73677e49b9f3e75c6f0d3e4d9625c286c9e58262bfbea698dd'],
-  'linux-arm64': ['linux-arm64-binary.tar.gz', '80c9ae66bc7322052dd426c6133c96086b33894bf06c972bca8215384400b33d'],
-  'win32-x64': ['windows-x86_64-binary.zip', '5edaa74d0afa1b55a9668dbc4f32736507bd2bd4d75b18ca1dc8881bb12402b5'],
+  'linux-x64': ['linux-x86_64-binary.tar.gz', '3f45c54b736bb8cbd75b4ad90095fceea9a787c22bc9e60b17ca1c8215dcc96b'],
+  'linux-arm64': ['linux-arm64-binary.tar.gz', 'c1cf1f9635153cf9c347310008669893928d5e043db7522b37dfc59f0caef5f5'],
+  'win32-x64': ['windows-x86_64-binary.zip', 'ec49cca509f25f65db2fa917718215f55f959d5ef650bf8ab2238a201d5666ac'],
 });
 
 async function downloadVerified(destination, platform, arch, fetcher = fetch, signal, onProgress = () => {}) {

@@ -27,8 +27,7 @@ jobs:
           npm run build:viewers
           git diff --exit-code -- assets/viewers
           node --test tests/*.test.cjs
-          python3 -m unittest discover -s tests -p 'test_*.py'
-          for file in common/*.cjs common/*.js common/browser-extension/*.js linux/*.cjs windows/*.cjs scripts/*.cjs; do node --check "$file"; done
+          for file in common/*.cjs common/*.js linux/*.cjs windows/*.cjs scripts/*.cjs; do node --check "$file"; done
           bash -n linux/install.sh linux/disable.sh
       - name: Verify sandboxed browser behavior
         run: |
@@ -37,7 +36,6 @@ jobs:
       - name: Build verified update payloads
         run: |
           node scripts/build-update.cjs output/update
-          python3 scripts/package-browser-extension.py output/update/antigravity-browser.zip
       - name: Publish stable release
         env:
           GH_TOKEN: ${{ github.token }}

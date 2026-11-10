@@ -1,7 +1,7 @@
 /* Local project appearance. No conversation, project metadata, or tool mutations. */
 (() => {
   'use strict';
-  const VERSION = '1.9.0';
+  const VERSION = '1.11.2';
   const i18n=globalThis.__AGPAI18n;
   const initial = globalThis.__AGPA_CONFIG__ || { projects: {} };
   delete globalThis.__AGPA_CONFIG__;
@@ -11,7 +11,8 @@
   }
   globalThis.__AGProjectAppearance?.destroy();
   document.querySelectorAll('[data-agpa-editor]').forEach(x=>x.remove());
-  const {paths,svg,projectFrom} = globalThis.__AGProjectPresentation;
+  const {paths,svg,projectFrom,projects} = globalThis.__AGProjectPresentation;
+  const remoteBadge=(...args)=>globalThis.__AGProjectPresentation?.remoteBadge(...args);
   const aliases = {folder:'cartella progetto',terminal:'terminale console',code:'codice programmazione',monitor:'computer pc schermo',server:'homelab rete',chip:'hardware processore',settings:'impostazioni ingranaggio',wrench:'manutenzione chiave',briefcase:'lavoro ufficio',book:'libro lettura',notebook:'appunti',graduation:'studio scuola',pencil:'matita scrittura',music:'musica',film:'cinema video',atom:'scienza',palette:'arte design',stethoscope:'salute medico',puzzle:'giochi',leaf:'foglia natura',shopping:'acquisti spesa',chart:'grafico finanza',money:'soldi euro budget',dumbbell:'palestra sport',scales:'legge giustizia',globe:'mondo internet',plane:'viaggio aereo',heart:'cuore salute',paw:'animali',flask:'esperimenti laboratorio',brain:'cervello ai',flower:'fiore',home:'casa',camera:'foto',phone:'telefono',shield:'sicurezza',rocket:'razzo startup',gamepad:'videogiochi',coffee:'caffe',bicycle:'bici',lightbulb:'idee',flag:'bandiera',tree:'albero',mail:'posta email',star:'preferiti stella'};
   const colors = ['#ebebeb','#ff666a','#ff914d','#ffd647','#41c878','#329bff','#b17afb','#ff83c2'];
   const emojis = ['📁','💻','🛠️','⚙️','🧪','🔬','🧠','🤖','💼','📚','🎓','✏️','🎨','🎵','🎬','🎮','🌱','🌍','✈️','🏠','💰','📊','⚖️','🏋️','❤️','🩺','🐾','☕','📷','📱','🛡️','🚀','💡','⭐','🍀','🧩','🗂️','🏦','📝','🎯'];
@@ -97,10 +98,11 @@
   document.getElementById('agpa-styles')?.remove();
   document.head.append(style);
   function applyHeaders() {
+    knownProjects.clear();for(const p of projects())knownProjects.set(p.id,{id:p.id,name:p.name,remote:p.remote});
     for (const header of document.querySelectorAll('[data-testid="project-header"]')) {
       const project = projectFrom(header);
       if (!project) continue;
-      knownProjects.set(project.id,{id:project.id,name:project.name});
+      knownProjects.set(project.id,{id:project.id,name:project.name,remote:project.remote});
       const holder = header.querySelector('div[class~="w-6"][class~="h-6"]');
       if (!holder) continue;
       const value = config.projects?.[project.id];
@@ -109,26 +111,31 @@
         holder.querySelector(':scope > .agpa-project-icon')?.remove();
         continue;
       }
-      const signature = JSON.stringify(value);
+      const signature = JSON.stringify([value,project.remote]);
       let icon = holder.querySelector(':scope > .agpa-project-icon');
-      if (holder.getAttribute('data-agpa-styled') === signature && icon) continue;
+      if (holder.getAttribute('data-agpa-styled') === signature && icon) {remoteBadge(icon,project.remote);continue;}
       if (!icon) { icon = el('span',{class:'agpa-project-icon','aria-hidden':'true'}); holder.append(icon); }
       icon.replaceChildren(value.kind === 'emoji' ? document.createTextNode(value.emoji) : svg(value.icon,17));
+      remoteBadge(icon,project.remote);
       icon.style.color = value.color || 'var(--muted-foreground,#aaa)';
       holder.setAttribute('data-agpa-styled',signature);
     }
   }
   // Keep React-owned SVGs in place so native selection, checks, and rerenders work.
-  function inlineIcon(container,project) {
-    const native=container.querySelector(':scope > [data-project-icon]');
+  function inlineIcon(container,project,nativeSelector=':scope > [data-project-icon]') {
+    const native=container.querySelector(nativeSelector);
     let icon=container.querySelector(':scope > .agpa-inline-icon');
     if(!native){icon?.remove();return;}
     const value=project&&config.projects?.[project.id];
     if(!value){native.removeAttribute('data-agpa-inline-native');icon?.remove();return;}
-    const signature=project.id+JSON.stringify(value);
-    if(icon?.getAttribute('data-agpa-inline')===signature&&native.hasAttribute('data-agpa-inline-native'))return;
+    const remote=(native.getAttribute('data-project-icon')||native.getAttribute('data-project-glyph'))==='cloud';
+    const size=native.getAttribute('width')==='14'?14:16;
+    const signature=JSON.stringify([project.id,value,remote,size]);
+    if(icon?.getAttribute('data-agpa-inline')===signature&&native.hasAttribute('data-agpa-inline-native')){remoteBadge(icon,remote);return;}
     if(!icon){icon=el('span',{class:'agpa-inline-icon','aria-hidden':'true'});container.insertBefore(icon,native);}
-    icon.replaceChildren(value.kind==='emoji'?document.createTextNode(value.emoji):svg(value.icon,16));
+    icon.replaceChildren(value.kind==='emoji'?document.createTextNode(value.emoji):svg(value.icon,size));
+    Object.assign(icon.style,{width:size+'px',height:size+'px',fontSize:size+'px'});
+    remoteBadge(icon,remote);
     icon.style.color=value.color||'var(--muted-foreground,#aaa)';
     icon.setAttribute('data-agpa-inline',signature);
     native.setAttribute('data-agpa-inline-native','');
@@ -144,6 +151,15 @@
     for(const trigger of document.querySelectorAll('[data-testid="project-selector-trigger"]')) {
       const name=trigger.querySelector(':scope > span.truncate')?.textContent;
       inlineIcon(trigger,projectNamed(name));
+    }
+  }
+  function applyConversationProjects() {
+    for(const row of document.querySelectorAll('[data-testid=conversation-row-sidebar]')){
+      const native=row.querySelector('[data-project-glyph]');
+      if(!native){row.querySelectorAll('[data-agpa-conversation-project]').forEach(icon=>icon.remove());continue;}
+      const label=native.nextElementSibling?.textContent?.trim()||row.getAttribute('data-subtext');
+      inlineIcon(native.parentElement,projectNamed(label),':scope > [data-project-glyph]');
+      native.parentElement.querySelector(':scope > .agpa-inline-icon')?.setAttribute('data-agpa-conversation-project','');
     }
   }
   function nativeSidebar(){return document.querySelector('[data-testid="settings-button"]')?.closest('[role="navigation"]');}
@@ -166,7 +182,7 @@
     if(rail.hidden===collapsed)rail.hidden=!collapsed;
 
     const projects=[...sidebar.querySelectorAll('[data-testid="project-header"]')].map(projectFrom).filter(Boolean);
-    const signature=JSON.stringify([i18n.language,!!nativeControl('[data-testid=agpa-library-button]'),!!nativeControl('[data-agpa-view-usage]'),projects.map(p=>[p.id,p.name,config.projects?.[p.id]])]);
+    const signature=JSON.stringify([i18n.language,!!nativeControl('[data-testid=agpa-library-button]'),!!nativeControl('[data-agpa-view-usage]'),projects.map(p=>[p.id,p.name,p.remote,config.projects?.[p.id]])]);
     if(signature!==railSignature){
       railSignature=signature;
       const focused=document.activeElement?.getAttribute('data-agpa-project');
@@ -183,7 +199,11 @@
       for(const project of projects){
         const value=config.projects?.[project.id];
         const button=el('button',{type:'button',class:'agpa-rail-button','aria-label':project.name,title:project.name,'data-agpa-project':project.id});
-        button.append(value?.kind==='emoji'?document.createTextNode(value.emoji):svg(value?.icon||'folder',20));
+        const visual=el('span',{class:'agpa-rail-project-visual','aria-hidden':'true'});
+        Object.assign(visual.style,{display:'inline-flex',alignItems:'center',justifyContent:'center',width:'20px',height:'20px'});
+        visual.append(value?.kind==='emoji'?document.createTextNode(value.emoji):svg(value?.icon||(project.remote?'cloud':'folder'),20));
+        remoteBadge(visual,!!value&&project.remote);button.append(visual);
+        if(project.remote){const label=project.name+' ('+i18n.t('Remote project')+')';button.title=label;button.setAttribute('aria-label',label);}
         if(value?.color)button.style.color=value.color;
         button.addEventListener('click',()=>{
           const current=[...document.querySelectorAll('[data-testid="project-header"]')].map(projectFrom).find(p=>p?.id===project.id);
@@ -245,7 +265,7 @@
   function schedule() {
     if (scheduled||destroyed) return;
     scheduled=true;
-    queueMicrotask(()=>{scheduled=false;if(destroyed)return;applyHeaders();applySelectors();applyMenus();applyRail();});
+    queueMicrotask(()=>{scheduled=false;if(destroyed)return;applyHeaders();applySelectors();applyConversationProjects();applyMenus();applyRail();});
   }
   function persist(id,value) {
     return new Promise((resolve,reject)=>{
@@ -332,7 +352,8 @@
       return target.closest(watched) || changed.some(node => node.nodeType === 1 && (node.matches(watched) || node.querySelector(watched)));
     })) schedule();
   });
-  observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['data-open','data-project-label','data-project-name','data-sidebar-section-drop-id','aria-labelledby','aria-expanded','data-selected']});
+  observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['data-open','data-project-glyph','data-subtext','data-project-icon','data-project-label','data-project-name','data-sidebar-section-drop-id','aria-labelledby','aria-expanded','data-selected']});
+  window.addEventListener('agpa:project-presentation',schedule);
   window.addEventListener('popstate',schedule);
   window.addEventListener('hashchange',schedule);
   const untranslate=i18n.subscribe(()=>{schedule();editorTranslate?.();});
@@ -346,7 +367,7 @@
       if(ok){this.setConfig(next);request.resolve();}else request.reject(Error(message||'Could not save.'));
     },
     status(){return{version:VERSION,projectsFound:document.querySelectorAll('[data-testid="project-header"]').length,projectsResolved:[...document.querySelectorAll('[data-testid="project-header"]')].filter(header=>projectFrom(header)).length,configuredProjects:Object.keys(config.projects||{}).length,editorOpen:!!editor,compactSidebar:!!rail&&!rail.hidden};},
-    destroy(){destroyed=true;untranslate();observer.disconnect();window.removeEventListener('popstate',schedule);window.removeEventListener('hashchange',schedule);rail?.remove();rail=null;for(const [menu,handler]of menuHandlers)menu.removeEventListener('keydown',handler,true);menuHandlers.clear();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Appearance service stopped.'));}pending.clear();editor?.close();editor?.remove();editor=null;document.querySelectorAll('[data-agpa-menu-edit],.agpa-project-icon,.agpa-inline-icon').forEach(x=>x.remove());document.querySelectorAll('[data-agpa-styled]').forEach(x=>x.removeAttribute('data-agpa-styled'));document.querySelectorAll('[data-agpa-inline-native]').forEach(x=>x.removeAttribute('data-agpa-inline-native'));style.remove();delete globalThis.__AGProjectAppearance;}
+    destroy(){destroyed=true;untranslate();observer.disconnect();window.removeEventListener('agpa:project-presentation',schedule);window.removeEventListener('popstate',schedule);window.removeEventListener('hashchange',schedule);rail?.remove();rail=null;for(const [menu,handler]of menuHandlers)menu.removeEventListener('keydown',handler,true);menuHandlers.clear();for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('Appearance service stopped.'));}pending.clear();editor?.close();editor?.remove();editor=null;document.querySelectorAll('[data-agpa-menu-edit],.agpa-project-icon,.agpa-inline-icon').forEach(x=>x.remove());document.querySelectorAll('[data-agpa-styled]').forEach(x=>x.removeAttribute('data-agpa-styled'));document.querySelectorAll('[data-agpa-inline-native]').forEach(x=>x.removeAttribute('data-agpa-inline-native'));style.remove();delete globalThis.__AGProjectAppearance;}
   };
   schedule();
 })();

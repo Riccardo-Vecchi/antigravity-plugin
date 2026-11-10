@@ -138,7 +138,7 @@
   if(settings&&!settings.parentElement.querySelector('[data-agpa-view-usage]')){
    const button=node('button',{type:'button',class:settings.className,'data-agpa-view-usage':'','aria-haspopup':'menu','aria-expanded':'false',title:'View Usage'});
    button.innerHTML='<span class="shrink-0 flex items-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 19a10 10 0 1 1 16 0H4Z"/><path d="m12 14 5-6"/><circle cx="12" cy="14" r="1"/></svg></span>';
-   button.append(node('span',{class:'truncate text-sm',text:'View Usage'}));
+   button.append(node('span',{class:'truncate',text:'View Usage'}));
    button.onclick=()=>openUsage(button);
    button.addEventListener('pointerenter',()=>openUsage(button));
    settings.before(button);

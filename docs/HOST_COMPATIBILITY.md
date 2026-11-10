@@ -1,4 +1,4 @@
-# Antigravity 2.29 compatibility
+# Antigravity host compatibility
 
 Compatibility audit for plugin 1.17.0 on Linux, 4 November 2026.
 
@@ -59,6 +59,19 @@ Official release notes: <https://antigravity.google/docs/changelog?tab=hub>.
 
 ## Driver and reasoning-control follow-up
 
+### 10 November 2026
+
+- Updated the reviewed stable Cua Driver pin to 0.46.1. All three supported
+  archive hashes match upstream checksums. On Linux, the 17 allowed MCP tools
+  and a real desktop screen capture passed, preserving desktop access and the
+  active GNOME helper. Windows was not exercised live.
+- Custom project icons now cover pinned and grouped conversation subtitles,
+  including views without project headers. Remote badges use the native cloud
+  shape with a small, borderless blue badge. Seven focused browser regressions
+  passed, including duplicate-name ambiguity and native-icon restoration.
+
+### 4 November 2026
+
 - Cua Driver 0.38.0 is the latest regular upstream release as checked on
   4 November 2026. GitHub's prerelease label is monorepo release routing; the
   versioned upstream notes classify plain Driver SemVer releases as stable.
@@ -74,3 +87,32 @@ Official release notes: <https://antigravity.google/docs/changelog?tab=hub>.
   preview was canceled and its native model selection remained unchanged.
   These checks do not reproduce a specific Windows report or validate a
   Windows installation.
+
+## Antigravity 2.31.0 browser follow-up (10 November 2026)
+
+- Read the installed package version as 2.31.0. Its bundled Chrome DevTools MCP
+  is 1.9.0. The new private transport exposed its 29 tools and exercised a
+  disposable Brave browser: create a page, read the local test page snapshot,
+  then revoke access through the Browser use switch. No personal browser
+  profile was used in that verification.
+- Browser settings now contain activation, a browser picker and native browser
+  permission guidance. No extension or Native Messaging installation is used.
+  The `/browser` command itself remains native and is not redirected.
+- Remote badges recover automatically after presentation-module replacement,
+  even with cached styling signatures. Windows was not exercised live.
+
+- The existing Brave 157.1.99.55 session also completed the real list_pages call
+  and the UI reached Connected after native browser authorization. Its
+  permission-based endpoint intentionally returned HTTP 404 for /json/version;
+  discovery now checks the validated loopback socket and leaves browser
+  verification to the official MCP. Initial consent/tab preparation runs in the
+  background with a longer deadline rather than reporting a premature failure.
+
+- The bundled 1.9.0 engine exhibited slow first connection on the existing
+  profile. Browser use can now prepare the SHA-512-pinned official 1.12.0
+  package automatically, without npm, extension installation or code forks.
+
+- The managed 1.12.0 engine reached Connected on the user's two-profile Brave
+  session after prompts were approved in the open browser/PWA windows.
+  Permission guidance now explicitly covers installed web apps and multiple
+  windows. No profile, PWA or browser window was restarted.

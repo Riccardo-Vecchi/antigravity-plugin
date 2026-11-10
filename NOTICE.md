@@ -17,3 +17,5 @@ The optional Cua Driver is a separate MIT-licensed dependency from [Cua AI](http
 Browser picker icons identify third-party browsers: Brave belongs to Brave Software, Chrome and Chromium branding to Google/the Chromium project, Edge to Microsoft, Opera to Opera Norway AS, and Vivaldi to Vivaldi Technologies. These assets are not relicensed under 0BSD and do not imply affiliation or endorsement. See `assets/SOURCES.md` for source URLs and Vivaldi attribution.
 
 Anthropic, Google and OpenAI laboratory icons identify model providers only. The marks belong to their respective owners; the plugin is not affiliated with or endorsed by these organizations. See `assets/SOURCES.md`.
+
+Browser use invokes the Apache-2.0-licensed Chrome DevTools MCP component from Antigravity or the pinned official npm release. Its upstream LICENSE and third-party notices are retained. This repository does not relicense that component.

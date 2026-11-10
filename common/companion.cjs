@@ -1,29 +1,41 @@
 "use strict";
-const net = require("node:net");
-const fs = require("node:fs/promises");
-const os = require("node:os");
-const path = require("node:path");
-const crypto = require("node:crypto");
-const core = require("./companion-core.cjs");
-const { getPaths } = require("./platform-paths.cjs");
-const { read, parse, atomic } = require("./computer-use.cjs");
-const { tools, validate } = require("./browser-tools.cjs");
-const SERVER = "antigravity-plugin-browser";
+const net = require("node:net"),
+  fs = require("node:fs/promises"),
+  os = require("node:os"),
+  path = require("node:path"),
+  crypto = require("node:crypto");
+const core = require("./companion-core.cjs"),
+  { getPaths } = require("./platform-paths.cjs");
+const { read, parse, atomic } = require("./computer-use.cjs"),
+  { BROWSERS } = require("./browser-setup.cjs");
+const official = require("./browser-engine.cjs");
+const SERVER = "antigravity-plugin-browser",
+  RPC = new Set([
+    "initialize",
+    "ping",
+    "tools/list",
+    "tools/call",
+    "resources/list",
+    "resources/templates/list",
+    "prompts/list",
+  ]);
+const RELEASE_TOOL = {
+  name: "release_browser",
+  description:
+    "Release control of the user's browser when your browser task is finished. Call this after the last browser operation, including on failure. Leaves all windows and tabs open. A later browser task may require browser approval again.",
+  inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  annotations: {
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+  },
+};
 function publicError(error) {
   if (["EACCES", "EPERM"].includes(error?.code)) return "permission";
   if (error?.code === "ENOSPC") return "space";
-  if (
-    ["invalidConfig", "unsafeConfig", "Invalid MCP configuration."].includes(
-      error?.message,
-    )
-  )
-    return "config";
-  if (/server belongs to another/.test(error?.message || ""))
-    return "serverConflict";
-  if (/manifest|registration belongs/.test(error?.message || ""))
-    return "hostConflict";
-  if (error?.code === "EEXIST" || error?.message === "configChanged")
-    return "configChanged";
+  if (/config|configuration/i.test(error?.message || "")) return "config";
+  if (/belongs to another/.test(error?.message || "")) return "serverConflict";
+  if (/engine|bundled/.test(error?.message || "")) return "engine";
   return "operation";
 }
 async function createCompanion({
@@ -31,29 +43,46 @@ async function createCompanion({
   home = os.homedir(),
   runtime = process.execPath,
   platform = process.platform,
-  extensionDir = getPaths({platform,home}).extensionDir,
+  env = process.env,
   onChange = () => {},
+  adapter = require(
+    platform === "win32" ? "../windows/browser.cjs" : "../linux/browser.cjs",
+  ),
+  resolve = official.resolveEngine,
+  probe = official.probeEndpoint,
+  engineFactory = official.createEngine,
+  profilePath = official.profileRoot,
+  prepareEngine = require("./browser-engine-install.cjs").prepare,
+  idleTimeout = 60000,
 } = {}) {
-  await require("./browser-extension.cjs").deploy(extensionDir);
   const loc = core.locations(configDir, platform),
     store = await core.createSettings(configDir),
-    connections = new Map(),
     peers = new Set();
-  const adapter=require(platform === "win32" ? "../windows/browser.cjs" : "../linux/browser.cjs");
-  const installationProbe=require("./browser-installation.cjs").createProbe({platform,home});
-  let discovery=adapter.detect().catch(()=>({available:[],defaultBrowser:"other"}));
-  let mutations = Promise.resolve(),
-    closed = false;
   const mcpFile = path.join(home, ".gemini/config/mcp_config.json"),
     script = path.join(__dirname, "browser-mcp.cjs");
-  function entry() {
-    return {
-      command: runtime,
-      args: [script],
-      env: { ELECTRON_RUN_AS_NODE: "1" },
-      enabledTools: tools.map((t) => t.name),
-    };
-  }
+  let detected = await adapter
+    .detect()
+    .catch(() => ({ available: [], defaultBrowser: null }));
+  let generation = 0;
+  let engine = null,
+    verified = false,
+    connecting = null,
+    closed = false,
+    mutation = Promise.resolve(),
+    error = null,
+    requested = false;
+  let idleTimer = null,
+    pendingRequests = 0,
+    controlling = false;
+  let component = null,
+    lastResolve = 0,
+    lastProbe = 0,
+    endpoint = false;
+  if (!store.settings.selectedBrowser)
+    await store.configure({
+      selectedBrowser:
+        detected.defaultBrowser || detected.available[0]?.id || null,
+    });
   function owned(e) {
     return (
       e?.command === runtime &&
@@ -63,81 +92,220 @@ async function createCompanion({
     );
   }
   async function register(enabled) {
-    // Reuse the desktop integration's lock, preserving unrelated MCP servers.
-    for (let attempt = 0; ; attempt++) {
+    for (let i = 0; ; i++)
       try {
         const previous = await read(mcpFile),
           data = parse(previous);
+        data.mcpServers ||= {};
         if (
-          data.mcpServers !== undefined &&
-          (!data.mcpServers ||
-            typeof data.mcpServers !== "object" ||
-            Array.isArray(data.mcpServers))
+          typeof data.mcpServers !== "object" ||
+          Array.isArray(data.mcpServers)
         )
           throw Error("Invalid MCP configuration.");
-        data.mcpServers ||= {};
         if (data.mcpServers[SERVER] && !owned(data.mcpServers[SERVER]))
           throw Error("Browser server belongs to another installation.");
-        if (enabled) data.mcpServers[SERVER] = entry();
+        if (enabled)
+          data.mcpServers[SERVER] = {
+            command: runtime,
+            args: [script],
+            env: { ELECTRON_RUN_AS_NODE: "1" },
+          };
         else delete data.mcpServers[SERVER];
-        await atomic(mcpFile, JSON.stringify(data, null, 2) + "\n", previous);
+        const text = JSON.stringify(data, null, 2) + "\n";
+        if (text !== previous) await atomic(mcpFile, text, previous);
         return;
       } catch (e) {
-        if (
-          (!["EEXIST"].includes(e.code) && e.message !== "configChanged") ||
-          attempt >= 4
-        )
+        if ((e.code !== "EEXIST" && e.message !== "configChanged") || i >= 4)
           throw e;
         await new Promise((r) => setTimeout(r, 100));
       }
-    }
-  }
-  async function snapshot() {
-    const data = parse(await read(mcpFile)), detected = await discovery;
-    return {
-      browser: {
-        enabled: store.settings.browserEnabled,
-        needsReload:[...connections.values()].some(c=>!c.scope&&Date.now()-c.connectedAt>2000),
-        registered: owned(data.mcpServers?.[SERVER]),
-        extensionPath: extensionDir,
-        platform,
-        ...detected,
-        installations:await installationProbe.inspect(detected.available),
-        extensionId: require("./browser-identity.json").extensionId,
-        connections: [...connections.entries()].map(([id, c]) => ({
-          id,
-          label: c.label,
-          tabs: c.tabs.length,
-          connectedAt: c.connectedAt,
-          scope:c.scope||null,
-        })),
-      },
-    };
   }
   function changed() {
     if (!closed) onChange();
   }
-  async function browserCall(name, args) {
-    validate(name, args);
-    if (!store.settings.browserEnabled)
-      throw Error("Browser access is disabled.");
-    if (name === "browser_list_connections")
-      return [...connections.entries()].map(([id, c]) => ({
-        connection: id,
-        label: c.label,
-        tabs: c.tabs.length,
-        scope:c.scope||null,
-      }));
-    const c = connections.get(args.connection);
-    if (!c) throw Error("Browser disconnected. Reconnect the extension.");
-    if (name === "browser_list_tabs") return c.tabs;
-    if (!c.tabs.some((t) => t.id === args.tab))
-      throw Error("Share this tab using the extension first.");
-    const result = await c.peer.request("execute", { tool: name, args }, 20000);
-    return result;
+  function reset() {
+    generation++;
+    requested = false;
+    clearTimeout(idleTimer);
+    idleTimer = null;
+    engine?.close();
+    engine = null;
+    controlling = false;
+    verified = false;
+    connecting = null;
+    error = null;
+    lastProbe = 0;
+    endpoint = false;
+  }
+  function release() {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+    requested = false;
+    const previous = engine;
+    engine = null;
+    controlling = false;
+    // Retain the successful setup check, not an active debugging connection.
+    previous?.close();
+    changed();
+  }
+  function scheduleRelease() {
+    if (!engine || pendingRequests || idleTimer) return;
+    idleTimer = setTimeout(() => {
+      idleTimer = null;
+      if (!pendingRequests) release();
+    }, idleTimeout);
+    idleTimer.unref?.();
+  }
+  function profile() {
+    return profilePath(store.settings.selectedBrowser, { platform, home, env });
+  }
+  async function inspect(force = false) {
+    if (force || Date.now() - lastResolve > 15000) {
+      component = await resolve({ platform, home, env });
+      lastResolve = Date.now();
+    }
+    if (
+      store.settings.selectedBrowser &&
+      (force || Date.now() - lastProbe > 2000)
+    ) {
+      endpoint = await probe(profile());
+      lastProbe = Date.now();
+      if (!endpoint) verified = false;
+    }
+  }
+  async function rpc(method, params, { timeout } = {}) {
+    if (!store.settings.browserEnabled) throw Error("Browser use is disabled.");
+    if (!RPC.has(method)) throw Error("Unsupported browser request.");
+    if (method === "tools/call" && params?.name === RELEASE_TOOL.name) {
+      if (pendingRequests || connecting)
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: "Browser operations are still running. Release after they finish.",
+            },
+          ],
+        };
+      release();
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Browser control released. Windows and tabs remain open.",
+          },
+        ],
+      };
+    }
+    const revision = generation;
+    await inspect();
+    if (revision !== generation || !store.settings.browserEnabled)
+      throw Error("Browser connection changed.");
+    if (!component)
+      throw Error(
+        "The bundled browser engine is unavailable. Update Antigravity.",
+      );
+    if (!engine) {
+      const current = engineFactory({
+        entry: component.entry,
+        profile: profile(),
+        runtime,
+        onClose() {
+          if (engine !== current) return;
+          engine = null;
+          controlling = false;
+          verified = false;
+          changed();
+        },
+      });
+      engine = current;
+    }
+    if (method === "tools/call") {
+      controlling = true;
+      clearTimeout(idleTimer);
+      idleTimer = null;
+    }
+    pendingRequests++;
+    let result;
+    try {
+      result = await engine.request(method, params, timeout);
+    } finally {
+      pendingRequests--;
+      scheduleRelease();
+    }
+    if (revision !== generation || !store.settings.browserEnabled)
+      throw Error("Browser connection changed.");
+    if (method === "tools/call" && !result?.isError) {
+      verified = true;
+      error = null;
+      changed();
+    }
+    return method === "tools/list"
+      ? { ...result, tools: [...(result.tools || []), RELEASE_TOOL] }
+      : result;
+  }
+  function verify() {
+    if (connecting || !store.settings.browserEnabled || !endpoint || !requested)
+      return;
+    const revision = generation;
+    requested = false;
+    connecting = (async () => {
+      try {
+        const r = await rpc(
+          "tools/call",
+          {
+            name: "list_pages",
+            arguments: {},
+          },
+          { timeout: 240000 },
+        );
+        if (r?.isError) throw Error("Browser permission required.");
+      } catch {
+        if (revision === generation) {
+          verified = false;
+          error = "browserPermission";
+        }
+      } finally {
+        if (revision === generation) {
+          connecting = null;
+          changed();
+        }
+      }
+    })();
+  }
+  async function snapshot() {
+    await inspect();
+    if (endpoint && !verified && !error) verify();
+    let registered = false;
+    try {
+      registered = owned(parse(await read(mcpFile)).mcpServers?.[SERVER]);
+    } catch {
+      error = "config";
+    }
+    return {
+      browser: {
+        enabled: store.settings.browserEnabled,
+        selectedBrowser: store.settings.selectedBrowser,
+        available: detected.available,
+        defaultBrowser: detected.defaultBrowser,
+        registered,
+        engineVersion: component?.version || null,
+        engineAvailable: !!component,
+        connected: !!(verified && endpoint),
+        active: !!(verified && endpoint && controlling),
+        connecting: !!connecting,
+        debugging: !!endpoint,
+        error,
+        platform,
+      },
+    };
+  }
+  try {
+    await register(store.settings.browserEnabled);
+  } catch (e) {
+    error = publicError(e);
   }
   await fs.mkdir(loc.directory, { recursive: true, mode: 0o700 });
-  const token = crypto.randomBytes(32).toString("hex");
   if (platform !== "win32") {
     const stat = await fs
       .lstat(loc.endpoint)
@@ -145,34 +313,34 @@ async function createCompanion({
     if (stat) {
       if (!stat.isSocket() || stat.isSymbolicLink())
         throw Error("Unsafe local bridge path.");
-      const alive = await new Promise((resolve) => {
+      const alive = await new Promise((r) => {
         const s = net.createConnection(loc.endpoint);
         s.once("connect", () => {
           s.destroy();
-          resolve(true);
+          r(true);
         });
-        s.once("error", () => resolve(false));
+        s.once("error", () => r(false));
       });
       if (alive) throw Error("A plugin bridge is already running.");
       await fs.unlink(loc.endpoint);
     }
   }
+  const token = crypto.randomBytes(32).toString("hex");
   await fs.writeFile(loc.token, token + "\n", { mode: 0o600 });
   await fs.chmod(loc.token, 0o600);
   const server = net.createServer((socket) => {
-    let role = null,
-      connectionId = null,
+    let authenticated = false,
       p;
-    const authTimeout = setTimeout(() => socket.destroy(), 2000);
+    const timer = setTimeout(() => socket.destroy(), 2000);
     p = core.peer(
       socket,
       async (m) => {
-        let result;
         try {
-          if (!role) {
+          let result;
+          if (!authenticated) {
             if (
               m.action !== "hello" ||
-              !["browser", "mcp"].includes(m.value?.role) ||
+              m.value?.role !== "mcp" ||
               typeof m.value.token !== "string" ||
               m.value.token.length !== token.length ||
               !crypto.timingSafeEqual(
@@ -181,167 +349,105 @@ async function createCompanion({
               )
             )
               throw Error("Unauthorized local connection.");
-            role = m.value.role;
-            clearTimeout(authTimeout);
+            authenticated = true;
+            clearTimeout(timer);
             result = true;
-          } else if (role === "browser") {
-            if (!store.settings.browserEnabled)
-              throw Error("Browser access disabled.");
-            if (m.action === "announce") {
-              if (
-                typeof m.value?.id !== "string" ||
-                !/^[\da-f-]{36}$/.test(m.value.id) ||
-                typeof m.value.label !== "string" ||
-                m.value.label.length > 60 ||
-                /[\x00-\x1f]/.test(m.value.label)
-              )
-                throw Error("Invalid browser profile.");
-              if (connectionId && connectionId !== m.value.id)
-                throw Error("Browser identity changed.");
-              connectionId = m.value.id;
-              const old = connections.get(connectionId);
-              if (old && old.peer !== p) old.peer.close();
-              connections.set(connectionId, {
-                peer: p,
-                label: m.value.label,
-                connectedAt: Date.now(),
-                tabs: [],
-              });
-              result = true;
-              changed();
-            } else if (m.action === "rename") {
-              const c = connections.get(connectionId);
-              if (
-                !c ||
-                c.peer !== p ||
-                typeof m.value !== "string" ||
-                !m.value.trim() ||
-                m.value.length > 60 ||
-                /[\x00-\x1f]/.test(m.value)
-              )
-                throw Error("Invalid profile name.");
-              c.label = m.value;
-              changed();
-              result = true;
-            } else if (m.action === "tabs") {
-              const c = connections.get(connectionId);
-              if (
-                !c ||
-                c.peer !== p ||
-                !Array.isArray(m.value) ||
-                m.value.length > 2000
-              )
-                throw Error("Invalid shared tabs.");
-              c.scope=["profile","tabs"].includes(m.scope)?m.scope:null;
-              c.tabs = m.value.map((t) => {
-                const url = new URL(t.url);
-                if (
-                  !Number.isInteger(t.id) ||
-                  t.id < 1 ||
-                  !["http:", "https:"].includes(url.protocol) ||
-                  url.username ||
-                  url.password
-                )
-                  throw Error("Invalid shared tab.");
-                return {
-                  id: t.id,
-                  title: String(t.title || "").slice(0, 200),
-                  url: url.href.slice(0, 4096),
-                };
-              });
-              changed();
-              result = true;
-            } else throw Error("Unsupported browser event.");
-          } else if (role === "mcp" && m.action === "call") {
-            result = await browserCall(m.value?.name, m.value?.args);
-          } else throw Error("Unsupported local request.");
+          } else if (m.action === "rpc" && typeof m.value?.method === "string")
+            result = await rpc(m.value.method, m.value.params);
+          else throw Error("Unsupported browser request.");
           if (m.id) p.send({ reply: m.id, result });
         } catch (e) {
           if (m.id)
-            p.send({ reply: m.id, error: role ? e.message : "Unauthorized." });
-          if (!role || (role === "browser" && !store.settings.browserEnabled))
-            socket.destroy();
+            p.send({
+              reply: m.id,
+              error: authenticated
+                ? e.message
+                : "Unauthorized local connection.",
+            });
+          if (!authenticated) p.close();
         }
       },
       () => {
-        clearTimeout(authTimeout);
+        clearTimeout(timer);
         peers.delete(p);
-        if (connectionId && connections.get(connectionId)?.peer === p)
-          connections.delete(connectionId);
-        changed();
       },
     );
     peers.add(p);
   });
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(loc.endpoint, resolve);
+  await new Promise((r, j) => {
+    server.once("error", j);
+    server.listen(loc.endpoint, r);
   });
   if (platform !== "win32") await fs.chmod(loc.endpoint, 0o600);
   return {
     store,
     snapshot,
-    browserCall,
+    rpc,
     async perform(action, value) {
       if (action === "status") return snapshot();
-      if(action === "inspectBrowser"){
-        if(!require("./browser-setup.cjs").BROWSERS.some(b=>b.id===value))throw Error("Unsupported browser.");
-        discovery=adapter.detect().catch(()=>({available:[],defaultBrowser:"other"}));
-        await installationProbe.inspect((await discovery).available,{force:true});return snapshot();
-      }
-      if(action === "openExtensions"||action === "openExtensionDetails"){
-        if(!store.settings.browserEnabled)throw Error("Browser access is disabled.");
-        await installationProbe.inspect((await discovery).available,{force:true});
-        await adapter.openExtensions(value,{profileDirectory:installationProbe.target(value),details:action==="openExtensionDetails"});return snapshot();
-      }
-      const job = mutations.then(async () => {
-        if (action === "setupBrowser") {
-          const adapter = require(
-            platform === "win32"
-              ? "../windows/browser.cjs"
-              : "../linux/browser.cjs",
-          );
-          const installed = await adapter.install({
-            home,
-            configDir,
-            runtime,
-            hostScript: path.join(__dirname, "browser-host.cjs"),
-            availableBrowsers:(await discovery).available,
-          });
-          discovery=adapter.detect().catch(()=>({available:[],defaultBrowser:"other"}));
-          await register(true);
-          await store.configure({ browserEnabled: true });
-          return { ...(await snapshot()), installedBrowsers: installed };
-        }
+      if (
+        ![
+          "setupBrowser",
+          "disableBrowser",
+          "selectBrowser",
+          "connectBrowser",
+        ].includes(action)
+      )
+        throw Error("Unsupported browser action.");
+      const job = mutation.then(async () => {
         if (action === "disableBrowser") {
           await store.configure({ browserEnabled: false });
-          for (const c of connections.values()) {
-            try {
-              c.peer.send({ action: "suspend" });
-            } catch {}
-            c.peer.close();
-          }
-          connections.clear();
+          reset();
           await register(false);
-        } else if (action === "disconnectProfile") {
-          const c = connections.get(value);
-          if (c) {
-            try {
-              c.peer.send({ action: "revoke" });
-            } catch {}
-            c.peer.close();
-            connections.delete(value);
+        } else if (action === "setupBrowser") {
+          await register(true);
+          await store.configure({ browserEnabled: true });
+          requested = true;
+          error = null;
+        } else if (action === "selectBrowser") {
+          detected = await adapter.detect();
+          if (
+            !BROWSERS.some((b) => b.id === value) ||
+            !detected.available.some((b) => b.id === value)
+          )
+            throw Error("Unsupported browser.");
+          reset();
+          await store.configure({ selectedBrowser: value });
+        } else {
+          if (!store.settings.browserEnabled)
+            throw Error("Browser use is disabled.");
+          await inspect(true);
+          if (
+            !component ||
+            !require("./browser-engine-install.cjs").atLeast(
+              component.version,
+              require("./browser-engine-release.cjs").version,
+            )
+          ) {
+            const prepared = await prepareEngine({ configDir });
+            if (!prepared)
+              throw Error("The official browser engine could not be prepared.");
+            reset();
+            component = prepared;
+            lastResolve = Date.now();
+            endpoint = await probe(profile());
+            lastProbe = Date.now();
           }
-        } else
-          throw Error("Unsupported companion action.");
+          requested = true;
+          error = null;
+          if (!endpoint)
+            await adapter.openDebug(store.settings.selectedBrowser, { env });
+          else verify();
+        }
         changed();
         return snapshot();
       });
-      mutations = job.catch(() => {});
+      mutation = job.catch(() => {});
       return job;
     },
     async close() {
       closed = true;
+      reset();
       for (const p of peers) p.close();
       await new Promise((r) => server.close(r));
       if (platform !== "win32") await fs.rm(loc.endpoint, { force: true });

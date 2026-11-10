@@ -1,7 +1,7 @@
 /* Shared icon catalogue and read-only native project identity lookup. */
 (() => {
  'use strict';
- const VERSION = '1.1.0';
+ const VERSION = '1.3.3';
  if (globalThis.__AGProjectPresentation?.version === VERSION) return;
  globalThis.__AGProjectPresentation?.destroy();
  const NS = 'http://www.w3.org/2000/svg';
@@ -12,7 +12,7 @@
     monitor: ['M3 3h18v13H3Z', 'M8 21h8', 'M12 16v5'],
     server: ['M3 3h18v7H3Z', 'M3 14h18v7H3Z', 'M6 6h.01', 'M6 17h.01', 'M10 6h8', 'M10 17h8'],
     chip: ['M6 6h12v12H6Z', 'M9 9h6v6H9Z', 'M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4'],
-    cloud: ['M7 18a5 5 0 1 1 1-10 7 7 0 0 1 13 4 4 4 0 0 1-1 8H7'],
+    cloud: ['M260-180q-82.92,0-141.46-57.61T60-378.15q0-73.38 47-130.54t119.92-67.61Q246.15-666 317.12-723T480-780q108.54,0 184.27,75.73T740-520v20h12.31q63.23,4.92 105.46,50.85T900-340q0,66.92-46.54,113.46T740-180H260Zm0-60H740q42,0 71-29t29-71t-29-71t-71-29H680v-80q0-83-58.5-141.5T480-720T338.5-661.5T280-520H260q-58,0-99,41t-41,99t41,99t99,41ZM480-480Z'],
     robot: ['M5 7h14v13H5Z', 'M12 3v4', 'M9 11h.01m6 0h.01', 'M9 16h6', 'M2 11v5m20-5v5'],
     settings: ['m9 3-1 3-3 1-2 4 2 2v3l3 2 1 3h6l1-3 3-2v-3l2-2-2-4-3-1-1-3Z', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0'],
     wrench: ['M14 3a6 6 0 0 0-6 8L3 16a3 3 0 0 0 5 5l5-5a6 6 0 0 0 8-6l-4 3-4-4 3-4Z'],
@@ -57,7 +57,7 @@
   };
   function svg(name, size = 18) {
     const node = document.createElementNS(NS, 'svg');
-    for (const [key, value] of Object.entries({viewBox:'0 0 24 24',width:size,height:size,fill:'none',stroke:'currentColor','stroke-width':1.7,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'})) node.setAttribute(key, value);
+    for (const [key, value] of Object.entries({viewBox:name==='cloud'?'0 -960 960 960':'0 0 24 24',width:size,height:size,fill:name==='cloud'?'currentColor':'none',stroke:name==='cloud'?'none':'currentColor','stroke-width':1.7,'stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true'})) node.setAttribute(key, value);
     for (const d of paths[name] || paths.folder) { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); node.append(p); }
     return node;
   }
@@ -70,7 +70,7 @@
       const id = section.getAttribute('data-sidebar-section-drop-id');
       if (headers.length === 1 && /^[a-zA-Z0-9_-]{1,160}$/.test(id || '')) {
         const header = headers[0];
-        return {id, name: (header.getAttribute('data-project-label') || header.textContent).trim(),
+        return {id, remote: header.getAttribute('data-project-icon') === 'cloud', name: (header.getAttribute('data-project-label') || header.textContent).trim(),
           header, link: section.querySelector('a[href*="project="]') || section.querySelector('a[href*="section="]'),
           trigger: section.querySelector('button[aria-haspopup="menu"]')};
       }
@@ -85,18 +85,67 @@
       if (url.origin !== location.origin) continue;
       const id = url.searchParams.get('project') || url.searchParams.get('section');
       if (!id || !/^[a-zA-Z0-9_-]{1,160}$/.test(id)) continue;
-      return {id,name:(header.getAttribute('data-project-label')||header.textContent).trim(),header,link,trigger:node.querySelector('button[aria-haspopup="menu"]')};
+      return {id,remote:header.getAttribute('data-project-icon') === 'cloud',name:(header.getAttribute('data-project-label')||header.textContent).trim(),header,link,trigger:node.querySelector('button[aria-haspopup="menu"]')};
     }
     return null;
   }
 
- function byName(name) {
-  const matches = new Map();
-  for (const header of document.querySelectorAll('[data-testid="project-header"]')) {
-   const project = projectFrom(header);
-   if (project && project.name === name) matches.set(project.id, project);
-  }
-  return matches.size === 1 ? [...matches.values()][0] : null;
+ const badgeStyle=document.createElement('style');
+ badgeStyle.id='agpa-remote-project-styles';
+ badgeStyle.textContent=`
+ [data-agpa-remote-host]:not(.agpa-project-icon){position:relative}
+ [data-agpa-remote-badge]{position:absolute;right:-3px;bottom:-2px;display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:12px;height:9px;border-radius:2px;background:var(--row-bg,var(--sidebar,var(--background,#171717)));color:#91c5ff;pointer-events:none;line-height:1;z-index:1}
+ [data-agpa-remote-badge]>svg{width:12px;height:9px;flex-shrink:0}
+ `;
+ document.head.append(badgeStyle);
+ function remoteBadge(host,remote) {
+  let badge=host.querySelector(':scope > [data-agpa-remote-badge]');
+  if(!remote){badge?.remove();host.removeAttribute('data-agpa-remote-host');return;}
+  host.setAttribute('data-agpa-remote-host','');
+  if(badge)return;
+  badge=document.createElement('span');badge.setAttribute('data-agpa-remote-badge','');badge.setAttribute('aria-hidden','true');
+  globalThis.__AGPAI18n?.set(badge,'Remote project',{},'title');
+  const cloud=svg('cloud',12);cloud.setAttribute('viewBox','40 -800 880 660');badge.append(cloud);host.append(badge);
  }
- globalThis.__AGProjectPresentation = {version:VERSION,paths,svg,projectFrom,byName,destroy(){delete globalThis.__AGProjectPresentation;}};
+
+ // Read the native project registry even when grouping hides project headers.
+ // Keep IDs authoritative and never resolve duplicate labels by guessing.
+ function nativeProjects() {
+  const anchor=document.querySelector('[data-testid=settings-button]');
+  const key=anchor&&Object.keys(anchor).find(k=>k.startsWith('__reactFiber$'));
+  for(let fiber=anchor?.[key],depth=0;fiber&&depth<180;fiber=fiber.return,depth++){
+   const values=[fiber.memoizedProps?.value];
+   for(let dependency=fiber.dependencies?.firstContext;dependency;dependency=dependency.next)values.push(dependency.memoizedValue);
+   for(const value of values){
+    const service=value?.core?.projectManagementService;
+    if(typeof service?.richProjectsProvider?.getState!=='function')continue;
+    try{
+     const state=service.richProjectsProvider.getState();
+     if(!(state instanceof Map))continue;
+     const remoteIds=new Set(Array.isArray(service.cloudProjectIds)?service.cloudProjectIds:[]),result=[];
+     for(const record of state.values()){
+      const p=record?.project;
+      if(p&&/^[a-zA-Z0-9_-]{1,160}$/.test(p.id||'')&&typeof p.name==='string'&&p.name.trim())
+       result.push({id:p.id,name:p.name.trim(),remote:remoteIds.has(p.id)});
+     }
+     return result;
+    }catch{ /* An unavailable registry leaves native presentation untouched. */ }
+   }
+  }
+  return [];
+ }
+ function projects() {
+  const found=new Map(nativeProjects().map(p=>[p.id,p]));
+  for(const header of document.querySelectorAll('[data-testid=project-header]')){
+   const project=projectFrom(header);if(project)found.set(project.id,project);
+  }
+  return [...found.values()];
+ }
+ function byName(name) {
+  const matches=projects().filter(p=>p.name===name);
+  return matches.length===1?matches[0]:null;
+ }
+
+ globalThis.__AGProjectPresentation = {version:VERSION,paths,svg,projectFrom,projects,byName,remoteBadge,destroy(){for(const badge of document.querySelectorAll('[data-agpa-remote-badge]'))badge.remove();for(const host of document.querySelectorAll('[data-agpa-remote-host]'))host.removeAttribute('data-agpa-remote-host');badgeStyle.remove();delete globalThis.__AGProjectPresentation;}};
+ window.dispatchEvent(new Event('agpa:project-presentation'));
 })();

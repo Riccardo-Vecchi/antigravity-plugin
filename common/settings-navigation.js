@@ -1,7 +1,7 @@
 /* Small, reversible additions to the native Settings navigation. */
 (() => {
  'use strict';
- const VERSION = '1.2.2';
+ const VERSION = '1.2.5';
  if (globalThis.__AGSettingsNavigation?.version === VERSION) return;
  globalThis.__AGSettingsNavigation?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -82,13 +82,14 @@
    }
    const project = globalThis.__AGProjectPresentation?.byName(button.querySelector(':scope > span:not([data-agpa-settings-icon])')?.textContent || key);
    const appearance = project && projectStyles.projects?.[project.id];
-   const signature = JSON.stringify([project?.id, appearance]);
+   const signature = JSON.stringify([project?.id, project?.remote, appearance]);
    const previous = button.querySelector('[data-agpa-settings-icon]');
-   if (previous?.getAttribute('data-project-style') === signature) continue;
+   if (previous?.getAttribute('data-project-style') === signature) {globalThis.__AGProjectPresentation?.remoteBadge(previous,!!appearance&&project?.remote);continue;}
    const visual = document.createElement('span'); visual.setAttribute('data-agpa-settings-icon', '');visual.setAttribute('aria-hidden', 'true');visual.setAttribute('data-project-style', signature);
    Object.assign(visual.style, {display:'inline-flex',alignItems:'center',justifyContent:'center',width:'16px',height:'16px',fontSize:'16px',lineHeight:'1',color:appearance?.color || 'inherit'});
    if (appearance?.kind === 'emoji') visual.textContent = appearance.emoji;
-   else visual.append(globalThis.__AGProjectPresentation?.svg(appearance?.icon || 'folder',16) || icon('folder'));
+   else visual.append(globalThis.__AGProjectPresentation?.svg(appearance?.icon || (project?.remote ? 'cloud' : 'folder'),16) || icon('folder'));
+   globalThis.__AGProjectPresentation?.remoteBadge(visual,!!appearance&&project?.remote);
    previous ? previous.replaceWith(visual) : button.prepend(visual);
   }
   let anchor = app.parentElement;
@@ -98,7 +99,7 @@
     const wrapper = document.createElement('div'); wrapper.className = app.parentElement.className; wrapper.dataset.agpaCuNavWrapper = '';
     navigation = document.createElement('button'); navigation.type = 'button'; navigation.className = app.className.replace('bg-sidebar-secondary', 'hover:bg-sidebar-muted'); navigation.dataset.agpaPluginNav = key;
     if(key === 'computer') navigation.dataset.agpaCuNav = '';
-    const label = document.createElement('span'); label.className = 'text-sm transition-colors select-none truncate flex-1 text-secondary-foreground'; i18n.set(label,labelKey);
+    const label = document.createElement('span'); label.className = 'transition-colors select-none truncate flex-1 text-secondary-foreground'; i18n.set(label,labelKey);
     i18n.set(navigation,labelKey,{},'title');navigation.append(icon(iconKey),label);navigation.addEventListener('click',()=>setActive(key));wrapper.append(navigation);anchor.after(wrapper);navigations.set(key,navigation);
    }
    anchor = navigation.parentElement;
@@ -135,10 +136,11 @@
  function schedule() {if (scheduled || stopped) return; scheduled = true; queueMicrotask(() => {scheduled = false; apply();});}
  function onClick(event) {if (event.target.closest('[data-testid^=settings-nav-item-]')) setActive(false);}
  document.addEventListener('click', onClick, true);
- const observer = new MutationObserver(schedule); observer.observe(document.body, {subtree: true, childList: true});
+ window.addEventListener('agpa:project-presentation',schedule);
+ const observer = new MutationObserver(schedule); observer.observe(document.body, {subtree: true, childList: true, attributes:true, attributeFilter:['data-project-icon','data-project-label']});
  globalThis.__AGSettingsNavigation = {version: VERSION, getPage: (key='computer') => pages.get(key)?.isConnected ? pages.get(key).firstElementChild : null, isOpen: (key='computer') => active === key,
   setProjectStyles(next) {projectStyles = next || {projects:{}};schedule();},
   open(key='computer') {apply(); setActive(key);}, icon,
-  destroy() {setActive(false); stopped = true; observer.disconnect(); document.removeEventListener('click', onClick, true); for(const page of pages.values())page.remove();for(const navigation of navigations.values())navigation.parentElement?.remove(); projectButton?.remove(); for (const e of document.querySelectorAll('[data-agpa-settings-icon]')) e.remove(); for (const e of document.querySelectorAll('[data-agpa-projects-heading],[data-agpa-projects-group]')) {e.removeAttribute('data-agpa-projects-heading');e.removeAttribute('data-agpa-projects-group');e.removeAttribute('data-collapsed');} style.remove(); delete globalThis.__AGSettingsNavigation;}};
+  destroy() {setActive(false); stopped = true; observer.disconnect(); document.removeEventListener('click', onClick, true);window.removeEventListener('agpa:project-presentation',schedule); for(const page of pages.values())page.remove();for(const navigation of navigations.values())navigation.parentElement?.remove(); projectButton?.remove(); for (const e of document.querySelectorAll('[data-agpa-settings-icon]')) e.remove(); for (const e of document.querySelectorAll('[data-agpa-projects-heading],[data-agpa-projects-group]')) {e.removeAttribute('data-agpa-projects-heading');e.removeAttribute('data-agpa-projects-group');e.removeAttribute('data-collapsed');} style.remove(); delete globalThis.__AGSettingsNavigation;}};
  schedule();
 })();

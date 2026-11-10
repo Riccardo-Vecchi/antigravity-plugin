@@ -629,7 +629,7 @@ class Client {
         versions.companion
       )
         await this.evaluate(
-          `globalThis.__AGPABrowserSetupState=${require("./browser-setup.cjs").setupState.toString()};globalThis.__AGPABrowserPicker=${createBrowserPicker.toString()};globalThis.__AGPA_BROWSER_ICONS__=${JSON.stringify(BROWSER_ICONS)};\n${COMPANION_UI}`,
+          `globalThis.__AGPABrowserPicker=${createBrowserPicker.toString()};globalThis.__AGPA_BROWSER_ICONS__=${JSON.stringify(BROWSER_ICONS)};\n${COMPANION_UI}`,
         );
       if (
         (await this.evaluate("globalThis.__AGWorkspace?.version")) !==
@@ -950,20 +950,12 @@ class Client {
           "status",
           "setupBrowser",
           "disableBrowser",
-          "disconnectProfile",
-          "openExtensions",
-          "openExtensionDetails",
-          "inspectBrowser",
+          "selectBrowser",
+          "connectBrowser",
         ].includes(payload.action)
       )
         throw Error("Invalid companion request.");
-      if (payload.action === "disconnectProfile") {
-        if (!UUID.test(payload.value)) throw Error("Invalid connection.");
-      } else if (
-        ["openExtensions", "openExtensionDetails", "inspectBrowser"].includes(
-          payload.action,
-        )
-      ) {
+      if (payload.action === "selectBrowser") {
         if (
           !require("./browser-setup.cjs").BROWSERS.some(
             (b) => b.id === payload.value,
