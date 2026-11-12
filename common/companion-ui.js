@@ -1,7 +1,7 @@
 /* Browser choice and native consent; automation is provided by Chrome DevTools MCP. */
 (() => {
   "use strict";
-  const VERSION = "1.8.2";
+  const VERSION = "1.9.0";
   if (globalThis.__AGCompanion?.version === VERSION) return;
   globalThis.__AGCompanion?.destroy();
   const i18n = globalThis.__AGPAI18n,
@@ -45,6 +45,24 @@
     });
     b.addEventListener("click", click);
     return b;
+  }
+  function manualBrowserSetup(url) {
+    const address = node("input", {
+      type: "text",
+      value: url,
+      readonly: "",
+      "aria-label": i18n.t("Browser settings address"),
+    });
+    const copy = button("Copy", async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+        i18n.set(copy, "Copied");
+      } catch {
+        address.focus();
+        address.select();
+      }
+    });
+    return node("div", { class: "agpa-comp-browser-address" }, address, copy);
   }
   function request(action, value = true) {
     return new Promise((resolve, reject) => {
@@ -203,6 +221,8 @@
           }),
         );
       else {
+        const manual =
+          b.platform === "win32" && !b.debugging && !b.connecting && b.debugUrl;
         const label = b.connected
           ? b.active === false
             ? "Ready when needed"
@@ -218,7 +238,11 @@
             ? "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared."
             : b.error === "browserPermission"
               ? "Could not finish connecting. Check the browser permission prompt, then try again."
-              : "Open your browser’s remote-debugging page, turn on Allow remote debugging, and approve the browser’s connection prompt. This page updates automatically.";
+              : manual
+                ? "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance."
+                : b.debugging && b.platform === "win32"
+                  ? "Select Connect browser, then approve the request in your browser."
+                  : "Open your browser’s remote-debugging page, turn on Allow remote debugging, and approve the browser’s connection prompt. This page updates automatically.";
         content.push(
           node(
             "div",
@@ -248,7 +272,8 @@
             ),
           ),
         );
-        if (!b.connected)
+        if (manual) content.push(manualBrowserSetup(b.debugUrl));
+        else if (!b.connected)
           content.push(
             button(
               b.connecting ? "Connecting…" : "Connect browser",
@@ -287,6 +312,7 @@
   const style = node("style", { text: "" });
   style.textContent = `
  .agpa-comp-section{display:flex;flex-direction:column;gap:22px;font-size:13px;color:var(--foreground,#ddd)}.agpa-comp-section p{margin:0;line-height:1.65}.agpa-comp-muted{color:var(--secondary-foreground,#999)}.agpa-comp-button{font:inherit;color:inherit;border:1px solid var(--border,#383838);background:transparent;border-radius:8px;padding:8px 13px;cursor:pointer;align-self:flex-start}.agpa-comp-button.primary{color:#111;background:#eee;border-color:#eee}.agpa-comp-button:disabled{opacity:.5;cursor:default}.agpa-comp-button:focus-visible{outline:2px solid #3a9cff;outline-offset:2px}.agpa-comp-enable-row{display:flex;align-items:center;justify-content:space-between;gap:20px}.agpa-comp-enable-status{display:flex;align-items:center;gap:10px}.agpa-comp-enable-status:before{content:'';width:8px;height:8px;background:#777;border-radius:50%}.agpa-comp-enable-status[data-on=true]:before{background:#54ca92}.agpa-comp-enable-switch{display:flex;align-items:center;gap:12px;border:0;padding:0;align-self:auto}.agpa-comp-switch-track{display:block;width:34px;height:20px;background:#555;border-radius:12px;padding:3px;box-sizing:border-box}.agpa-comp-switch-thumb{display:block;width:14px;height:14px;border-radius:50%;background:white;transition:transform .15s}.agpa-comp-enable-switch[aria-checked=true] .agpa-comp-switch-track{background:#368cdb}.agpa-comp-enable-switch[aria-checked=true] .agpa-comp-switch-thumb{transform:translateX(14px)}.agpa-comp-browser-choice{display:flex;align-items:center;justify-content:space-between;gap:18px}.agpa-comp-connection{display:flex;align-items:flex-start;gap:12px}.agpa-comp-connection>span{margin-top:3px;flex-shrink:0}.agpa-comp-connection>div{display:grid;gap:8px}.agpa-comp-connection strong{font-weight:500}.passed{color:#54ca92}.pending{color:#e8b457}.agpa-comp-notice{border:1px solid var(--border,#333);border-radius:9px;padding:14px}.agpa-comp-error{color:#ff9696}.agpa-comp-spinner{width:12px;height:12px;border:2px solid #8884;border-top-color:#6eafff;border-radius:50%;animation:agpa-browser-spin .8s linear infinite}@keyframes agpa-browser-spin{to{transform:rotate(360deg)}}
+ .agpa-comp-browser-address{display:flex;gap:8px}.agpa-comp-browser-address input{flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid var(--border,#383838);background:var(--background,#171717);color:inherit;font:inherit}
  .agpa-browser-picker{margin-left:auto}.agpa-browser-trigger{display:flex;align-items:center;gap:10px;min-width:210px;text-align:left;background:var(--background,#171717)}.agpa-browser-arrow{margin-left:auto}.agpa-browser-icon{display:inline-block;width:20px;height:20px;object-fit:contain;flex-shrink:0;text-align:center;line-height:20px}.agpa-browser-popup{box-sizing:border-box;position:fixed;inset:auto;margin:0;padding:5px;overflow:auto;border:1px solid var(--border,#444);border-radius:9px;background:var(--background,#171717);color:var(--foreground,#ddd);font-family:inherit;font-size:13px;box-shadow:0 8px 24px #0006}.agpa-browser-option{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 9px;border-radius:5px;cursor:pointer;font:inherit}.agpa-browser-option:hover,.agpa-browser-option[data-active]{background:var(--secondary,#303030)}.agpa-browser-check{margin-left:auto;font-size:12px}
  `;
   document.head.append(style);

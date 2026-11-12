@@ -456,9 +456,9 @@
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.",
       "Reasoning effort": "Reasoning effort",
       "Reasoning effort: {effort}": "Reasoning effort: {effort}",
-      "Ultra (Teamwork)": "Ultra (Teamwork)",
-      "Teamwork for this prompt. Native effort: {effort}": "Teamwork for this prompt. Native effort: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "Could not change Teamwork. Use /teamwork in the message input.",
+      "Ultra (Swarm)": "Ultra (Swarm)",
+      "Swarm for this prompt. Native effort: {effort}": "Swarm for this prompt. Native effort: {effort}",
+      "Could not change Swarm. Use /swarm in the message input.": "Could not change Swarm. Use /swarm in the message input.",
       "Web page": "Web page",
       "Google sign-in": "Google sign-in",
       "External website": "External website",
@@ -550,7 +550,10 @@
       "Ask Antigravity: Use my connected browser to compare two open pages and summarize their differences.": "Ask Antigravity: Use my connected browser to compare two open pages and summarize their differences.",
       "Connecting to your browser…": "Connecting to your browser…",
       "Could not finish connecting. Check the browser permission prompt, then try again.": "Could not finish connecting. Check the browser permission prompt, then try again.",
-      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared."
+      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.",
+      "Browser settings address": "Browser settings address",
+      "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.",
+      "Select Connect browser, then approve the request in your browser.": "Select Connect browser, then approve the request in your browser."
     },
     "icons": {
       "folder": "Folder",
@@ -1060,9 +1063,9 @@
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Usa il pulsante Apri Estensioni qui sopra: apre direttamente la pagina Estensioni del browser selezionato. Lì trovi Ricarica sulla scheda dell’estensione.",
       "Reasoning effort": "Livello di ragionamento",
       "Reasoning effort: {effort}": "Livello di ragionamento: {effort}",
-      "Ultra (Teamwork)": "Ultra (Teamwork)",
-      "Teamwork for this prompt. Native effort: {effort}": "Teamwork per questo prompt. Ragionamento nativo: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "Impossibile modificare Teamwork. Usa /teamwork nel campo del messaggio.",
+      "Ultra (Swarm)": "Ultra (Swarm)",
+      "Swarm for this prompt. Native effort: {effort}": "Swarm per questo prompt. Ragionamento nativo: {effort}",
+      "Could not change Swarm. Use /swarm in the message input.": "Impossibile modificare Swarm. Usa /swarm nel campo del messaggio.",
       "Web page": "Pagina web",
       "Google sign-in": "Accesso a Google",
       "External website": "Sito esterno",
@@ -1154,7 +1157,10 @@
       "Ask Antigravity: Use my connected browser to compare two open pages and summarize their differences.": "Chiedi ad Antigravity: usa il browser connesso per confrontare due pagine aperte e riassumere le differenze.",
       "Connecting to your browser…": "Collegamento al browser…",
       "Could not finish connecting. Check the browser permission prompt, then try again.": "Collegamento non completato. Controlla la richiesta di autorizzazione nel browser, poi riprova.",
-      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Approva le richieste di collegamento in tutte le finestre, i profili e le app web installate (PWA) del browser. Il primo collegamento può richiedere più tempo mentre vengono preparate le schede aperte."
+      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Approva le richieste di collegamento in tutte le finestre, i profili e le app web installate (PWA) del browser. Il primo collegamento può richiedere più tempo mentre vengono preparate le schede aperte.",
+      "Browser settings address": "Indirizzo delle impostazioni del browser",
+      "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "Incolla questo indirizzo nel browser. Apri Remote debugging e attiva Allow remote debugging for this browser instance.",
+      "Select Connect browser, then approve the request in your browser.": "Seleziona Connetti browser e approva la richiesta nel browser."
     },
     "icons": {
       "folder": "Cartella",
@@ -1664,9 +1670,9 @@
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Verwende oben Erweiterungen öffnen. Der Button öffnet direkt die Erweiterungsseite des gewählten Browsers; dort ist Neuladen auf der Erweiterungskarte.",
       "Reasoning effort": "Denkaufwand",
       "Reasoning effort: {effort}": "Denkaufwand: {effort}",
-      "Ultra (Teamwork)": "Ultra (Teamwork)",
-      "Teamwork for this prompt. Native effort: {effort}": "Teamwork für diese Anfrage. Nativer Denkaufwand: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "Teamwork konnte nicht geändert werden. Verwende /teamwork im Nachrichtenfeld.",
+      "Ultra (Swarm)": "Ultra (Swarm)",
+      "Swarm for this prompt. Native effort: {effort}": "Swarm für diese Anfrage. Nativer Denkaufwand: {effort}",
+      "Could not change Swarm. Use /swarm in the message input.": "Swarm konnte nicht geändert werden. Verwende /swarm im Nachrichtenfeld.",
       "Web page": "Webseite",
       "Google sign-in": "Google-Anmeldung",
       "External website": "Externe Website",
@@ -1758,7 +1764,10 @@
       "Ask Antigravity: Use my connected browser to compare two open pages and summarize their differences.": "Frage Antigravity: Vergleiche zwei offene Seiten in meinem verbundenen Browser und fasse die Unterschiede zusammen.",
       "Connecting to your browser…": "Verbindung zum Browser wird hergestellt…",
       "Could not finish connecting. Check the browser permission prompt, then try again.": "Verbindung nicht abgeschlossen. Prüfe die Berechtigungsanfrage im Browser und versuche es erneut.",
-      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Bestätige die Verbindungsanfragen in allen Browserfenstern, Profilen und installierten Web-Apps (PWAs). Die erste Verbindung kann länger dauern, während offene Tabs vorbereitet werden."
+      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Bestätige die Verbindungsanfragen in allen Browserfenstern, Profilen und installierten Web-Apps (PWAs). Die erste Verbindung kann länger dauern, während offene Tabs vorbereitet werden.",
+      "Browser settings address": "Adresse der Browsereinstellungen",
+      "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "Füge diese Adresse im Browser ein. Öffne Remote debugging und aktiviere Allow remote debugging for this browser instance.",
+      "Select Connect browser, then approve the request in your browser.": "Wähle Browser verbinden und bestätige die Anfrage im Browser."
     },
     "icons": {
       "folder": "Ordner",
@@ -2268,9 +2277,9 @@
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Usa el botón Abrir Extensiones de arriba. Abre directamente la página Extensiones del navegador seleccionado; allí está Recargar en la tarjeta de la extensión.",
       "Reasoning effort": "Nivel de razonamiento",
       "Reasoning effort: {effort}": "Nivel de razonamiento: {effort}",
-      "Ultra (Teamwork)": "Ultra (Teamwork)",
-      "Teamwork for this prompt. Native effort: {effort}": "Teamwork para este mensaje. Nivel nativo: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "No se pudo cambiar Teamwork. Usa /teamwork en el campo del mensaje.",
+      "Ultra (Swarm)": "Ultra (Swarm)",
+      "Swarm for this prompt. Native effort: {effort}": "Swarm para este mensaje. Nivel nativo: {effort}",
+      "Could not change Swarm. Use /swarm in the message input.": "No se pudo cambiar Swarm. Usa /swarm en el campo del mensaje.",
       "Web page": "Página web",
       "Google sign-in": "Inicio de sesión en Google",
       "External website": "Sitio externo",
@@ -2362,7 +2371,10 @@
       "Ask Antigravity: Use my connected browser to compare two open pages and summarize their differences.": "Pide a Antigravity: compara dos páginas abiertas en mi navegador conectado y resume sus diferencias.",
       "Connecting to your browser…": "Conectando con tu navegador…",
       "Could not finish connecting. Check the browser permission prompt, then try again.": "No se pudo completar la conexión. Revisa la solicitud de permiso del navegador y vuelve a intentarlo.",
-      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Aprueba las solicitudes de conexión en todas las ventanas, perfiles y aplicaciones web instaladas (PWA) del navegador. La primera conexión puede tardar más mientras se preparan las pestañas abiertas."
+      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Aprueba las solicitudes de conexión en todas las ventanas, perfiles y aplicaciones web instaladas (PWA) del navegador. La primera conexión puede tardar más mientras se preparan las pestañas abiertas.",
+      "Browser settings address": "Dirección de configuración del navegador",
+      "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "Pega esta dirección en el navegador. Abre Remote debugging y activa Allow remote debugging for this browser instance.",
+      "Select Connect browser, then approve the request in your browser.": "Selecciona Conectar navegador y aprueba la solicitud en el navegador."
     },
     "icons": {
       "folder": "Carpeta",
@@ -2872,9 +2884,9 @@
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "Utilisez le bouton Ouvrir les extensions ci-dessus. Il ouvre directement la page Extensions du navigateur sélectionné ; Recharger se trouve sur la fiche de l’extension.",
       "Reasoning effort": "Niveau de raisonnement",
       "Reasoning effort: {effort}": "Niveau de raisonnement : {effort}",
-      "Ultra (Teamwork)": "Ultra (Teamwork)",
-      "Teamwork for this prompt. Native effort: {effort}": "Teamwork pour ce message. Niveau natif : {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "Impossible de modifier Teamwork. Utilisez /teamwork dans le champ du message.",
+      "Ultra (Swarm)": "Ultra (Swarm)",
+      "Swarm for this prompt. Native effort: {effort}": "Swarm pour ce message. Niveau natif : {effort}",
+      "Could not change Swarm. Use /swarm in the message input.": "Impossible de modifier Swarm. Utilisez /swarm dans le champ du message.",
       "Web page": "Page web",
       "Google sign-in": "Connexion Google",
       "External website": "Site externe",
@@ -2966,7 +2978,10 @@
       "Ask Antigravity: Use my connected browser to compare two open pages and summarize their differences.": "Demandez à Antigravity : compare deux pages ouvertes dans mon navigateur connecté et résume leurs différences.",
       "Connecting to your browser…": "Connexion à votre navigateur…",
       "Could not finish connecting. Check the browser permission prompt, then try again.": "Connexion impossible. Vérifiez la demande d’autorisation du navigateur, puis réessayez.",
-      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Approuvez les demandes de connexion dans toutes les fenêtres, tous les profils et les applications web installées (PWA) du navigateur. La première connexion peut prendre plus de temps pendant la préparation des onglets ouverts."
+      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Approuvez les demandes de connexion dans toutes les fenêtres, tous les profils et les applications web installées (PWA) du navigateur. La première connexion peut prendre plus de temps pendant la préparation des onglets ouverts.",
+      "Browser settings address": "Adresse des paramètres du navigateur",
+      "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "Colle cette adresse dans le navigateur. Ouvre Remote debugging et active Allow remote debugging for this browser instance.",
+      "Select Connect browser, then approve the request in your browser.": "Sélectionne Connecter le navigateur et approuve la demande dans le navigateur."
     },
     "icons": {
       "folder": "Dossier",
@@ -3476,9 +3491,9 @@
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "使用上方的“打开扩展程序”按钮，直接打开所选浏览器的扩展程序页面；重新加载按钮位于该页面的扩展卡片上。",
       "Reasoning effort": "Reasoning effort",
       "Reasoning effort: {effort}": "Reasoning effort: {effort}",
-      "Ultra (Teamwork)": "Ultra (Teamwork)",
-      "Teamwork for this prompt. Native effort: {effort}": "Teamwork for this prompt. Native effort: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "Could not change Teamwork. Use /teamwork in the message input.",
+      "Ultra (Swarm)": "Ultra (Swarm)",
+      "Swarm for this prompt. Native effort: {effort}": "Swarm for this prompt. Native effort: {effort}",
+      "Could not change Swarm. Use /swarm in the message input.": "Could not change Swarm. Use /swarm in the message input.",
       "Web page": "网页",
       "Google sign-in": "Google 登录",
       "External website": "外部网站",
@@ -3570,7 +3585,10 @@
       "Ask Antigravity: Use my connected browser to compare two open pages and summarize their differences.": "向 Antigravity 提问：使用已连接的浏览器比较两个打开的页面，并总结它们的差异。",
       "Connecting to your browser…": "正在连接浏览器…",
       "Could not finish connecting. Check the browser permission prompt, then try again.": "无法完成连接。请检查浏览器的授权提示，然后重试。",
-      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "请在浏览器的所有窗口、配置文件及已安装的网页应用（PWA）中批准连接请求。首次连接时，准备已打开的标签页可能需要更长时间。"
+      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "请在浏览器的所有窗口、配置文件及已安装的网页应用（PWA）中批准连接请求。首次连接时，准备已打开的标签页可能需要更长时间。",
+      "Browser settings address": "浏览器设置地址",
+      "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "将此地址粘贴到浏览器中。打开 Remote debugging 并启用 Allow remote debugging for this browser instance。",
+      "Select Connect browser, then approve the request in your browser.": "选择连接浏览器，然后在浏览器中批准请求。"
     },
     "icons": {
       "folder": "文件夹",
@@ -4080,9 +4098,9 @@
       "Use the Open Extensions button above. It opens the selected browser’s Extensions page directly; Reload is on the extension card there.": "上の「拡張機能を開く」ボタンで、選択したブラウザーの拡張機能ページを直接開けます。再読み込みボタンはそのページの拡張機能カードにあります。",
       "Reasoning effort": "推論レベル",
       "Reasoning effort: {effort}": "推論レベル: {effort}",
-      "Ultra (Teamwork)": "Ultra（チームワーク）",
-      "Teamwork for this prompt. Native effort: {effort}": "このプロンプトでチームワークを使用します。標準の推論レベル: {effort}",
-      "Could not change Teamwork. Use /teamwork in the message input.": "チームワークを変更できませんでした。メッセージ入力欄で /teamwork を使用してください。",
+      "Ultra (Swarm)": "Ultra（Swarm）",
+      "Swarm for this prompt. Native effort: {effort}": "このプロンプトでSwarmを使用します。標準の推論レベル: {effort}",
+      "Could not change Swarm. Use /swarm in the message input.": "Swarmを変更できませんでした。メッセージ入力欄で /swarm を使用してください。",
       "Web page": "ウェブページ",
       "Google sign-in": "Google ログイン",
       "External website": "外部サイト",
@@ -4174,7 +4192,10 @@
       "Ask Antigravity: Use my connected browser to compare two open pages and summarize their differences.": "Antigravity への依頼例：接続したブラウザーで開いている 2 ページを比較し、違いを要約してください。",
       "Connecting to your browser…": "ブラウザーに接続中…",
       "Could not finish connecting. Check the browser permission prompt, then try again.": "接続を完了できませんでした。ブラウザーの許可要求を確認して、もう一度お試しください。",
-      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "ブラウザーの各ウィンドウ、プロファイル、インストール済みウェブアプリ（PWA）の接続要求を許可してください。初回は開いているタブの準備に時間がかかる場合があります。"
+      "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "ブラウザーの各ウィンドウ、プロファイル、インストール済みウェブアプリ（PWA）の接続要求を許可してください。初回は開いているタブの準備に時間がかかる場合があります。",
+      "Browser settings address": "ブラウザ設定のアドレス",
+      "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "このアドレスをブラウザに貼り付けます。Remote debugging を開き、Allow remote debugging for this browser instance を有効にします。",
+      "Select Connect browser, then approve the request in your browser.": "ブラウザを接続を選び、ブラウザでリクエストを承認します。"
     },
     "icons": {
       "folder": "フォルダー",

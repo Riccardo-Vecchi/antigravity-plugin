@@ -22,7 +22,7 @@ const BROWSERS = Object.freeze([
   {
     id: "edge",
     label: "Edge",
-    debugUrl: "edge://inspect/#remote-debugging",
+    debugUrl: "edge://inspect",
     profiles: { linux: "microsoft-edge", win32: "Microsoft/Edge/User Data" },
     linux: ["microsoft-edge-stable", "microsoft-edge"],
     windows: ["Microsoft/Edge/Application/msedge.exe"],

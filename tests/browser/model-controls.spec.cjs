@@ -3,22 +3,22 @@ const { test, expect } = require("@playwright/test"),
   fs = require("node:fs"),
   path = require("node:path");
 const models = require("../fixtures/model-controls.cjs"),
-  team = require("../fixtures/teamwork.cjs");
-const { createTeamworkBridge } = require("../../common/teamwork.cjs");
+  team = require("../fixtures/swarm.cjs");
+const { createSwarmBridge } = require("../../common/swarm.cjs");
 const rules = require("../../common/model-controls.cjs");
 const source = fs.readFileSync(
   path.join(__dirname, "../../common/model-controls.js"),
   "utf8",
 );
-async function setup(page, teamwork = false) {
+async function setup(page, swarm = false) {
   await page.route("https://native.test/", (r) =>
     r.fulfill({ contentType: "text/html", body: "<html></html>" }),
   );
   await page.goto("https://native.test/");
   await page.evaluate(`(${models.setup.toString()})()`);
-  if (teamwork) await page.evaluate(`(${team.setup.toString()})()`);
+  if (swarm) await page.evaluate(`(${team.setup.toString()})()`);
   await page.evaluate(
-    `globalThis.__AGPA_TEAMWORK_FACTORY__=${createTeamworkBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${rules.selectionFor.toString()},optionsFor:${rules.optionsFor.toString()},layoutFor:${rules.layoutFor.toString()}}`,
+    `globalThis.__AGPA_SWARM_FACTORY__=${createSwarmBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${rules.selectionFor.toString()},optionsFor:${rules.optionsFor.toString()},layoutFor:${rules.layoutFor.toString()}}`,
   );
   await page.evaluate(source);
 }
@@ -28,21 +28,6 @@ test("existing model and effort regression flow still passes", async ({
   await setup(page);
   const result = await page.evaluate(`(${models.verify.toString()})()`);
   expect(result.checks).toBeGreaterThan(10);
-});
-test("Ultra is compact in the composer and fully named in the slider", async ({
-  page,
-}) => {
-  await setup(page, true);
-  await page.evaluate(() => window.fixture.addManual());
-  await expect(page.locator(".agpa-effort-label")).toHaveText("Ultra");
-  await page.locator(".agpa-effort-trigger").click();
-  await expect(page.locator(".agpa-effort-popup")).toBeVisible();
-  await expect(page.locator(".agpa-effort-popup strong")).toHaveText(
-    "Ultra (Teamwork)",
-  );
-  expect(
-    await page.locator(".agpa-effort-trigger svg path").getAttribute("d"),
-  ).toBe("M3 8.5 7 4.5 11 8.5");
 });
 test("the duplicate simple native effort submenu is hidden, and disabling restores it", async ({
   page,
@@ -65,7 +50,7 @@ test("the duplicate simple native effort submenu is hidden, and disabling restor
     page.locator("[data-testid=model-selector-effort-option]").first(),
   ).toBeVisible();
 });
-test("native Teamwork editing, rollback, draft preservation and cleanup still pass", async ({
+test("Ultra uses the native Swarm chip and preserves the draft", async ({
   page,
 }) => {
   await setup(page, true);
@@ -73,6 +58,29 @@ test("native Teamwork editing, rollback, draft preservation and cleanup still pa
   expect(result.checks || result.passed.length).toBeGreaterThan(10);
 });
 
+test("Hydrogen keeps Extra as a native stop before Ultra", async ({ page }) => {
+  await setup(page, true);
+  await page.evaluate(() =>
+    window.fixture.external("Gemini 4 Hydrogen", "high"),
+  );
+  const trigger = page.locator(".agpa-effort-trigger");
+  const slider = page.getByRole("slider");
+  await trigger.click();
+  await expect(slider).toHaveAttribute("max", "4");
+  await expect(
+    page.locator(".agpa-effort-dots [title=Extra] + [title='Ultra (Swarm)']"),
+  ).toHaveCount(1);
+  await slider.press("ArrowRight");
+  await expect(trigger).toHaveText("Extra");
+  expect(await page.evaluate(() => window.fixture.selected.effort)).toBe(
+    "extra",
+  );
+  expect(
+    await page.evaluate(() =>
+      window.fixture.editor.querySelector("[data-uri='slashCommand:swarm']"),
+    ),
+  ).toBeNull();
+});
 test("a slowly rendered native submenu still opens the slider", async ({
   page,
 }) => {

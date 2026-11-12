@@ -191,3 +191,46 @@ test("released browser is ready without claiming active control", async ({
     page.getByRole("button", { name: "Connect browser" }),
   ).toHaveCount(0);
 });
+
+test("Windows setup copies the selected browser address and waits for remote debugging before connecting", async ({
+  page,
+}) => {
+  await setup(page, true);
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: async (text) => {
+          globalThis.copiedAddress = text;
+        },
+      },
+    });
+    Object.assign(globalThis.fake.browser, {
+      platform: "win32",
+      selectedBrowser: "edge",
+      debugUrl: "edge://inspect",
+      debugging: false,
+    });
+    globalThis.__AGCompanion.receive(structuredClone(globalThis.fake));
+  });
+  const connect = page.getByRole("button", { name: "Connect browser" });
+  await expect(connect).toHaveCount(0);
+  await expect(
+    page.getByRole("textbox", { name: "Browser settings address" }),
+  ).toHaveValue("edge://inspect");
+  await page.getByRole("button", { name: "Copy", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+  expect(await page.evaluate(() => globalThis.copiedAddress)).toBe(
+    "edge://inspect",
+  );
+  await page.evaluate(() => {
+    globalThis.fake.browser.debugging = true;
+    globalThis.__AGCompanion.receive(structuredClone(globalThis.fake));
+  });
+  await expect(connect).toBeVisible();
+  await connect.click();
+  expect(
+    await page.evaluate(() =>
+      globalThis.requests.some((r) => r.action === "connectBrowser"),
+    ),
+  ).toBe(true);
+});

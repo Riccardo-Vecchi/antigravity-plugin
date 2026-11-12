@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.21.0
+
+- Map **Ultra** on the compact effort slider to Antigravity’s native `/swarm` command. Ultra follows the model’s native levels, including **Extra** when available.
+- Update the Linux compatibility baseline to Antigravity App **2.31.2**.
+- On Windows, show the browser’s remote-debugging address with a copy control and enable Connect after remote debugging is detected.
+
 ## 1.20.0
 
 - Replace the browser extension with official Chrome DevTools MCP tools: choose a Chromium browser and authorize the native connection. Remove the extension, Native Messaging runtime and extension packaging.

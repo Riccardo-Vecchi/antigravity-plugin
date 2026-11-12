@@ -286,6 +286,10 @@ async function createCompanion({
       browser: {
         enabled: store.settings.browserEnabled,
         selectedBrowser: store.settings.selectedBrowser,
+        debugUrl:
+          BROWSERS.find(
+            (browser) => browser.id === store.settings.selectedBrowser,
+          )?.debugUrl || null,
         available: detected.available,
         defaultBrowser: detected.defaultBrowser,
         registered,
@@ -402,7 +406,7 @@ async function createCompanion({
         } else if (action === "setupBrowser") {
           await register(true);
           await store.configure({ browserEnabled: true });
-          requested = true;
+          requested = platform !== "win32";
           error = null;
         } else if (action === "selectBrowser") {
           detected = await adapter.detect();
@@ -435,9 +439,9 @@ async function createCompanion({
           }
           requested = true;
           error = null;
-          if (!endpoint)
+          if (endpoint) verify();
+          else if (platform !== "win32")
             await adapter.openDebug(store.settings.selectedBrowser, { env });
-          else verify();
         }
         changed();
         return snapshot();

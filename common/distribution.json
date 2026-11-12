@@ -82,7 +82,7 @@
     "assets/browsers/CHROMIUM-LICENSE.txt",
     "common/model-controls.js",
     "common/model-controls.cjs",
-    "common/teamwork.cjs",
+    "common/swarm.cjs",
     "common/context-budget.cjs",
     "common/context-budget.js",
     "common/transcript-reader.cjs",

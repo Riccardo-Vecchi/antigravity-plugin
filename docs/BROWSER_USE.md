@@ -5,12 +5,14 @@ Use your Chromium browser and existing logins with the official Chrome DevTools 
 ## 🔌 Connect
 
 1. Open **Settings → Browser use** and enable it.
-2. Choose your browser, then click **Connect browser**.
-3. On the browser page that opens, enable **Allow remote debugging** and approve its connection prompt. With multiple profiles, windows or installed web apps (PWAs), the request may appear in another window; check each of them. Settings updates automatically.
+2. Choose your browser. On Windows, copy the address shown in Settings, paste it into your browser’s address bar, and open **Remote debugging**. On Linux, click **Connect browser** to open the browser’s settings page.
+3. Enable **Allow remote debugging**. On Windows, return to Antigravity and click **Connect browser** once the button appears. Approve the browser’s connection prompt. With multiple profiles, windows or installed web apps (PWAs), the request may appear in another window; check each of them. Settings updates automatically.
 
 Once connected, ask Antigravity to use your connected browser. It can navigate, click, fill forms, inspect page structure, take screenshots and investigate console/network issues using the upstream tools. Browser authorization applies to the connected instance rather than separately shared tabs.
 
 The first connection can take longer while the official component initializes existing tabs; a moving indicator remains visible. If the prompt is dismissed, click **Connect browser** again. If no permission setting appears, update the browser; Chromium variants differ in their remote-debugging support. Custom profile locations are not currently auto-discovered. The plugin never restarts your browser, changes its preferences, copies your profile or exposes a debugging listener on your behalf.
+
+Chrome and Edge on Windows can launch or switch profiles without opening a browser-internal URL passed by an external app. The copy-and-paste step opens the page in the browser window you choose.
 
 ## ⚙️ Controls
 

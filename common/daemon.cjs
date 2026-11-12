@@ -50,7 +50,7 @@ const MODEL_CONTROLS = fs.readFileSync(
   "utf8",
 );
 const modelControlRules = require("./model-controls.cjs");
-const { createTeamworkBridge } = require("./teamwork.cjs");
+const { createSwarmBridge } = require("./swarm.cjs");
 const CONTEXT_BUDGET = fs.readFileSync(
   path.join(BASE, "context-budget.js"),
   "utf8",
@@ -591,7 +591,7 @@ class Client {
         versions.modelControls
       )
         await this.evaluate(
-          `globalThis.__AGPA_TEAMWORK_FACTORY__=${createTeamworkBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${modelControlRules.selectionFor.toString()},optionsFor:${modelControlRules.optionsFor.toString()},layoutFor:${modelControlRules.layoutFor.toString()}};\n${MODEL_CONTROLS}`,
+          `globalThis.__AGPA_SWARM_FACTORY__=${createSwarmBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${modelControlRules.selectionFor.toString()},optionsFor:${modelControlRules.optionsFor.toString()},layoutFor:${modelControlRules.layoutFor.toString()}};\n${MODEL_CONTROLS}`,
         );
       if (
         (await this.evaluate("globalThis.__AGContextBudget?.version")) !==

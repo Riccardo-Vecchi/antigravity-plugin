@@ -11,17 +11,17 @@ async function verify(){
  if(!target)throw Error('Open native Antigravity before running these checks.');
  const client=await require('../common/cdp-connection.cjs').connect(target.webSocketDebuggerUrl);
  const evaluate=async(expression,contextId)=>{const result=await client.call('Runtime.evaluate',{expression,contextId,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw Error(result.result?.description||result.exceptionDetails.text);return result.result.value;};
- const base=require('../tests/fixtures/model-controls.cjs'),team=require('../tests/fixtures/teamwork.cjs'),rules=require('../common/model-controls.cjs');
+ const base=require('../tests/fixtures/model-controls.cjs'),team=require('../tests/fixtures/swarm.cjs'),rules=require('../common/model-controls.cjs');
  const phases={};
  try{
-  for(const [kind,fixture]of [['models',base],['teamwork',team]]){
+  for(const [kind,fixture]of [['models',base],['swarm',team]]){
    const name='agpa-model-controls-'+kind+'-'+Date.now();
    try{
     await evaluate(`globalThis.__agpaFixtureFocus=document.activeElement;(()=>{const frame=document.createElement('iframe');frame.name=${JSON.stringify(name)};frame.id=${JSON.stringify(name)};frame.src='about:blank';frame.style.cssText='position:fixed;left:-10000px;top:0;width:800px;height:500px;border:0';document.body.append(frame);})()`);
     const tree=await client.call('Page.getFrameTree'),find=node=>node.frame.name===name?node.frame:(node.childFrames||[]).map(find).find(Boolean);
     const frame=find(tree.frameTree);if(!frame)throw Error('Fixture frame unavailable');
     const {executionContextId}=await client.call('Page.createIsolatedWorld',{frameId:frame.id,worldName:name});
-    const source=`(${base.setup.toString()})();${kind==='teamwork'?'('+team.setup.toString()+')();':''}globalThis.__AGPA_TEAMWORK_FACTORY__=${require('../common/teamwork.cjs').createTeamworkBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${rules.selectionFor.toString()},optionsFor:${rules.optionsFor.toString()},layoutFor:${rules.layoutFor.toString()}};${await fs.readFile(path.join(root,'common/model-controls.js'),'utf8')};(${fixture.verify.toString()})();`;
+    const source=`(${base.setup.toString()})();${kind==='swarm'?'('+team.setup.toString()+')();':''}globalThis.__AGPA_SWARM_FACTORY__=${require('../common/swarm.cjs').createSwarmBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${rules.selectionFor.toString()},optionsFor:${rules.optionsFor.toString()},layoutFor:${rules.layoutFor.toString()}};${await fs.readFile(path.join(root,'common/model-controls.js'),'utf8')};(${fixture.verify.toString()})();`;
     phases[kind]=await evaluate(source,executionContextId);
    }finally{
     await evaluate(`document.getElementById(${JSON.stringify(name)})?.remove();globalThis.__agpaFixtureFocus?.focus({preventScroll:true});delete globalThis.__agpaFixtureFocus;`).catch(()=>{});

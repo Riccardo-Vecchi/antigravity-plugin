@@ -6,14 +6,14 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.20.0](https://img.shields.io/badge/version-1.20.0-blue)](CHANGELOG.md)
+[![Version 1.21.0](https://img.shields.io/badge/version-1.21.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
 [![Unofficial](https://img.shields.io/badge/Google-unofficial-lightgrey)](NOTICE.md)
 [![License 0BSD](https://img.shields.io/badge/license-0BSD-blue)](LICENSE)
 
-**Unofficial plugin** for the Google Antigravity app on **Linux and Windows**. Requires the official Antigravity app to be installed separately. **Tested with Antigravity App 2.31.0 on Linux.**
+**Unofficial plugin** for the Google Antigravity app on **Linux and Windows**. Requires the official Antigravity app to be installed separately. **Tested with Antigravity App 2.31.2 on Linux.**
 
 > [!NOTE]
 > Independent project, not affiliated with or endorsed by Google. Antigravity and Gemini names and logos belong to Google. See [NOTICE](NOTICE.md).
@@ -22,7 +22,7 @@
 
 | Platform | Status |
 | --- | --- |
-| 🐧 Linux x86-64 | Verified with Antigravity App 2.31.0 on Zorin/GNOME 46 |
+| 🐧 Linux x86-64 | Verified with Antigravity App 2.31.2 on Zorin/GNOME 46 |
 | <img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows 11 x64 | **Experimental**; community-verified installation on 2.28.0; desktop automation validation is pending |
 
 ## ✨ Features
@@ -30,7 +30,7 @@
 - Gemini in the same window, with external links opening in your default browser, an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
 - Optional **Computer Use** (Cua Driver **0.46.1 stable**) with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - **Browser use** without an extension: choose a Chromium browser and connect through Google’s official Chrome DevTools tools. [Setup](docs/BROWSER_USE.md).
-- Separate model and reasoning-effort controls with a stepped slider and per-model memory, **Ultra (Teamwork)** for the native agent team, plus favorites, a collapsible **Other** group for hidden models, and provider logos in the model and usage menus. Permissions sit on the left; model and effort sit on the right.
+- Separate model and reasoning-effort controls with a stepped slider and per-model memory, **Ultra (Swarm)** to add the native `/swarm` command to the current draft, plus favorites, a collapsible **Other** group for hidden models, and provider logos in the model and usage menus. Permissions sit on the left; model and effort sit on the right.
 - Global **Context window & token budget** beside the model selector, with a capacity breakdown popup. [Details](docs/CONTEXT_BUDGET.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.
@@ -103,7 +103,7 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 **Computer use:** open **Settings → Computer use** and enable it. Reuses saved access, or starts with **Entire desktop** on first setup; choose **Selected apps** to limit access. When disabled, only its activation controls remain visible. Works with the native Antigravity agent. On GNOME/Wayland, first setup may require a Linux logout/login. [Setup and troubleshooting](docs/COMPUTER_USE.md).
 
-**Browser use:** enable it in **Settings → Browser use**, choose your browser and click **Connect browser**. Allow remote debugging in the browser page that opens, then approve its connection prompt. No extension, folder copying or tab-by-tab sharing. Verified with **Brave on Linux**. Chrome is supported by the upstream tools; Edge, Chromium, Vivaldi and Opera are offered when detected, but have not been verified end to end with this integration. The new Windows browser connection also needs community testing. [Setup](docs/BROWSER_USE.md).
+**Browser use:** enable it in **Settings → Browser use**, choose your browser and follow the remote-debugging instructions. On Windows, paste the address shown in Settings into your browser. Click **Connect browser** once remote debugging is active, then approve the connection prompt. No extension, folder copying or tab-by-tab sharing. Verified with **Brave on Linux**. Chrome is supported by the upstream tools; Edge, Chromium, Vivaldi and Opera are offered when detected, but have not been verified end to end with this integration. The new Windows browser connection also needs community testing. [Setup](docs/BROWSER_USE.md).
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Plugin updates** contains update controls and the plugin enable/disable switch.
 

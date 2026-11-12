@@ -8,6 +8,7 @@ function setup() {
     {base:'Gemini Fixture',levels:[['low','Low'],['medium','Medium'],['high','High']]},
     {base:'Fixed (Thinking)'},
     {base:'Context Fixture',levels:[['low','Low'],['high','High']],context:true},
+    {base:'Gemini 4 Hydrogen',levels:[['low','Low'],['medium','Medium'],['high','High'],['extra','Extra']]},
     {base:'Future Fixture',levels:[['minimal','Minimal'],['custom_deep','Deep']]},
     {base:'Disabled Fixture',levels:[['low','Low'],['high','High']],disabled:true}
   ];

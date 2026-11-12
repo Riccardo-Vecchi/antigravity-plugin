@@ -1,23 +1,23 @@
 /* Separate model/effort controls, delegating selection to native menu items. */
 (() => {
   "use strict";
-  const VERSION = "1.2.2";
+  const VERSION = "1.3.2";
   if (globalThis.__AGModelControls?.version === VERSION) return;
   globalThis.__AGModelControls?.destroy();
   const rules = globalThis.__AGPA_MODEL_CONTROLS__;
-  const teamwork = globalThis.__AGPA_TEAMWORK_FACTORY__();
+  const swarm = globalThis.__AGPA_SWARM_FACTORY__();
   delete globalThis.__AGPA_MODEL_CONTROLS__;
-  delete globalThis.__AGPA_TEAMWORK_FACTORY__;
+  delete globalThis.__AGPA_SWARM_FACTORY__;
   const i18n = globalThis.__AGPAI18n;
   const controls = new Map(),
     unsupported = new Set(),
-    teamworkStates = new WeakMap();
+    swarmStates = new WeakMap();
   let session = null,
     stopped = false,
     scheduled = false,
     bypass = false,
     modeBusy = false,
-    modeError = "";
+    modeError = null;
   const attributes = [
     "data-agpa-composer-footer",
     "data-agpa-footer-flat",
@@ -117,11 +117,12 @@
     const nativeLabel = option.nativeLabel || option.label;
     const sameNative =
       option.taskOnly ||
+      (option.swarm && swarm.active(current.trigger)) ||
       (current.base === before.base && nativeLabel === before.effortLabel);
     const desiredTask = current.preferred
-      ? teamwork.active(current.trigger)
-      : !!option.teamwork;
-    const sameTask = teamwork.active(current.trigger) === desiredTask;
+      ? swarm.active(current.trigger)
+      : !!option.swarm;
+    const sameTask = swarm.active(current.trigger) === desiredTask;
     if (sameNative && sameTask) {
       close({ focus: true });
       return;
@@ -142,11 +143,10 @@
       close({ focus: !current.preferred && sameTask });
       if (!sameTask) {
         modeBusy = true;
-        modeError = "";
+        modeError = null;
         schedule();
-        if (!(await teamwork.set(current.trigger, desiredTask)))
-          modeError =
-            "Could not change Teamwork. Use /teamwork in the message input.";
+        if (!(await swarm.set(current.trigger, desiredTask)))
+          modeError = current.trigger;
       }
       if (!option.taskOnly)
         await remember(current.base, option.nativeValue || option.value);
@@ -180,17 +180,17 @@
     current.range.setAttribute("aria-valuetext", option.label);
     current.range.style.setProperty(
       "--effort-color",
-      option.teamwork ? "#a464f6" : "#347df1",
+      option.swarm ? "#a464f6" : "#347df1",
     );
-    current.popup.toggleAttribute("data-ultra", !!option.teamwork);
-    current.value.title = option.teamwork
-      ? t("Teamwork for this prompt. Native effort: {effort}", {
+    current.popup.toggleAttribute("data-ultra", !!option.swarm);
+    current.value.title = option.swarm
+      ? t("Swarm for this prompt. Native effort: {effort}", {
           effort:
             option.nativeLabel || current.origin.effortLabel || t("Default"),
         })
       : "";
     if (
-      option.teamwork &&
+      option.swarm &&
       current.previewIndex !== undefined &&
       current.previewIndex !== index &&
       !window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -253,7 +253,13 @@
     });
     extremes.append(
       element("span", {}, current.options[0].label),
-      element("span", {}, current.options.at(-1).label),
+      element(
+        "span",
+        {},
+        current.options.at(-1).swarm
+          ? "🐝 " + current.options.at(-1).label
+          : current.options.at(-1).label,
+      ),
     );
     popup.append(heading, track, extremes);
     current.popup = popup;
@@ -301,15 +307,15 @@
     };
     session = current;
     button?.setAttribute("aria-busy", "true");
-    if (!origin.effortLabel && teamwork.active(trigger) && !preferred) {
+    if (!origin.effortLabel && swarm.active(trigger) && !preferred) {
       current.taskOnly = true;
       current.menu = document.body;
       current.options = [
         { value: "default", label: t("Default"), taskOnly: true },
         {
-          value: "teamwork",
-          label: t("Ultra (Teamwork)"),
-          teamwork: true,
+          value: "swarm",
+          label: t("Ultra (Swarm)"),
+          swarm: true,
           taskOnly: true,
           selected: true,
         },
@@ -371,28 +377,20 @@
         }
         await commit(current, index);
       } else {
-        const active = teamwork.active(trigger);
-        const high = current.options.find((option) => option.value === "high");
-        const target =
-          high || (active && current.options.find((option) => option.selected));
-        if (target && teamwork.editorFor(trigger)) {
-          current.options = current.options.map((option) => ({
-            ...option,
-            selected: !active && option.selected,
-          }));
-          const ultra = {
+        const active = swarm.active(trigger);
+        const target = current.options.at(-1);
+        if (swarm.editorFor(trigger)) {
+          if (active)
+            for (const option of current.options) option.selected = false;
+          current.options.push({
             ...target,
-            value: "teamwork",
-            label: t("Ultra (Teamwork)"),
+            value: "swarm",
+            label: t("Ultra (Swarm)"),
             nativeValue: target.value,
             nativeLabel: target.label,
-            teamwork: true,
+            swarm: true,
             selected: active,
-          };
-          const index = high
-            ? current.options.findIndex((option) => option.value === "high") + 1
-            : current.options.length;
-          current.options.splice(index, 0, ultra);
+          });
         }
         showSlider(current);
       }
@@ -438,7 +436,7 @@
       const selection = trigger.isConnected && rules.selectionFor(trigger);
       if (
         !selection ||
-        (!selection.effortLabel && !teamwork.active(trigger)) ||
+        (!selection.effortLabel && !swarm.active(trigger)) ||
         unsupported.has(selection.base)
       ) {
         button.remove();
@@ -468,7 +466,7 @@
         mark(trigger, "data-agpa-footer-model");
         mark(permission, "data-agpa-footer-permission");
       }
-      const active = teamwork.active(trigger);
+      const active = swarm.active(trigger);
       if (
         !selection ||
         (!selection.effortLabel && !active) ||
@@ -518,28 +516,29 @@
       button.setAttribute(
         "aria-label",
         t("Reasoning effort: {effort}", {
-          effort: active ? t("Ultra (Teamwork)") : label,
+          effort: active ? t("Ultra (Swarm)") : label,
         }),
       );
-      button.toggleAttribute("data-teamwork", active);
-      if (active && teamworkStates.get(trigger) === false) celebrate(button);
-      teamworkStates.set(trigger, active);
+      button.toggleAttribute("data-swarm", active);
+      if (active && swarmStates.get(trigger) === false) celebrate(button);
+      swarmStates.set(trigger, active);
       button.title = t("Reasoning effort");
       button.disabled = trigger.disabled || modeBusy;
       if (selection.suffix) mark(selection.suffix, "data-agpa-effort-suffix");
-      let error = button.parentElement.querySelector(
-        "[data-agpa-teamwork-error]",
-      );
-      if (modeError && !error) {
+      let error = button.parentElement.querySelector("[data-agpa-swarm-error]");
+      if (modeError === trigger && !error) {
         error = element("span", {
-          "data-agpa-teamwork-error": "",
+          "data-agpa-swarm-error": "",
           role: "status",
-          class: "agpa-teamwork-error",
+          class: "agpa-swarm-error",
         });
         button.after(error);
       }
       if (error) {
-        if (modeError) error.textContent = t(modeError);
+        if (modeError === trigger)
+          error.textContent = t(
+            "Could not change Swarm. Use /swarm in the message input.",
+          );
         else error.remove();
       }
     }
@@ -556,7 +555,7 @@
     const rect = button.getBoundingClientRect();
     const burst = element("span", {
       "aria-hidden": "true",
-      class: "agpa-teamwork-burst",
+      class: "agpa-swarm-burst",
     });
     burst.style.left = rect.left + rect.width / 2 + "px";
     burst.style.top = rect.top + rect.height / 2 + "px";
@@ -711,7 +710,7 @@
   .agpa-effort-trigger[aria-busy=true]{cursor:progress;opacity:.7}
   .agpa-effort-trigger:hover,.agpa-effort-trigger[aria-expanded=true]{background:var(--secondary,#303030);color:var(--foreground,#eee)}
   .agpa-effort-trigger:focus-visible{outline:2px solid #398bdb;outline-offset:2px}.agpa-effort-trigger:disabled{opacity:.5;cursor:default}
-  .agpa-effort-trigger[data-teamwork]{color:#d4b1ff;background:#8f46df26;box-shadow:inset 0 0 0 1px #9e5bef45}.agpa-teamwork-burst{position:fixed;z-index:2147483647;pointer-events:none;width:14px;height:14px;border:1px solid #c595ff;border-radius:50%;box-shadow:0 -12px 0 -5px #d6b4ff,11px -5px 0 -5px #ba7cff,10px 8px 0 -5px #e5caff,0 13px 0 -5px #af67ff,-11px 6px 0 -5px #ddbbff,-11px -7px 0 -5px #ae5fff}.agpa-teamwork-error{order:50;color:#f3a4aa;font-size:11px;flex-basis:100%;padding:4px 8px}
+  .agpa-effort-trigger[data-swarm]{color:#d4b1ff;background:#8f46df26;box-shadow:inset 0 0 0 1px #9e5bef45}.agpa-swarm-burst{position:fixed;z-index:2147483647;pointer-events:none;width:14px;height:14px;border:1px solid #c595ff;border-radius:50%;box-shadow:0 -12px 0 -5px #d6b4ff,11px -5px 0 -5px #ba7cff,10px 8px 0 -5px #e5caff,0 13px 0 -5px #af67ff,-11px 6px 0 -5px #ddbbff,-11px -7px 0 -5px #ae5fff}.agpa-swarm-error{order:50;color:#f3a4aa;font-size:11px;flex-basis:100%;padding:4px 8px}
   :root[data-agpa-effort-bridge] [role=menu]{opacity:0!important;pointer-events:none!important}
   .agpa-effort-popup{position:fixed;inset:auto;margin:0;width:252px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:12px;border:1px solid var(--border,#444);border-radius:16px;background:var(--card,#252525);color:var(--foreground,#eee);font:12px/1.4 system-ui,sans-serif;box-shadow:0 10px 30px #0005;pointer-events:auto!important;opacity:1!important;visibility:visible!important}
   .agpa-effort-popup::backdrop{background:transparent}
@@ -792,7 +791,7 @@
     destroy() {
       stopped = true;
       close();
-      teamwork.destroy();
+      swarm.destroy();
       observer.disconnect();
       unsubscribe();
       document.removeEventListener("click", click, true);
@@ -805,7 +804,7 @@
       controls.clear();
       style.remove();
       for (const node of document.querySelectorAll(
-        ".agpa-teamwork-burst,[data-agpa-teamwork-error]",
+        ".agpa-swarm-burst,[data-agpa-swarm-error]",
       ))
         node.remove();
       for (const attribute of attributes)

@@ -1,7 +1,7 @@
 "use strict";
 const fs = require("node:fs/promises"),
   path = require("node:path");
-const { spawn, execFile } = require("node:child_process"),
+const { execFile } = require("node:child_process"),
   { promisify } = require("node:util"),
   run = promisify(execFile);
 const { BROWSERS } = require("../common/browser-setup.cjs");
@@ -47,25 +47,4 @@ async function detect({ env = process.env } = {}) {
       "other",
   };
 }
-async function openDebug(id, { env = process.env } = {}) {
-  const spec = BROWSERS.find((b) => b.id === id);
-  if (!spec) throw Error("Unsupported browser.");
-  const exe = await executableFor(spec, env);
-  if (!exe) throw Error("Browser executable not found.");
-  const clean = { ...env };
-  delete clean.ELECTRON_RUN_AS_NODE;
-  delete clean.NODE_OPTIONS;
-  const c = spawn(exe, [spec.debugUrl], {
-    env: clean,
-    detached: true,
-    stdio: "ignore",
-    windowsHide: false,
-  });
-  await new Promise((r, j) => {
-    c.once("spawn", r);
-    c.once("error", j);
-  });
-  c.unref();
-  return true;
-}
-module.exports = { detect, openDebug };
+module.exports = { detect };
