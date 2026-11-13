@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.22.1
+
+- Add a localized **Multi-agent modes** heading above Swarm, Boost, and Teamwork.
+
 ## 1.22.0
 
 - Group **Swarm**, **Boost**, and **Teamwork** in the composer. The main icon follows the native command in the draft and defaults to Swarm in new chats. Keep the reasoning slider independent, with violet styling for native **Extra**.

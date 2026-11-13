@@ -176,6 +176,12 @@ test("the multi-agent control follows the draft and defaults to Swarm in a fresh
   const chip = (mode) => page.locator(`[data-uri="slashCommand:${mode}"]`);
   await expect(primary).toHaveText("🐝");
   await expect(primary).toHaveAttribute("aria-pressed", "false");
+  await arrow.click();
+  await expect(
+    menu.getByText("Multi-agent modes", { exact: true }),
+  ).toBeVisible();
+  await expect(option("Swarm")).toBeFocused();
+  await page.keyboard.press("Escape");
   await primary.click();
   await expect(primary).toHaveAttribute("aria-pressed", "true");
   await arrow.click();

@@ -1,7 +1,7 @@
 /* Separate model/effort controls, delegating selection to native menu items. */
 (() => {
   "use strict";
-  const VERSION = "1.3.9";
+  const VERSION = "1.3.10";
   if (globalThis.__AGModelControls?.version === VERSION) return;
   globalThis.__AGModelControls?.destroy();
   const rules = globalThis.__AGPA_MODEL_CONTROLS__;
@@ -502,6 +502,16 @@
         role: "menu",
         "aria-label": t("Multi-agent modes"),
       });
+      const heading = element(
+        "div",
+        {
+          class: "agpa-multi-agent-heading",
+          "aria-hidden": "true",
+        },
+        t("Multi-agent modes"),
+      );
+      menu.append(heading);
+      const rows = [];
       menu.id = "agpa-modes-" + crypto.randomUUID();
       arrow.setAttribute("popoverTarget", menu.id);
       arrow.setAttribute("aria-controls", menu.id);
@@ -529,10 +539,7 @@
         arrow.setAttribute("aria-expanded", String(open));
         if (open) {
           positionMenu();
-          (
-            menu.querySelector('[aria-checked="true"]') ||
-            menu.firstElementChild
-          ).focus();
+          (menu.querySelector('[aria-checked="true"]') || rows[0]).focus();
         }
       });
       menu.addEventListener("keydown", (event) => {
@@ -543,7 +550,6 @@
           arrow.focus();
           return;
         }
-        const rows = [...menu.children];
         const index = rows.indexOf(document.activeElement);
         if (event.key === "ArrowDown") rows[(index + 1) % rows.length].focus();
         else if (event.key === "ArrowUp")
@@ -594,6 +600,7 @@
         icon.append(modeIcon(mode));
         item.append(icon, mode.label);
         item.addEventListener("click", () => toggle(mode.id));
+        rows.push(item);
         menu.append(item);
       }
       control = {
@@ -603,6 +610,7 @@
         arrow,
         menu,
         positionMenu,
+        rows,
         displayedMode: null,
         error: null,
       };
@@ -621,10 +629,18 @@
       control.button.setAttribute("aria-label", displayed.label);
       control.button.title = displayed.label + " (/" + displayed.id + ")";
     }
+    const menuLabel = t("Multi-agent modes");
+    const heading = control.menu.firstElementChild;
+    if (heading.textContent !== menuLabel) {
+      heading.textContent = menuLabel;
+      control.menu.setAttribute("aria-label", menuLabel);
+      control.arrow.setAttribute("aria-label", menuLabel);
+      control.arrow.title = menuLabel;
+    }
     const pressed = String(Boolean(active));
     if (control.button.getAttribute("aria-pressed") !== pressed)
       control.button.setAttribute("aria-pressed", pressed);
-    for (const item of control.menu.children)
+    for (const item of control.rows)
       item.setAttribute(
         "aria-checked",
         String(swarm.active(trigger, item.dataset.mode)),
@@ -782,6 +798,7 @@
   .agpa-multi-agent-arrow[data-active]{color:#edbc5b}
   .agpa-multi-agent-arrow:focus-visible,.agpa-multi-agent-menu button:focus-visible{outline:2px solid #398bdb;outline-offset:-2px}
   .agpa-multi-agent-menu{position:fixed;inset:auto;margin:0;padding:4px;min-width:132px;border:1px solid var(--border,#444);border-radius:10px;background:var(--popover,#242424);color:var(--popover-foreground,#eee);box-shadow:0 8px 24px #0005}
+  .agpa-multi-agent-heading{padding:4px 8px 5px;color:var(--muted-foreground,#aaa);font:500 11px/1.35 system-ui}
   .agpa-multi-agent-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:none;color:inherit;font:13px system-ui;text-align:start;cursor:pointer}
   .agpa-multi-agent-menu button:is(:hover,:focus-visible){background:var(--secondary,#333)}
   .agpa-multi-agent-menu button[aria-checked=true]::after{content:"✓";margin-inline-start:auto;color:#edbc5b}
