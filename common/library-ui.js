@@ -1,7 +1,7 @@
 /* Artifact library layered over the native pane, preserving its conversation. */
 (() => {
   "use strict";
-  const VERSION = "1.3.2";
+  const VERSION = "1.3.4";
   globalThis.__AGLibrary?.destroy();
   const i18n = globalThis.__AGPAI18n;
   const createPicker = globalThis.__AGPA_LIBRARY_PICKER__;
@@ -14,6 +14,7 @@
   let stopped = false,
     queued = false,
     button = null,
+    navigationSource = null,
     panel = null,
     viewer = null,
     items = [],
@@ -214,6 +215,49 @@
       limited: t("Preview limited to the first 1,000 rows."),
     };
   }
+  function isSourceConversation(item) {
+    return (
+      !!item.conversationId && location.pathname === "/c/" + item.conversationId
+    );
+  }
+  function nativeDocumentLink(item) {
+    if (
+      !isSourceConversation(item) ||
+      !["pdf", "md", "markdown"].includes(item.extension)
+    )
+      return null;
+    const views = document.querySelectorAll(
+      "[data-testid=autoscroll-viewport]",
+    );
+    if (views.length !== 1) return null;
+    const normalizePath = (path) =>
+      path.replaceAll("\\", "/").replace(/^\/([a-z]:\/)/i, "$1");
+    for (const link of views[0].querySelectorAll('a[href^="file:///"]')) {
+      if (
+        !link.getClientRects().length ||
+        link.hasAttribute("download") ||
+        link.target === "_blank"
+      )
+        continue;
+      try {
+        const path = decodeURIComponent(new URL(link.href).pathname);
+        if (normalizePath(path) === normalizePath(item.path)) return link;
+      } catch {
+        // Invalid or incomplete links are handled by the local preview.
+      }
+    }
+    return null;
+  }
+  function sourceEditor(item) {
+    if (item.conversationId && !isSourceConversation(item)) return null;
+    const editors = document.querySelectorAll(
+      ".surface-composer [contenteditable=true][role=combobox]",
+    );
+    return editors.length === 1 &&
+      editors[0].getAttribute("aria-disabled") !== "true"
+      ? editors[0]
+      : null;
+  }
   async function preview(item) {
     closePreview();
     const generation = previewGeneration;
@@ -225,9 +269,7 @@
       disabled: "",
     });
     discuss.onclick = () => {
-      const editor = document.querySelector(
-        "[contenteditable=true][role=combobox]",
-      );
+      const editor = sourceEditor(item);
       if (!editor || !selected) return;
       const before = editor.textContent;
       editor.focus();
@@ -258,6 +300,33 @@
           );
         }
       });
+    };
+    discuss.hidden = !sourceEditor(item);
+    const nativeLink = nativeDocumentLink(item);
+    const nativePreview = el("button", {
+      type: "button",
+      class: "agpa-lib-tool",
+      text: "Open in Antigravity",
+    });
+    nativePreview.hidden = !nativeLink;
+    nativePreview.onclick = () => {
+      const currentLink = nativeDocumentLink(item);
+      if (!currentLink) {
+        nativePreview.hidden = true;
+        return;
+      }
+      // Let the host's delegated link handler run, then block browser
+      // navigation if that handler is absent in this version or layout.
+      let handled = false;
+      const stopNavigation = (event) => {
+        handled = event.defaultPrevented;
+        event.preventDefault();
+      };
+      window.addEventListener("click", stopNavigation, { once: true });
+      currentLink.click();
+      window.removeEventListener("click", stopNavigation);
+      if (handled) close();
+      else nativePreview.hidden = true;
     };
     const back = el(
       "button",
@@ -320,6 +389,7 @@
         back,
         el("strong", { text: item.name }),
         discuss,
+        nativePreview,
         conversation,
         reveal,
         remove,
@@ -1048,7 +1118,18 @@
     if (stopped || !enabled) return;
     observeLayout();
     const source = document.querySelector("[data-testid=automations-button]");
+    if (source !== navigationSource) {
+      navigationObserver.disconnect();
+      navigationSource = source;
+      if (source)
+        navigationObserver.observe(source, {
+          attributes: true,
+          subtree: true,
+          attributeFilter: ["class"],
+        });
+    }
     if (source) {
+      const label = source.lastElementChild;
       if (!button) {
         button = el(
           "button",
@@ -1062,10 +1143,13 @@
             { class: "shrink-0 flex items-center" },
             icon("library", 16),
           ),
-          el("span", { class: "truncate text-sm", text: "Library" }),
+          el("span", { text: "Library" }),
         );
         button.onclick = open;
       }
+      const labelClass = label?.tagName === "SPAN" ? label.className : "";
+      if (button.lastElementChild.className !== labelClass)
+        button.lastElementChild.className = labelClass;
       if (source.nextElementSibling !== button) source.after(button);
     }
     bounds();
@@ -1078,6 +1162,7 @@
       apply();
     });
   };
+  const navigationObserver = new MutationObserver(schedule);
   const observer = new MutationObserver(schedule);
   observer.observe(document.body, {
     subtree: true,
@@ -1144,6 +1229,8 @@
       catalogGeneration++;
       close();
       button?.remove();
+      navigationObserver.disconnect();
+      navigationSource = null;
       items = [];
       grid?.replaceChildren();
       resizeObserver.disconnect();
@@ -1183,6 +1270,7 @@
       thumbnailVisibilityTimer = null;
       requestGeneration++;
       observer.disconnect();
+      navigationObserver.disconnect();
       resizeObserver.disconnect();
       thumbnailObserver.disconnect();
       stopThumbnailWorker();

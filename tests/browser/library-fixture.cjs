@@ -27,7 +27,7 @@ async function mountLibrary(
     if (route.request().url() === "https://native.test/")
       return route.fulfill({
         contentType: "text/html",
-        body: '<button data-testid="automations-button">Automations</button>',
+        body: '<style>.fixture-label{font-size:19px;line-height:25px}.fixture-resized{font-size:23px;line-height:29px}</style><button data-testid="automations-button"><span class="fixture-label">Automations</span></button>',
       });
     network.push(route.request().url());
     return route.abort();
@@ -56,6 +56,7 @@ async function mountLibrary(
     extension: file.extension,
     category: file.category,
     source: "generated",
+    conversationId: file.conversationId,
     size: file.bytes.length,
     modified: 0,
     favorite: false,

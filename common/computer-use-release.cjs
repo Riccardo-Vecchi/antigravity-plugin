@@ -1,16 +1,59 @@
 'use strict';
 
-// Reviewed stable upstream release. Updates require changing the pinned hashes.
+// Reviewed upstream release. Updates require changing the pinned hashes.
 // No installer scripts, model packages or deprecated cua-agent dependencies run.
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const VERSION = '0.46.1';
+const VERSION = '0.47.23';
 const ASSETS = Object.freeze({
+  'linux-x64': ['linux-x86_64-binary.tar.gz', '6fe5e63713eed904acef4c5ac6931264dba1f9239c16b37576c0b29c4b18c1b8'],
+  'linux-arm64': ['linux-arm64-binary.tar.gz', '7bfa309fa2639c5d04bf2559af435b6bedcdd59b53e31975ac2d1025a22fb6bb'],
+  'win32-x64': ['windows-x86_64-binary.zip', '3f2180741bf695f1c862ca64361aaf2f2688bf75d37792b42df842d176002beb'],
+});
+const PREVIOUS_ASSETS = Object.freeze({
   'linux-x64': ['linux-x86_64-binary.tar.gz', '3f45c54b736bb8cbd75b4ad90095fceea9a787c22bc9e60b17ca1c8215dcc96b'],
   'linux-arm64': ['linux-arm64-binary.tar.gz', 'c1cf1f9635153cf9c347310008669893928d5e043db7522b37dfc59f0caef5f5'],
   'win32-x64': ['windows-x86_64-binary.zip', 'ec49cca509f25f65db2fa917718215f55f959d5ef650bf8ab2238a201d5666ac'],
 });
+const DRIVER_RELEASES = [[VERSION, ASSETS], ['0.46.1', PREVIOUS_ASSETS]];
+
+async function driverDirectories(directory, platform, arch = process.arch) {
+  const result = [];
+  for (const [version, assets] of DRIVER_RELEASES) {
+    const folder = path.join(directory, 'driver-' + version);
+    const stat = await fs.lstat(folder).catch(error => {
+      if (error.code !== 'ENOENT') throw error;
+      return null;
+    });
+    if (!stat) continue;
+    let owned = false;
+    const asset = assets[`${platform}-${arch}`];
+    if (asset && stat.isDirectory() && !stat.isSymbolicLink()) {
+      try {
+        const file = path.join(folder, 'receipt.json');
+        const receiptStat = await fs.lstat(file);
+        if (receiptStat.isFile() && receiptStat.size <= 4096) {
+          const receipt = JSON.parse(await fs.readFile(file, 'utf8'));
+          owned = receipt.version === version && receipt.sha256 === asset[1];
+        }
+      } catch {}
+    }
+    result.push({version, folder, owned});
+  }
+  return result;
+}
+
+async function installedDriver(directory, executable, platform) {
+  for (const item of await driverDirectories(directory, platform)) {
+    if (!item.owned) continue;
+    const file = path.join(item.folder, executable);
+    const stat = await fs.lstat(file).catch(() => null);
+    if (stat?.isFile()) return {...item, file};
+  }
+  return null;
+}
+
 
 async function downloadVerified(destination, platform, arch, fetcher = fetch, signal, onProgress = () => {}) {
   const asset = ASSETS[`${platform}-${arch}`];
@@ -38,7 +81,7 @@ async function downloadVerified(destination, platform, arch, fetcher = fetch, si
   return {version: VERSION, sha256: asset[1], name};
 }
 
-async function install(directory, adapter, {platform = process.platform, arch = process.arch, fetcher, signal, onProgress = () => {}} = {}) {
+async function install(directory, adapter, {platform = process.platform, arch = process.arch, fetcher, signal, onProgress = () => {}, validate = async () => {}} = {}) {
   await fs.mkdir(path.dirname(directory), {recursive: true, mode: 0o700});
   const temporary = await fs.mkdtemp(path.join(path.dirname(directory), '.driver-install-'));
   try {
@@ -48,6 +91,7 @@ async function install(directory, adapter, {platform = process.platform, arch = 
     const payload = path.join(temporary, 'payload');
     await fs.mkdir(payload, {mode: 0o700});
     onProgress({phase:'extract'});await adapter.extract(archive, payload);
+    await validate(path.join(payload, adapter.executable));
     await fs.writeFile(path.join(payload, 'receipt.json'), JSON.stringify(receipt) + '\n', {mode: 0o600});
     // Never replace a driver underneath running MCP sessions.
     await fs.rename(payload, directory);
@@ -83,4 +127,4 @@ async function checkForUpdates(fetcher = fetch) {
   return {...latest,reviewedVersion:VERSION,available:compareVersions(latest.version,VERSION)>0,
     url:`https://github.com/trycua/cua/releases/tag/cua-driver-rs-v${latest.version}`,checkedAt:new Date().toISOString()};
 }
-module.exports = {VERSION, ASSETS, downloadVerified, install, releaseVersion, compareVersions, checkForUpdates};
+module.exports = {VERSION, ASSETS, driverDirectories, installedDriver, downloadVerified, install, releaseVersion, compareVersions, checkForUpdates};

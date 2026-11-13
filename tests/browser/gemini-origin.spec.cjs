@@ -254,3 +254,53 @@ test("origin and accessible labels follow the native app language", async ({
     "Webseite",
   );
 });
+
+test("guest context menu delegates editing to the webview", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    window.editCommands = [];
+    for (const command of ["cut", "copy", "paste", "selectAll"])
+      testGuest[command] = () => window.editCommands.push(command);
+    window.openGuestMenu = (isEditable) => {
+      const event = new Event("context-menu");
+      event.params = {
+        x: 20,
+        y: 20,
+        isEditable,
+        editFlags: {
+          canCut: true,
+          canCopy: true,
+          canPaste: false,
+          canSelectAll: true,
+        },
+      };
+      testGuest.dispatchEvent(event);
+    };
+    window.openGuestMenu(false);
+  });
+  const menu = page.getByRole("menu");
+  await expect(menu.getByRole("menuitem", { name: "Paste" })).toHaveCount(0);
+  for (const name of ["Copy", "Select all"])
+    await expect(
+      menu.getByRole("menuitem", { name }).locator("svg[aria-hidden=true]"),
+    ).toBeVisible();
+  await menu.getByRole("menuitem", { name: "Copy" }).click();
+  await expect(menu).toBeHidden();
+  await page.evaluate(() => window.openGuestMenu(true));
+  await expect(
+    menu
+      .getByRole("menuitem", { name: "Paste" })
+      .locator("svg[aria-hidden=true]"),
+  ).toBeVisible();
+  await menu.getByRole("menuitem", { name: "Paste" }).click();
+  expect(await page.evaluate(() => window.editCommands)).toEqual([
+    "copy",
+    "paste",
+  ]);
+  await page.evaluate(() => window.openGuestMenu(true));
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(page.locator("dialog")).toBeVisible();
+});

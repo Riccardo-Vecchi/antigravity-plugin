@@ -1,7 +1,7 @@
 /* Layout extension for the existing Gemini guest; no session or native API bridge. */
 (() => {
   'use strict';
-  const VERSION='1.2.0';
+  const VERSION='1.2.1';
   const i18n=globalThis.__AGPAI18n;
   const externalURL=globalThis.__AGPA_EXTERNAL_URL__;delete globalThis.__AGPA_EXTERNAL_URL__;
   const icon=globalThis.__AGPA_INLINE_ICON__;
@@ -31,7 +31,7 @@
   fallback.addEventListener('click',returnToApp);
   function installInGuest(settings,createRules,validateExternal){
     const rules=createRules();
-    const VERSION='1.2.0';
+    const VERSION='1.2.1';
     const old=globalThis.__agpaInlineReturn;
     if(old?.version===VERSION){old.configure(settings);return old.status();}
     old?.destroy();
@@ -68,6 +68,11 @@
     }
     document.addEventListener('click',externalLink,true);document.addEventListener('auxclick',externalLink,true);
     function anchor(){
+      // The conversation header swaps Temporary Chat for Share as a chat opens.
+      const header=document.querySelector('.top-bar-actions');
+      const share=header?.querySelector('.persistent-share-button')
+        || header?.querySelector('button[aria-label="Share conversation"]');
+      if(share?.getClientRects().length)return share.closest('gem-button')||share;
       const element=document.querySelector('temp-chat-button');
       if(element)return element;
       const b=[...document.querySelectorAll('button[aria-label]')].find(n=>/temporary chat|chat temporane/i.test(n.getAttribute('aria-label')||''));
@@ -98,7 +103,7 @@
     }
     window.addEventListener('resize',place);
     const observer=new MutationObserver(()=>{if(queued||stopped)return;queued=true;queueMicrotask(()=>{queued=false;place();});});
-    observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-label']});
+    observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['aria-label','hidden']});
     globalThis.__agpaInlineReturn={
       version:VERSION,
       configure(next){current=next;if(!style.isConnected)document.head.append(style);if(image.src!==next.icon)image.src=next.icon;if(button.getAttribute('aria-label')!==next.returnLabel)button.setAttribute('aria-label',next.returnLabel);if(button.title!==next.returnLabel)button.title=next.returnLabel;place();},

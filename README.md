@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.21.0](https://img.shields.io/badge/version-1.21.0-blue)](CHANGELOG.md)
+[![Version 1.22.0](https://img.shields.io/badge/version-1.22.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -27,10 +27,12 @@
 
 ## ✨ Features
 
-- Gemini in the same window, with external links opening in your default browser, an in-page return button and a configurable shortcut (default **Ctrl+Alt+G**).
-- Optional **Computer Use** (Cua Driver **0.46.1 stable**) with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
+- Gemini in the same window, with external links opening in your default browser, an Antigravity return button beside Share, a right-click edit menu, and a configurable shortcut (default **Ctrl+Alt+G**).
+- Optional **Computer Use** (Cua Driver **0.47.23**) with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - **Browser use** without an extension: choose a Chromium browser and connect through Google’s official Chrome DevTools tools. [Setup](docs/BROWSER_USE.md).
-- Separate model and reasoning-effort controls with a stepped slider and per-model memory, **Ultra (Swarm)** to add the native `/swarm` command to the current draft, plus favorites, a collapsible **Other** group for hidden models, and provider logos in the model and usage menus. Permissions sit on the left; model and effort sit on the right.
+- Separate model and reasoning-effort controls with a stepped slider, per-model memory, and violet styling for native **Extra**. The multi-agent button offers 🐝 **Swarm**, 🚀 **Boost**, and **Teamwork** with a colored organization chart. The button follows the mode in your draft and starts on Swarm in a new chat.
+- Model favorites, a collapsible **Other** group, and provider logos in chat and Automations. **Orchestrator (Argon)** pairs the Google G with a converging arrow.
+- **View Usage** opens the same live quota popup from the expanded or compact sidebar, including outside conversations.
 - Global **Context window & token budget** beside the model selector, with a capacity breakdown popup. [Details](docs/CONTEXT_BUDGET.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
 - Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.
@@ -48,7 +50,7 @@ Development and local verification: [Contributing](https://github.com/Riccardo-V
     <th width="50%">Gemini in the same window</th>
   </tr>
   <tr>
-    <td width="50%" align="center" valign="middle"><img src="docs/images/antigravity-demo.png?v=1.18.2" width="560" alt="Antigravity with permissions on the left, model and effort on the right, and colored project icons"></td>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/antigravity-demo.png?v=1.22.0" width="560" alt="Antigravity with the compact project sidebar, Swarm active, and Gemini 4 Hydrogen at Extra effort"></td>
     <td width="50%" align="center" valign="middle"><img src="docs/images/gemini-demo.png" width="560" alt="Gemini with the in-page Antigravity return button"></td>
   </tr>
   <tr>

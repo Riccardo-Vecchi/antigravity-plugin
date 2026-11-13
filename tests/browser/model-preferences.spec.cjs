@@ -7,7 +7,7 @@ const source = fs.readFileSync(
   "utf8",
 );
 const { providerFor } = require("../../common/model-preferences.cjs");
-async function setup(page) {
+async function setup(page, includeOrchestrator = false) {
   await page.route("https://native.test/", (route) =>
     route.fulfill({
       contentType: "text/html",
@@ -16,7 +16,7 @@ async function setup(page) {
   );
   await page.goto("https://native.test/");
   await page.evaluate(
-    ({ provider }) => {
+    ({ provider, orchestrator }) => {
       const t = (key, p = {}) =>
         key.replace(/\{(\w+)\}/g, (_, key) => p[key] ?? `{${key}}`);
       globalThis.__AGPAI18n = {
@@ -36,6 +36,7 @@ async function setup(page) {
         google: icon,
         anthropic: icon,
         openai: icon,
+        orchestrator,
       };
       const prefs = { version: 1, models: {} };
       globalThis.__agpaModelPreferences = (payload) => {
@@ -72,6 +73,7 @@ async function setup(page) {
           "Gemini Fixture",
           "Claude Fixture",
           "GPT-OSS Fixture",
+          ...(orchestrator ? ["Orchestrator (Argon)"] : []),
         ]) {
           const row = document.createElement("div");
           row.setAttribute("role", "menuitem");
@@ -84,7 +86,7 @@ async function setup(page) {
           rows.append(row);
           row.onclick = () => {
             globalThis.fixture.changes++;
-            trigger.firstElementChild.textContent = name;
+            trigger.querySelector("span").textContent = name;
             trigger.click();
           };
         }
@@ -98,7 +100,17 @@ async function setup(page) {
         trigger.setAttribute("aria-expanded", "true");
       };
     },
-    { provider: providerFor.toString() },
+    {
+      provider: providerFor.toString(),
+      orchestrator: includeOrchestrator
+        ? "data:image/svg+xml;base64," +
+          fs
+            .readFileSync(
+              path.join(__dirname, "../../assets/labs/orchestrator.svg"),
+            )
+            .toString("base64")
+        : null,
+    },
   );
   await page.evaluate(source);
 }
@@ -155,11 +167,7 @@ test("native quota headings show all relevant labs without changing quota text o
 }) => {
   await setup(page);
   await page.locator("[data-testid=model-selector-trigger]").click();
-  await page.evaluate(() =>
-    globalThis.__AGModelUI.openUsage(
-      document.querySelector("[data-testid=model-selector-trigger]"),
-    ),
-  );
+  await page.locator("#usage").click();
   const headings = page.locator("[data-agpa-quota-heading]");
   await expect(headings).toHaveCount(3);
   const combined = headings.filter({ hasText: "Claude and GPT models" });
@@ -177,7 +185,7 @@ test("native quota headings show all relevant labs without changing quota text o
   await page.evaluate(() => globalThis.__AGModelUI.destroy());
   await expect(page.locator("[data-agpa-quota-logos]")).toHaveCount(0);
   await expect(page.locator("[data-agpa-quota-heading]")).toHaveCount(0);
-  await page.locator("[data-testid=model-selector-trigger]").click();
+  await expect(page.locator("#usage")).toBeVisible();
   await expect(page.locator("#usage")).toHaveText("View Usage");
 });
 
@@ -244,4 +252,80 @@ test("standalone quota uses the same provider logos outside conversations", asyn
   await expect(
     popup.locator('[data-agpa-quota-logos="google"] img'),
   ).toHaveCount(1);
+});
+
+test("Orchestrator has its own Google icon in the menu and selected model", async ({
+  page,
+}) => {
+  await setup(page, true);
+  const trigger = page.locator("[data-testid=model-selector-trigger]");
+  await trigger.click();
+  const row = page.getByRole("menuitem", { name: "Orchestrator (Argon)" });
+  const logo = '[data-agpa-lab="google"][data-agpa-icon="orchestrator"]';
+  const google = '[data-agpa-icon="google"][title="Google"]';
+  await expect(row.locator(google)).toBeVisible();
+  await expect(row.locator(logo)).toHaveJSProperty("complete", true);
+  await row.click();
+  await expect(trigger.locator(google)).toBeVisible();
+  await expect(trigger.locator(logo)).toHaveJSProperty("complete", true);
+});
+
+test("Automations decorates its native picker and portaled options without reordering them", async ({
+  page,
+}) => {
+  await setup(page, true);
+  await page.evaluate(() => {
+    const editor = document.createElement("section");
+    editor.innerHTML =
+      '<div role="combobox" aria-controls="automation-model-list" data-testid="new-sidecar-model"><span>Gemini 4 Argon (Medium)</span><svg></svg></div><button data-testid="schedule-repeat">Daily</button>';
+    document.body.append(editor);
+    const list = document.createElement("div");
+    list.role = "listbox";
+    list.id = "automation-model-list";
+    for (const model of [
+      "Gemini 4 Argon (Medium)",
+      "Orchestrator (Argon)",
+      "Claude Sonnet 5.5",
+      "GPT-OSS 120B",
+      "Unknown model",
+    ]) {
+      const option = document.createElement("div");
+      option.role = "option";
+      option.dataset.testid = "sidecar-model-option";
+      const label = document.createElement("div");
+      label.textContent = model;
+      option.append(label);
+      option.onclick = () => (editor.querySelector("span").textContent = model);
+      list.append(option);
+    }
+    document.body.append(list);
+  });
+  const picker = page.getByTestId("new-sidecar-model");
+  const list = page.locator("#automation-model-list");
+  await expect(picker.locator("img")).toHaveAttribute(
+    "data-agpa-icon",
+    "google",
+  );
+  await expect(list.locator("img[data-agpa-icon]")).toHaveCount(5);
+  const orchestrator = list.getByRole("option", {
+    name: "Orchestrator (Argon)",
+  });
+  await expect(
+    orchestrator.locator('img[data-agpa-icon="orchestrator"]'),
+  ).toHaveAttribute("data-agpa-icon", "orchestrator");
+  await expect(list.getByRole("option").first()).toHaveText(
+    "Gemini 4 Argon (Medium)",
+  );
+  await expect(list.locator("[data-agpa-model-favorite]")).toHaveCount(0);
+  await expect(page.getByTestId("schedule-repeat").locator("img")).toHaveCount(
+    0,
+  );
+  await orchestrator.click();
+  await expect(
+    picker.locator('img[data-agpa-icon="orchestrator"]'),
+  ).toBeVisible();
+  await expect(picker.locator('img[data-agpa-icon="google"]')).toBeVisible();
+  await expect(picker.locator("svg")).toHaveCount(1);
+  await page.evaluate(() => globalThis.__AGModelUI.destroy());
+  await expect(list.locator("img")).toHaveCount(0);
 });

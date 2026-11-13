@@ -1,6 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
- 'use strict';const VERSION='1.3.0';
+ 'use strict';const VERSION='1.3.5';
  if(globalThis.__AGModelUI?.version===VERSION)return;
  globalThis.__AGModelUI?.destroy();
  const i=globalThis.__AGPAI18n,providerFor=globalThis.__AGPAProviderFor,permissionFor=globalThis.__AGPAPermissionFor,assets=globalThis.__AGPA_LAB_ICONS__;
@@ -9,7 +9,22 @@
  const pending=new Map(),originalOrders=new WeakMap(),seenPanels=new WeakSet();let stopped=false,scheduled=0,showHidden=false,known=[],dialog=null,saving=false,error='';
  function node(tag,attrs={},...children){const e=document.createElement(tag);e.dataset.agpaModelUi='';for(const[k,v]of Object.entries(attrs))if(k==='text')i.set(e,v);else e.setAttribute(k,v);for(const child of children)e.append(child);return e;}
  function setAttr(e,k,v){if(e.getAttribute(k)!==v)e.setAttribute(k,v);}
- function mark(e,name){const provider=providerFor(name);let image=e.querySelector(':scope > [data-agpa-lab]');if(!provider){image?.remove();return;}if(image?.dataset.agpaLab===provider)return;image?.remove();image=node('img',{src:assets[provider],alt:'',width:'16',height:'16','aria-hidden':'true',class:'agpa-lab-icon'});image.dataset.agpaLab=provider;e.prepend(image);}
+ function mark(element, name) {
+  const provider = providerFor(name);
+  const key = /^\s*Orchestrator\b/i.test(name) && assets.orchestrator ? 'orchestrator' : provider;
+  const icons = key === 'orchestrator' && assets.google ? ['google', key] : assets[key] ? [key] : [];
+  const current = [...element.querySelectorAll(':scope > [data-agpa-lab]')];
+  if (current.length === icons.length && current.every((img, n) => img.dataset.agpaIcon === icons[n])) return;
+  for (const img of current) img.remove();
+  element.prepend(...icons.map(icon => {
+   const image = node('img', {src:assets[icon], alt:'', width:'16', height:'16',
+    'aria-hidden':'true', class:'agpa-lab-icon'});
+   image.dataset.agpaLab = provider;
+   image.dataset.agpaIcon = icon;
+   if (icon === 'google' && key === 'orchestrator') image.title = 'Google';
+   return image;
+  }));
+ }
  // Quota groups can combine providers; decorate labels without replacing native data.
  function decorateQuota(root){
   for(const heading of root.querySelectorAll('[role=presentation],strong,span.truncate')){
@@ -40,17 +55,25 @@
   for(const e of document.querySelectorAll('[data-testid^="permissions-preset-option-"]')){const id=e.dataset.testid.slice('permissions-preset-option-'.length),mode=id==='request_review'?'review':['default','auto','turbo'].includes(id)?id:null;if(mode)setAttr(e,'data-agpa-permission',mode);}
   for(const e of document.querySelectorAll('[data-testid=permissions-selector-trigger]')){const mode=permissionFor(e.textContent);if(mode)setAttr(e,'data-agpa-permission',mode);else e.removeAttribute('data-agpa-permission');}
  }
- let usageOpening=false,usageButton=null,usageTimer=null,usageCloseTimer=null;
- // Outside conversations there is no model trigger. Use the same native quota
- // service instead of navigating away or opening a hidden conversation.
+ let usageButton=null,usageCloseTimer=null;
  let quotaPopup=null,quotaCache=null,quotaPending=null,quotaServiceOwner=null,quotaEpoch=0;
+ // The host has no public renderer API for quota. Keep the React lookup here,
+ // bounded and optional, so sidebar failure never interferes with the native menu.
  function quotaService(){
-  for(const anchor of [document.querySelector('[data-testid=settings-button]'),document.querySelector('[data-agpa-view-usage]')].filter(Boolean)){
-   const key=Object.keys(anchor).find(k=>k.startsWith('__reactFiber$'));
-   for(let fiber=anchor[key],depth=0;fiber&&depth<180;fiber=fiber.return,depth++){
-    const values=[fiber.memoizedProps?.value];
-    for(let dependency=fiber.dependencies?.firstContext;dependency;dependency=dependency.next)values.push(dependency.memoizedValue);
-    for(const value of values){const service=value?.core?.cloudCodeService;if(typeof service?.retrieveUserQuotaSummary==='function')return service;}
+  const anchor=document.querySelector('[data-testid=settings-button]');
+  if(!anchor)return null;
+  const key=Object.keys(anchor).find(k=>k.startsWith('__reactFiber$'));
+  const serviceFor=value=>{
+   const service=value?.core?.cloudCodeService;
+   return typeof service?.retrieveUserQuotaSummary==='function'?service:null;
+  };
+  for(let fiber=anchor[key],depth=0;fiber&&depth<180;fiber=fiber.return,depth++){
+   const service=serviceFor(fiber.memoizedProps?.value);
+   if(service)return service;
+   let dependency=fiber.dependencies?.firstContext;
+   for(let n=0;dependency&&n<32;n++,dependency=dependency.next){
+    const service=serviceFor(dependency.memoizedValue);
+    if(service)return service;
    }
   }
   return null;
@@ -69,7 +92,7 @@
   const refresh=node('button',{type:'button',text:'↻','aria-label':'Refresh usage',class:'agpa-quota-refresh'});
   refresh.disabled=loading;refresh.onclick=()=>loadQuota(true);
   quotaPopup.append(node('header',{},node('span',{text:'Usage'}),refresh));
-  if(!groups?.length){quotaPopup.append(node('p',{role:'status',text:loading?'Refreshing…':failed?'Could not load usage. Try Refresh.':'No quota information available.'}));return;}
+  if(!groups?.length){quotaPopup.append(node('p',{role:'status',text:loading?'Refreshing…':failed?'Could not load usage. Try Refresh.':'No quota information available.'}));positionUsage();return;}
   for(const group of groups){
    if(!Array.isArray(group.buckets)||!group.buckets.length)continue;
    const section=node('section',{});
@@ -90,70 +113,95 @@
   }
   decorateQuota(quotaPopup);
   if(failed)quotaPopup.append(node('p',{role:'status',text:'Could not load usage. Try Refresh.'}));
+  positionUsage();
  }
  async function loadQuota(force=false){
-  const service=quotaService(),epoch=quotaEpoch;
+  const epoch=quotaEpoch;
+  let service;
+  try{service=quotaService();}catch{paintQuota(null,false,true);return;}
   if(service!==quotaServiceOwner){quotaCache=null;quotaServiceOwner=service;quotaPending=null;}
   if(!service){paintQuota(null,false,true);return;}
   if(!force&&quotaCache&&Date.now()-quotaCache.time<5000){paintQuota(quotaCache.groups);return;}
   paintQuota(quotaCache?.groups,true);
-  quotaPending ||= service.retrieveUserQuotaSummary(undefined,true).then(result=>{
+  quotaPending ||= Promise.resolve().then(()=>service.retrieveUserQuotaSummary(undefined,true)).then(result=>{
    const groups=result?.response?.groups;if(!Array.isArray(groups))throw Error('unavailable');
    if(quotaServiceOwner===service)quotaCache={groups,time:Date.now()};return groups;
   }).finally(()=>{if(quotaServiceOwner===service)quotaPending=null;});
   try{const groups=await quotaPending;if(!stopped&&quotaPopup&&epoch===quotaEpoch)paintQuota(groups);}
   catch{if(!stopped&&quotaPopup&&epoch===quotaEpoch)paintQuota(quotaCache?.groups,false,true);}
  }
- function standaloneUsage(button){
-  quotaEpoch++;quotaPopup=node('div',{class:'agpa-standalone-usage','data-agpa-usage-menu':'',role:'dialog','aria-label':'Usage'});
-  const rect=button.getBoundingClientRect();
-  quotaPopup.style.left=Math.min(rect.right+8,Math.max(8,innerWidth-336))+'px';
-  quotaPopup.style.bottom=Math.max(8,innerHeight-rect.bottom)+'px';
-  document.body.append(quotaPopup);loadQuota();
+ function positionUsage(){
+  if(!quotaPopup||!usageButton?.isConnected)return;
+  const rect=usageButton.getBoundingClientRect();
+  const width=quotaPopup.offsetWidth;
+  const beside=rect.right+8;
+  const left=beside+width+8<=innerWidth?beside:Math.max(8,Math.min(rect.left,innerWidth-width-8));
+  quotaPopup.style.left=left+'px';
+  quotaPopup.style.bottom=Math.max(8,Math.min(innerHeight-rect.bottom,innerHeight-quotaPopup.offsetHeight-8))+'px';
  }
-
- function usageRow(panel){return [...panel.querySelectorAll('[role=menuitem][aria-haspopup=menu]')].find(e=>e.querySelector('path[d^="M479.04-325.92"]')||e.textContent.trim()==='View Usage');}
- function closeUsage(){quotaEpoch++;quotaPopup?.remove();quotaPopup=null;clearTimeout(usageCloseTimer);usageCloseTimer=null;document.body.removeAttribute('data-agpa-usage-open');usageButton?.setAttribute('aria-expanded','false');}
- function nativeModelClick(event){if(!document.body.hasAttribute('data-agpa-usage-open')&&event.target.closest?.('[data-testid=model-selector-trigger]'))for(const root of document.querySelectorAll('[data-agpa-usage-only]'))root.removeAttribute('data-agpa-usage-only');}
- function usagePointer(event){
-  if(!document.body.hasAttribute('data-agpa-usage-open'))return;
-  const target=event.type==='pointerout'?event.relatedTarget:event.target;
-  if(target instanceof Node&&(usageButton?.contains(target)||document.querySelector('[data-agpa-usage-menu]')?.contains(target))){clearTimeout(usageCloseTimer);usageCloseTimer=null;return;}
-  if(usageCloseTimer!==null)return;
-  usageCloseTimer=setTimeout(()=>{usageCloseTimer=null;if(stopped||!document.body.hasAttribute('data-agpa-usage-open'))return;clearTimeout(usageTimer);usageOpening=false;if(document.querySelector('[data-testid=model-selector-trigger]')?.getAttribute('aria-expanded')==='true')document.querySelector('[data-testid=model-selector-trigger]').click();closeUsage();},350);
+ function closeUsage(){
+  quotaEpoch++;quotaPopup?.remove();quotaPopup=null;
+  clearTimeout(usageCloseTimer);usageCloseTimer=null;
+  usageButton?.setAttribute('aria-expanded','false');usageButton=null;
  }
- function openUsage(button){
-    clearTimeout(usageCloseTimer);usageCloseTimer=null;
-    if(usageOpening||document.body.hasAttribute('data-agpa-usage-open'))return;
-    const trigger=document.querySelector('[data-testid=model-selector-trigger]');
-    usageOpening=true;usageButton=button;button.setAttribute('aria-expanded','true');document.body.setAttribute('data-agpa-usage-open','');
-    const rect=button.getBoundingClientRect();document.body.style.setProperty('--agpa-usage-left',Math.min(rect.right+8,Math.max(8,innerWidth-336))+'px');document.body.style.setProperty('--agpa-usage-bottom',Math.max(8,innerHeight-rect.bottom)+'px');
-    if(!trigger){usageOpening=false;standaloneUsage(button);return;}
-    if(trigger.getAttribute('aria-expanded')!=='true')trigger.click();
-    let attempts=0;
-    const open=()=>{if(stopped)return;const panel=document.querySelector('[data-testid=model-selector-panel]'),row=panel&&usageRow(panel);if(row){row.click();usageOpening=false;schedule();}else if(++attempts<15)usageTimer=setTimeout(open,30);else{usageOpening=false;closeUsage();}};open();
+ function keepUsageOpen(){clearTimeout(usageCloseTimer);usageCloseTimer=null;}
+ function leaveUsage(event){
+  const target=event.relatedTarget;
+  if(target instanceof Node&&(usageButton?.contains(target)||quotaPopup?.contains(target)))return;
+  keepUsageOpen();usageCloseTimer=setTimeout(closeUsage,350);
+ }
+ function usageOutside(event){
+  if(quotaPopup&&!quotaPopup.contains(event.target)&&!usageButton?.contains(event.target))closeUsage();
+ }
+ function openUsage(button,focus=false){
+  keepUsageOpen();
+  if(quotaPopup&&usageButton===button){if(focus)quotaPopup.focus();return;}
+  if(quotaPopup)closeUsage();
+  quotaEpoch++;usageButton=button;button.setAttribute('aria-expanded','true');
+  quotaPopup=node('div',{class:'agpa-standalone-usage','data-agpa-usage-menu':'',role:'dialog','aria-label':i.t('Usage'),tabindex:'-1'});
+  quotaPopup.addEventListener('pointerenter',keepUsageOpen);
+  quotaPopup.addEventListener('pointerleave',leaveUsage);
+  quotaPopup.addEventListener('focusout',leaveUsage);
+  document.body.append(quotaPopup);
+  loadQuota();positionUsage();
+  if(focus)quotaPopup.focus();
  }
  function decorateUsage(){
+  if(usageButton&&(!usageButton.isConnected||!usageButton.getClientRects().length))closeUsage();
   const settings=document.querySelector('[data-testid=settings-button]');
-  if(settings&&!settings.parentElement.querySelector('[data-agpa-view-usage]')){
-   const button=node('button',{type:'button',class:settings.className,'data-agpa-view-usage':'','aria-haspopup':'menu','aria-expanded':'false',title:'View Usage'});
+  if(settings){
+   const label=settings.lastElementChild;
+   let button=settings.parentElement.querySelector(':scope > [data-agpa-view-usage]');
+   if(!button){
+   button=node('button',{type:'button',class:settings.className,'data-agpa-view-usage':'','aria-haspopup':'dialog','aria-expanded':'false',title:i.t('View Usage')});
    button.innerHTML='<span class="shrink-0 flex items-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 19a10 10 0 1 1 16 0H4Z"/><path d="m12 14 5-6"/><circle cx="12" cy="14" r="1"/></svg></span>';
-   button.append(node('span',{class:'truncate',text:'View Usage'}));
-   button.onclick=()=>openUsage(button);
+   button.append(node('span',{class:label?.tagName==='SPAN'?label.className:'truncate',text:'View Usage'}));
+   button.onclick=event=>openUsage(button,event.detail===0);
    button.addEventListener('pointerenter',()=>openUsage(button));
+   button.addEventListener('pointerleave',leaveUsage);
    settings.before(button);
+   }
+   if(button.className!==settings.className)button.className=settings.className;
+   const labelClass=label?.tagName==='SPAN'?label.className:'truncate';
+   if(button.lastElementChild.className!==labelClass)button.lastElementChild.className=labelClass;
   }
   for(const panel of document.querySelectorAll('[data-testid=model-selector-panel]')){
-   const row=usageRow(panel);if(!row)continue;setAttr(row,'data-agpa-native-usage','');
-   const separator=row.parentElement.previousElementSibling;if(separator?.getAttribute('role')==='separator')setAttr(separator,'data-agpa-usage-separator','');
-   const root=panel.closest('[role=menu]');if(root){setAttr(root,'data-agpa-usage-root','');if(document.body.hasAttribute('data-agpa-usage-open'))setAttr(root,'data-agpa-usage-only','');setAttr(root.parentElement,'data-agpa-usage-anchor','');}
-   const submenu=row.parentElement.querySelector('[role=menu][data-nested]');if(submenu){decorateQuota(submenu);setAttr(submenu,'data-agpa-usage-menu','');setAttr(submenu.parentElement,'data-agpa-usage-positioner','');}
+   const row=[...panel.querySelectorAll('[role=menuitem][aria-haspopup=menu]')].find(e=>e.querySelector('path[d^="M479.04-325.92"]')||e.textContent.trim()===i.t('View Usage'));
+   const submenu=row?.parentElement.querySelector('[role=menu][data-nested]');
+   if(submenu)decorateQuota(submenu);
   }
-  if(!usageOpening&&!quotaPopup&&!document.querySelector('[data-testid=model-selector-panel]'))closeUsage();
+ }
+ const automationPickers = '[data-testid=new-sidecar-model], [data-testid=sidecar-model-option]';
+ function decorateAutomationModels() {
+  for (const control of document.querySelectorAll(automationPickers)) {
+   // Read the native label only. The other child is the chevron or checkmark.
+   const label = control.querySelector(':scope > :not([data-agpa-model-ui]):not(svg)');
+   mark(control, label?.textContent || control.textContent);
+  }
  }
  function apply(){
   scheduled=0;if(stopped)return;
-  permissionColors();decorateUsage();
+  permissionColors();decorateUsage();decorateAutomationModels();
   for(const trigger of document.querySelectorAll('[data-testid=model-selector-trigger]'))mark(trigger,trigger.querySelector('span:not([data-agpa-model-ui])')?.textContent||'');
   for(const panel of document.querySelectorAll('[data-testid=model-selector-panel]')){
    const models=entries(panel);if(!models.length)continue;known=models.map(({name})=>name);
@@ -213,6 +261,7 @@
  let search='',lastSearch=0;
  function keyboard(event){
   if(event.key==='Escape'&&quotaPopup){closeUsage();usageButton?.focus();return;}
+  if(quotaPopup&&event.key==='Escape'){const button=usageButton;closeUsage();if(event.target.closest?.('[data-agpa-usage-menu]'))button?.focus();event.stopImmediatePropagation();return;}
   if(event.target.closest?.('[data-agpa-effort-ui]'))return;
   if(dialog?.open&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();dialog.close();return;}
   if(event.ctrlKey||event.altKey||event.metaKey)return;
@@ -243,22 +292,15 @@
  [data-testid^=permissions-preset-option-][data-agpa-permission]>[data-icon],[data-testid^=permissions-preset-option-][data-agpa-permission]>span.flex.min-w-0>span:first-child{color:color-mix(in srgb,var(--foreground,#eee) 18%,var(--agpa-permission))!important}
 
  .agpa-standalone-usage{box-sizing:border-box;position:fixed;z-index:10000;width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;padding:10px;border:1px solid var(--border,#36373c);border-radius:13px;background:var(--background,#17181c);color:var(--foreground,#eee);font:12px/1.5 system-ui;box-shadow:0 12px 30px #0005}.agpa-standalone-usage header{display:flex;align-items:center;justify-content:space-between;color:var(--muted-foreground,#aaa);padding:0 2px 4px}.agpa-quota-refresh{border:0;background:transparent;color:inherit;cursor:pointer;font:18px system-ui}.agpa-quota-refresh:disabled{opacity:.4}.agpa-standalone-usage section+section{margin-top:10px}.agpa-standalone-usage strong{display:block;font-weight:500;padding:2px}.agpa-quota-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:1px 12px;padding:4px 2px;color:var(--muted-foreground,#aaa)}.agpa-quota-row small{grid-column:1/-1;text-align:right;font-size:11px}.agpa-quota-value{display:flex;align-items:center;gap:6px}.agpa-quota-ring{width:14px;height:14px;display:inline-block;border-radius:50%;background:conic-gradient(var(--quota-color) var(--quota-left),#62636b var(--quota-left));mask:radial-gradient(circle,transparent 48%,#000 52%)}.agpa-quota-row[aria-disabled=true]{opacity:.5}
- body:not([data-agpa-usage-open]) [data-agpa-native-usage],body:not([data-agpa-usage-open]) [data-agpa-usage-separator]{display:none!important}
- body[data-agpa-usage-open] [data-agpa-usage-anchor]{position:fixed!important;left:0!important;top:0!important;transform:none!important;will-change:auto!important;filter:none!important;backdrop-filter:none!important;contain:none!important;perspective:none!important}
- /* Native transform hints and Onyx backdrop blur also establish containing
-    blocks for fixed children. Reset only the hidden model-menu ancestors. */
- [data-agpa-usage-only],[data-agpa-usage-only] [role=menu][data-nested]{transform:none!important;translate:none!important;scale:none!important;rotate:none!important;animation:none!important;transition:none!important;will-change:auto!important}
- [data-agpa-usage-only]{visibility:hidden!important;pointer-events:none!important;backdrop-filter:none!important;filter:none!important;contain:none!important;perspective:none!important}
- body[data-agpa-usage-open] [data-agpa-usage-menu]{visibility:visible!important;pointer-events:auto!important}
- body[data-agpa-usage-open] [data-agpa-usage-positioner]{position:fixed!important;left:var(--agpa-usage-left)!important;bottom:var(--agpa-usage-bottom)!important;top:auto!important;transform:none!important;max-height:calc(100vh - 16px)}
  @media(max-width:600px){.agpa-model-setting{flex-wrap:wrap}.agpa-model-setting>span{flex-basis:100%}}
  `});document.head.append(style);
- const watched='[data-testid=settings-button],[data-agpa-usage-root],[data-testid=model-selector-trigger],[data-testid=model-selector-panel],[data-testid^=permissions-]';
+ const watched=automationPickers+', [data-testid=settings-button],[role=menu][data-nested],[data-testid=model-selector-trigger],[data-testid=model-selector-panel],[data-testid^=permissions-]';
  const observer=new MutationObserver(records=>{
   if(records.some(r=>{const target=r.target.nodeType===1?r.target:r.target.parentElement;if(target?.closest('[data-agpa-model-ui]'))return false;const nodes=[...r.addedNodes,...r.removedNodes];if(nodes.length&&nodes.every(n=>n.nodeType===1&&n.hasAttribute('data-agpa-model-ui')))return false;return target?.closest(watched)||nodes.some(n=>n.nodeType===1&&(n.matches(watched)||n.querySelector(watched)));}))schedule();
- });observer.observe(document.body,{subtree:true,childList:true,characterData:true});
- document.addEventListener('click',nativeModelClick,true);document.addEventListener('pointerover',usagePointer,true);document.addEventListener('pointerout',usagePointer,true);
+ });observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class']});
+ document.addEventListener('pointerdown',usageOutside,true);
+ window.addEventListener('resize',positionUsage);
  window.addEventListener('keydown',keyboard,true);const unsubscribe=i.subscribe(()=>{schedule();paintDialog();});
- globalThis.__AGModelUI={version:VERSION,openUsage,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;if(document.body.hasAttribute('data-agpa-usage-open'))document.querySelector('[data-testid=model-selector-trigger][aria-expanded=true]')?.click();document.removeEventListener('click',nativeModelClick,true);document.removeEventListener('pointerover',usagePointer,true);document.removeEventListener('pointerout',usagePointer,true);clearTimeout(usageTimer);closeUsage();for(const e of document.querySelectorAll('[data-agpa-native-usage],[data-agpa-usage-separator],[data-agpa-usage-root],[data-agpa-usage-menu],[data-agpa-usage-positioner],[data-agpa-usage-anchor],[data-agpa-usage-only]'))for(const attr of ['data-agpa-native-usage','data-agpa-usage-separator','data-agpa-usage-root','data-agpa-usage-menu','data-agpa-usage-positioner','data-agpa-usage-anchor','data-agpa-usage-only'])e.removeAttribute(attr);document.body.style.removeProperty('--agpa-usage-left');document.body.style.removeProperty('--agpa-usage-bottom');observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');e.removeAttribute('data-agpa-model-other');}for(const e of document.querySelectorAll('[data-agpa-quota-heading]'))e.removeAttribute('data-agpa-quota-heading');for(const e of document.querySelectorAll('[data-agpa-model-groups]'))e.removeAttribute('data-agpa-model-groups');for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
+ globalThis.__AGModelUI={version:VERSION,openUsage,leaveUsage,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;document.removeEventListener('pointerdown',usageOutside,true);window.removeEventListener('resize',positionUsage);closeUsage();observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');e.removeAttribute('data-agpa-model-other');}for(const e of document.querySelectorAll('[data-agpa-quota-heading]'))e.removeAttribute('data-agpa-quota-heading');for(const e of document.querySelectorAll('[data-agpa-model-groups]'))e.removeAttribute('data-agpa-model-groups');for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
  schedule();
 })();

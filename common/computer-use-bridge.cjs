@@ -6,7 +6,7 @@ const crypto = require('node:crypto');
 const {spawn} = require('node:child_process');
 const {getPaths} = require('./platform-paths.cjs');
 const {read, parse, toolsFor} = require('./computer-use.cjs');
-const {VERSION} = require('./computer-use-release.cjs');
+const {installedDriver} = require('./computer-use-release.cjs');
 async function lease(directory) {
   const state = parse(await read(path.join(directory, 'state.json')));
   const policy = await read(path.join(directory, 'capabilities.json'));
@@ -18,7 +18,8 @@ async function main() {
   const directory = path.join(getPaths().configDir, 'computer-use');
   const initial = await lease(directory);
   const adapter = require(process.platform === 'win32' ? '../windows/computer-use.cjs' : '../linux/computer-use.cjs');
-  const driver = path.join(directory, 'driver-' + VERSION, adapter.executable);
+  const driver = await installedDriver(directory, adapter.executable, process.platform);
+  if (!driver) throw Error('Install Cua Driver first.');
   const env = {...process.env};
   const restrictivePolicies = Object.fromEntries(['CUA_DRIVER_MANAGED_POLICY_FILE', 'CUA_DRIVER_POLICY_FILE'].filter(key => env[key]).map(key => [key, env[key]]));
   // Do not inherit a permissive runtime, remote daemon, browser grant or policy.
@@ -27,7 +28,7 @@ async function main() {
   Object.assign(env, (await adapter.environment()).environment, {CUA_DRIVER_PERMISSION_MODE: initial.scope === 'desktop' ? 'standard' : 'bounded',
     CUA_DRIVER_RS_TELEMETRY_ENABLED: '0', CUA_TELEMETRY_ENABLED: '0'});
   if (initial.scope !== 'desktop') Object.assign(env, {CUA_DRIVER_CAPABILITY_MANIFEST_FILE: path.join(directory, 'capabilities.json'), CUA_DRIVER_CAPABILITY_MANIFEST_APPROVED: '1'});
-  const child = spawn(driver, ['mcp'], {env, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true});
+  const child = spawn(driver.file, ['mcp'], {env, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true});
   let stopped = false;
   function stop() {
     if (stopped) return; stopped = true;

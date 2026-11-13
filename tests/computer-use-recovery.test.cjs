@@ -8,11 +8,11 @@ const {createManager, SERVER, read} = require('../common/computer-use.cjs');
 const {VERSION, ASSETS} = require('../common/computer-use-release.cjs');
 const {connectionChecks} = require('../common/computer-use-checks.cjs');
 const {helperStatus} = require('../linux/computer-use.cjs');
-async function fixture(t) {
+async function fixture(t, options = {}) {
  const root = await fs.mkdtemp(path.join(os.tmpdir(),'agpa-cu-reset-'));
  t.after(() => fs.rm(root,{recursive:true,force:true}));
  const adapter = {executable:'cua-driver',environment:async()=>({session:'wayland',needsHelper:true,helperInstalled:true,helperState:'signInRequired'}),defaultApps:async()=>[]};
- const manager = createManager({home:root,configDir:path.join(root,'plugin'),adapter});
+ const manager = createManager({home:root,configDir:path.join(root,'plugin'),adapter,...options});
  await fs.mkdir(manager.paths.driverDirectory,{recursive:true});
  await fs.writeFile(manager.paths.driver,'fixture driver');
  await fs.writeFile(path.join(manager.paths.driverDirectory,'receipt.json'),JSON.stringify({version:VERSION,sha256:ASSETS[`linux-${process.arch}`][1]}));
@@ -85,4 +85,33 @@ test('screen diagnostic discards image data and normal checks never request capt
  const {probe}=require('../common/computer-use-protocol.cjs');
  const protocol=await probe(process.execPath,fake);assert.equal(protocol.ok,true);assert.equal(protocol.desktop,undefined);
  const captured=await probe(process.execPath,fake,{desktop:true});assert.equal(captured.desktop.ok,true);assert.ok(!JSON.stringify(captured).includes('private-pixels'));
+});
+
+test('re-enabling with a reviewed driver preserves it until an explicit upgrade', async t => {
+ let downloads = 0;
+ const {manager} = await fixture(t, {
+  fetcher: async () => { downloads++; throw Error('unexpectedDownload'); },
+  probe: async () => ({ok:true, toolCount:17}),
+ });
+ const current = manager.paths.driverDirectory;
+ const previous = path.join(path.dirname(current), 'driver-0.46.1');
+ const sha256 = {
+  x64: '3f45c54b736bb8cbd75b4ad90095fceea9a787c22bc9e60b17ca1c8215dcc96b',
+  arm64: 'c1cf1f9635153cf9c347310008669893928d5e043db7522b37dfc59f0caef5f5',
+ }[process.arch];
+ await fs.rename(current, previous);
+ await fs.writeFile(path.join(previous, 'receipt.json'), JSON.stringify({version:'0.46.1', sha256}));
+ const state = await manager.status();
+ assert.equal(state.installed, true);
+ assert.equal(state.driverVersion, '0.46.1');
+ assert.equal(state.driverUpgrade, true);
+ let next = await manager.perform('setup', {scope:'desktop'});
+ while (next.operation) {
+  await new Promise(resolve => setTimeout(resolve, 20));
+  next = await manager.status();
+ }
+ assert.equal(next.error, null);
+ assert.equal(next.enabled, true);
+ assert.equal(next.driverVersion, '0.46.1');
+ assert.equal(downloads, 0);
 });

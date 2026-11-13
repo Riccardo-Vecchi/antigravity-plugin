@@ -1,7 +1,7 @@
 /* Local project appearance. No conversation, project metadata, or tool mutations. */
 (() => {
   'use strict';
-  const VERSION = '1.11.2';
+  const VERSION = '1.11.4';
   const i18n=globalThis.__AGPAI18n;
   const initial = globalThis.__AGPA_CONFIG__ || { projects: {} };
   delete globalThis.__AGPA_CONFIG__;
@@ -169,15 +169,20 @@
     if(!source)return null;
     const button=el('button',{type:'button',class:'agpa-rail-button','aria-label':label,title:label,'data-agpa-native':selector});
     button.append(source.querySelector('svg')?.cloneNode(true)||svg(fallback,19));
-    if(selector==='[data-agpa-view-usage]'){const open=()=>globalThis.__AGModelUI?.openUsage(button);button.addEventListener('pointerenter',open);button.addEventListener('click',open);}else button.addEventListener('click',()=>nativeControl(selector)?.click());
+    if(selector==='[data-agpa-view-usage]'){
+      button.setAttribute('aria-haspopup','dialog');
+      button.setAttribute('aria-expanded','false');
+      button.addEventListener('pointerenter',()=>globalThis.__AGModelUI?.openUsage(button));
+      button.addEventListener('pointerleave',event=>globalThis.__AGModelUI?.leaveUsage(event));
+      button.addEventListener('click',event=>globalThis.__AGModelUI?.openUsage(button,event.detail===0));
+    }else button.addEventListener('click',()=>nativeControl(selector)?.click());
     return button;
   }
   function applyRail() {
-    const toggle=globalThis.__AGPAPrimaryLayout(document).toggle;
-    const sidebar=nativeSidebar();
-    const panel=sidebar?.parentElement?.parentElement;
-    if(!toggle||!panel?.parentElement){rail?.remove();rail=null;railSignature='';return;}
-    if(!rail?.isConnected){rail=el('nav',{class:'agpa-rail','aria-label':'Compact sidebar','data-agpa-rail':''});panel.before(rail);railSignature='';}
+    const {toggle,navigation:sidebar,railAnchor}=globalThis.__AGPAPrimaryLayout(document);
+    if(!toggle||!railAnchor?.parentElement){rail?.remove();rail=null;railSignature='';return;}
+    if(!rail){rail=el('nav',{class:'agpa-rail','aria-label':'Compact sidebar','data-agpa-rail':''});railSignature='';}
+    if(rail.nextElementSibling!==railAnchor)railAnchor.before(rail);
     const collapsed=toggle.getAttribute('aria-expanded')==='false';
     if(rail.hidden===collapsed)rail.hidden=!collapsed;
 

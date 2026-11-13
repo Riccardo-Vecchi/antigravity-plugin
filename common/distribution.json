@@ -93,6 +93,8 @@
     "assets/labs/anthropic.png",
     "assets/labs/google.png",
     "assets/labs/openai.png",
+    "assets/labs/orchestrator.svg",
+    "assets/labs/teamwork.svg",
     "common/plugin-control.cjs",
     "common/library.cjs",
     "common/library-ui.js",

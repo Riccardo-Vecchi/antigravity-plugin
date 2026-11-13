@@ -16,7 +16,7 @@ test('malformed preferences and unsupported writes are rejected without replacin
 });
 test('provider identification is specific and unknown labs do not inherit a misleading logo',()=>{
  for(const label of ['Claude Sonnet','Anthropic Claude'])assert.equal(providerFor(label),'anthropic');
- for(const label of ['Gemini 3.8 Flash','Google Gemini'])assert.equal(providerFor(label),'google');
+ for(const label of ['Gemini 3.8 Flash','Google Gemini','Orchestrator (Argon)'])assert.equal(providerFor(label),'google');
  for(const label of ['GPT-OSS 120B','GPT-5','o3-mini','OpenAI model'])assert.equal(providerFor(label),'openai');
  assert.equal(providerFor('Custom local model'),null);
 });

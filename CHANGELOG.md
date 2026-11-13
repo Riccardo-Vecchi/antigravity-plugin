@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.22.0
+
+- Group **Swarm**, **Boost**, and **Teamwork** in the composer. The main icon follows the native command in the draft and defaults to Swarm in new chats. Keep the reasoning slider independent, with violet styling for native **Extra**.
+- Show provider icons in the Automations model picker. Identify **Orchestrator (Argon)** with the Google G and a converging arrow, and use a colored organization chart for Teamwork.
+- Reuse one live **View Usage** popup across views and both sidebar layouts. Keep the native Usage action available in the model menu.
+- Put the Antigravity return button beside Share in Gemini and add an icon-led edit menu with Cut, Copy, Paste, and Select All.
+- Restore the compact navigation and project icons and match the Library label to native sidebar typography. Offer the native viewer for matching PDF and Markdown files in their source conversation.
+- Simplify Computer use settings and pin the reviewed Cua Driver **0.47.23** prerelease. In-place upgrades preserve desktop access settings.
+
 ## 1.21.0
 
 - Map **Ultra** on the compact effort slider to Antigravity’s native `/swarm` command. Ultra follows the model’s native levels, including **Extra** when available.

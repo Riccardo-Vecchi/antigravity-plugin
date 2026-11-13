@@ -13,7 +13,7 @@ function validate(data){
  }
  return {version:1,models};
 }
-function providerFor(name){if(/^\s*(?:Claude|Anthropic)\b/i.test(name))return 'anthropic';if(/^\s*(?:Gemini|Google)\b/i.test(name))return 'google';if(/^\s*(?:GPT|OpenAI|o[134](?:\b|-))/i.test(name))return 'openai';return null;}
+function providerFor(name){if(/^\s*(?:Claude|Anthropic)\b/i.test(name))return 'anthropic';if(/^\s*(?:Gemini|Google|Orchestrator)\b/i.test(name))return 'google';if(/^\s*(?:GPT|OpenAI|o[134](?:\b|-))/i.test(name))return 'openai';return null;}
 function permissionFor(name){
  const key=String(name).trim().toLowerCase();
  if(/^(request review|richiedi revisione|revisione richiesta|prüfung anfordern|solicitar revisión|demander une révision|请求审核|レビューを要求)$/.test(key))return 'review';

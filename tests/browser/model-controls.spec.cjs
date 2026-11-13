@@ -10,6 +10,11 @@ const source = fs.readFileSync(
   path.join(__dirname, "../../common/model-controls.js"),
   "utf8",
 );
+const teamworkIcon =
+  "data:image/svg+xml;base64," +
+  fs
+    .readFileSync(path.join(__dirname, "../../assets/labs/teamwork.svg"))
+    .toString("base64");
 async function setup(page, swarm = false) {
   await page.route("https://native.test/", (r) =>
     r.fulfill({ contentType: "text/html", body: "<html></html>" }),
@@ -18,7 +23,7 @@ async function setup(page, swarm = false) {
   await page.evaluate(`(${models.setup.toString()})()`);
   if (swarm) await page.evaluate(`(${team.setup.toString()})()`);
   await page.evaluate(
-    `globalThis.__AGPA_SWARM_FACTORY__=${createSwarmBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${rules.selectionFor.toString()},optionsFor:${rules.optionsFor.toString()},layoutFor:${rules.layoutFor.toString()}}`,
+    `globalThis.__AGPA_TEAMWORK_ICON__=${JSON.stringify(teamworkIcon)};globalThis.__AGPA_SWARM_FACTORY__=${createSwarmBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${rules.selectionFor.toString()},optionsFor:${rules.optionsFor.toString()},layoutFor:${rules.layoutFor.toString()}}`,
   );
   await page.evaluate(source);
 }
@@ -50,7 +55,7 @@ test("the duplicate simple native effort submenu is hidden, and disabling restor
     page.locator("[data-testid=model-selector-effort-option]").first(),
   ).toBeVisible();
 });
-test("Ultra uses the native Swarm chip and preserves the draft", async ({
+test("Swarm is independent of native effort and preserves the draft", async ({
   page,
 }) => {
   await setup(page, true);
@@ -58,7 +63,7 @@ test("Ultra uses the native Swarm chip and preserves the draft", async ({
   expect(result.checks || result.passed.length).toBeGreaterThan(10);
 });
 
-test("Hydrogen keeps Extra as a native stop before Ultra", async ({ page }) => {
+test("Hydrogen ends at the native Extra stop", async ({ page }) => {
   await setup(page, true);
   await page.evaluate(() =>
     window.fixture.external("Gemini 4 Hydrogen", "high"),
@@ -66,14 +71,24 @@ test("Hydrogen keeps Extra as a native stop before Ultra", async ({ page }) => {
   const trigger = page.locator(".agpa-effort-trigger");
   const slider = page.getByRole("slider");
   await trigger.click();
-  await expect(slider).toHaveAttribute("max", "4");
+  await expect(slider).toHaveAttribute("max", "3");
   await expect(
-    page.locator(".agpa-effort-dots [title=Extra] + [title='Ultra (Swarm)']"),
+    page.locator(".agpa-effort-dots [title=Extra]:last-child"),
   ).toHaveCount(1);
-  await slider.press("ArrowRight");
+  await expect(trigger).not.toHaveAttribute("data-agpa-extra-effort");
+  await slider.evaluate((input) => {
+    input.value = "3";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await expect(page.locator(".agpa-effort-popup")).toHaveAttribute(
+    "data-agpa-extra-effort",
+  );
+  await expect(slider).toHaveCSS("--effort-color", "#a464f6");
+  await slider.dispatchEvent("change");
   await expect(trigger).toHaveText("Extra");
+  await expect(trigger).toHaveCSS("color", "rgb(212, 177, 255)");
   expect(await page.evaluate(() => window.fixture.selected.effort)).toBe(
-    "extra",
+    "xhigh",
   );
   expect(
     await page.evaluate(() =>
@@ -148,4 +163,72 @@ test("a transient submenu timeout does not permanently hide effort controls", as
   });
   await page.locator(".agpa-effort-trigger").click();
   await expect(page.locator(".agpa-effort-popup")).toBeVisible();
+});
+
+test("the multi-agent control follows the draft and defaults to Swarm in a fresh composer", async ({
+  page,
+}) => {
+  await setup(page, true);
+  const primary = page.locator("[data-agpa-swarm-trigger]");
+  const arrow = page.getByRole("button", { name: "Multi-agent modes" });
+  const menu = page.getByRole("menu", { name: "Multi-agent modes" });
+  const option = (name) => menu.getByRole("menuitemcheckbox", { name });
+  const chip = (mode) => page.locator(`[data-uri="slashCommand:${mode}"]`);
+  await expect(primary).toHaveText("🐝");
+  await expect(primary).toHaveAttribute("aria-pressed", "false");
+  await primary.click();
+  await expect(primary).toHaveAttribute("aria-pressed", "true");
+  await arrow.click();
+  await expect(arrow).toHaveAttribute("aria-expanded", "true");
+  await expect(option("Swarm")).toBeFocused();
+  await expect(option("Swarm")).toHaveAttribute("aria-checked", "true");
+  await option("Swarm").press("ArrowDown");
+  await expect(option("Boost")).toBeFocused();
+  await option("Boost").press("Enter");
+  await expect(primary).toHaveText("🚀");
+  await expect(primary).toHaveAccessibleName("Boost");
+  await expect(chip("swarm")).toHaveCount(0);
+  await arrow.click();
+  await expect(option("Boost")).toHaveAttribute("aria-checked", "true");
+  await option("Boost").press("ArrowDown");
+  await expect(option("Teamwork")).toBeFocused();
+  await expect(option("Teamwork").locator("img")).toHaveAttribute(
+    "src",
+    teamworkIcon,
+  );
+  await page.keyboard.press("Escape");
+  await expect(arrow).toBeFocused();
+  await expect(menu).toBeHidden();
+  await arrow.click();
+  await option("Teamwork").click();
+  await expect(primary).toHaveAccessibleName("Teamwork");
+  await expect(primary.locator("img")).toHaveAttribute("src", teamworkIcon);
+  await expect(chip("boost")).toHaveCount(0);
+  await arrow.click();
+  await option("Swarm").click();
+  await expect(primary).toHaveText("🐝");
+  await expect(chip("teamwork")).toHaveCount(0);
+  await arrow.click();
+  await option("Boost").click();
+  await expect(primary).toHaveText("🚀");
+  await primary.click();
+  await expect(primary).toHaveText("🐝");
+  await expect(chip("boost")).toHaveCount(0);
+  const draft = page.locator(".surface-composer [contenteditable=true]");
+  await expect(draft).toContainText("Second paragraph.");
+  await expect(
+    draft.locator('[data-uri="file:/fixture/report.md"]'),
+  ).toHaveCount(1);
+  await arrow.click();
+  await option("Teamwork").click();
+  await expect(primary).toHaveAccessibleName("Teamwork");
+  await expect(primary.locator("img")).toHaveAttribute("src", teamworkIcon);
+  await page.evaluate(() => {
+    const old = window.fixture.editor;
+    old.replaceWith(old.cloneNode(false));
+  });
+  await expect(primary).toHaveText("🐝");
+  await expect(primary).toHaveAccessibleName("Swarm");
+  await expect(primary).toHaveAttribute("aria-pressed", "false");
+  expect(await page.evaluate(() => window.fixture.getSends())).toBe(0);
 });

@@ -11,8 +11,15 @@ function primaryLayout(document) {
   const navigation = document
     .querySelector("[data-testid=settings-button]")
     ?.closest("[role=navigation]");
+  const split = navigation?.closest("[data-testid=sidebar-split]");
   const panel = navigation?.parentElement?.parentElement;
-  return { brand, toggle, navigation, panel };
+  let railAnchor = panel;
+  if (split) {
+    railAnchor = navigation;
+    while (railAnchor.parentElement !== split)
+      railAnchor = railAnchor.parentElement;
+  }
+  return { brand, toggle, navigation, panel, railAnchor };
 }
 function createHoverIntent({
   open,

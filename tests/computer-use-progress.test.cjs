@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
 const {createManager}=require('../common/computer-use.cjs');
-const {VERSION,checkForUpdates,downloadVerified}=require('../common/computer-use-release.cjs');
+const {VERSION,ASSETS,checkForUpdates,downloadVerified}=require('../common/computer-use-release.cjs');
 const {shouldAutoCapture}=require('../common/computer-use-checks.cjs');
 async function fixture(t,{ready=true,probe}={}) {
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-cu-progress-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
@@ -10,7 +10,7 @@ async function fixture(t,{ready=true,probe}={}) {
  const manager=createManager({home:root,configDir:path.join(root,'plugin'),adapter,probe});
  await fs.mkdir(manager.paths.driverDirectory,{recursive:true});
  await fs.writeFile(manager.paths.driver,'#!'+process.execPath+'\nconsole.log('+JSON.stringify('cua-driver '+VERSION)+');\n',{mode:0o700});
- await fs.writeFile(path.join(manager.paths.driverDirectory,'receipt.json'),JSON.stringify({version:VERSION}));
+ await fs.writeFile(path.join(manager.paths.driverDirectory,'receipt.json'),JSON.stringify({version:VERSION,sha256:ASSETS[`linux-${process.arch}`][1]}));
  return {manager,activate(){active=true;}};
 }
 async function settled(manager) {

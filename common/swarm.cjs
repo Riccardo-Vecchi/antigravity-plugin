@@ -2,9 +2,9 @@
 
 // Use the native slash picker so each command carries its current definition.
 function createSwarmBridge() {
-  const command = "/swarm";
-  const selector =
-    '[data-uri="slashCommand:swarm"],[data-uri="slashCommand:/swarm"]';
+  const modes = ["swarm", "boost", "teamwork"];
+  const selectorFor = (mode) =>
+    `[data-uri="slashCommand:${mode}"],[data-uri="slashCommand:/${mode}"]`;
   const sleep = () => new Promise((resolve) => setTimeout(resolve, 30));
   let working = false,
     stopped = false;
@@ -12,7 +12,9 @@ function createSwarmBridge() {
     trigger
       ?.closest(".surface-composer")
       ?.querySelector("[contenteditable=true][role=combobox]") || null;
-  const active = (trigger) => !!editorFor(trigger)?.querySelector(selector);
+  const active = (trigger, mode = "swarm") =>
+    modes.includes(mode) &&
+    !!editorFor(trigger)?.querySelector(selectorFor(mode));
   function select(range) {
     const selection = window.getSelection();
     selection.removeAllRanges();
@@ -41,7 +43,9 @@ function createSwarmBridge() {
     await sleep();
     return valid();
   }
-  async function insert(editor, valid) {
+  async function insert(editor, valid, mode) {
+    const command = "/" + mode;
+    const selector = selectorFor(mode);
     const before = editor.textContent;
     editor.focus({ preventScroll: true });
     await sleep();
@@ -79,7 +83,7 @@ function createSwarmBridge() {
             .split("\n")[0]
             .trim()
             .replace(/^\//, "")
-            .toLowerCase() === "swarm",
+            .toLowerCase() === mode,
       );
       if (option) {
         if (option.closest("[aria-disabled=true],[data-disabled]")) break;
@@ -107,31 +111,45 @@ function createSwarmBridge() {
     }
     return false;
   }
-  async function set(trigger, enabled) {
-    if (working || stopped) return false;
+  async function remove(editor, chips, valid) {
+    for (const chip of chips) {
+      if (!valid() || !editor.contains(chip)) return false;
+      const range = document.createRange();
+      range.selectNode(chip);
+      if (!(await cut(editor, range, valid)) || editor.contains(chip))
+        return false;
+    }
+    return true;
+  }
+  async function set(trigger, enabled, mode = "swarm") {
+    if (working || stopped || !modes.includes(mode)) return false;
     const editor = editorFor(trigger);
     if (!editor || editor.getAttribute("aria-disabled") === "true")
       return false;
-    const existing = [...editor.querySelectorAll(selector)];
-    if (enabled && existing.length) return true;
-    if (existing.length > 32) return false;
+    const existing = [...editor.querySelectorAll(selectorFor(mode))];
+    const selected = enabled
+      ? modes
+          .filter((name) => name !== mode)
+          .flatMap((name) => [...editor.querySelectorAll(selectorFor(name))])
+      : existing;
+    if (selected.length > 32) return false;
+    const chips = [
+      ...new Set(
+        selected.map((node) =>
+          node.closest("[data-lexical-decorator],[contenteditable=false]"),
+        ),
+      ),
+    ];
+    if (chips.some((chip) => !chip || !editor.contains(chip))) return false;
     const valid = () =>
       !stopped && editor.isConnected && editorFor(trigger) === editor;
-    const chips = existing.map((node) =>
-      node.closest("[data-lexical-decorator],[contenteditable=false]"),
-    );
-    if (chips.some((chip) => !chip || !editor.contains(chip))) return false;
     working = true;
     try {
-      if (enabled) return await insert(editor, valid);
-      for (const chip of chips) {
-        if (!valid() || !editor.contains(chip)) return false;
-        const range = document.createRange();
-        range.selectNode(chip);
-        if (!(await cut(editor, range, valid)) || editor.contains(chip))
-          return false;
-      }
-      return !active(trigger);
+      // Resolve the requested command before removing the prior mode, so an
+      // unavailable command leaves the existing draft selection intact.
+      if (enabled && !existing.length && !(await insert(editor, valid, mode)))
+        return false;
+      return await remove(editor, chips, valid);
     } finally {
       working = false;
     }

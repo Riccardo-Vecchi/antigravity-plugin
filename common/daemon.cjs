@@ -87,13 +87,18 @@ const modelPreferences = modelRules.createStore(
   path.join(CONFIG_DIR, "models.json"),
 );
 const LAB_ICONS = Object.fromEntries(
-  ["anthropic", "google", "openai"].map((id) => [
-    id,
-    "data:image/png;base64," +
-      fs
-        .readFileSync(path.join(BASE, "..", "assets", "labs", id + ".png"))
-        .toString("base64"),
-  ]),
+  [
+    "anthropic.png",
+    "google.png",
+    "openai.png",
+    "orchestrator.svg",
+    "teamwork.svg",
+  ].map((file) => {
+    const key = path.basename(file, path.extname(file));
+    const type = file.endsWith(".svg") ? "svg+xml" : "png";
+    const data = fs.readFileSync(path.join(BASE, "..", "assets", "labs", file));
+    return [key, `data:image/${type};base64,${data.toString("base64")}`];
+  }),
 );
 const COMPANION_UI = fs.readFileSync(
   path.join(BASE, "companion-ui.js"),
@@ -591,7 +596,7 @@ class Client {
         versions.modelControls
       )
         await this.evaluate(
-          `globalThis.__AGPA_SWARM_FACTORY__=${createSwarmBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${modelControlRules.selectionFor.toString()},optionsFor:${modelControlRules.optionsFor.toString()},layoutFor:${modelControlRules.layoutFor.toString()}};\n${MODEL_CONTROLS}`,
+          `globalThis.__AGPA_TEAMWORK_ICON__=${JSON.stringify(LAB_ICONS.teamwork)};globalThis.__AGPA_SWARM_FACTORY__=${createSwarmBridge.toString()};globalThis.__AGPA_MODEL_CONTROLS__={selectionFor:${modelControlRules.selectionFor.toString()},optionsFor:${modelControlRules.optionsFor.toString()},layoutFor:${modelControlRules.layoutFor.toString()}};\n${MODEL_CONTROLS}`,
         );
       if (
         (await this.evaluate("globalThis.__AGContextBudget?.version")) !==

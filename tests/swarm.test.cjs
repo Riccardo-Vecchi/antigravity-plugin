@@ -10,10 +10,13 @@ function fixture({ count = 0, disabled = false } = {}) {
       getAttribute: () => (disabled ? "true" : null),
       querySelector: () =>
         count ? { getAttribute: () => "slashCommand:swarm" } : null,
-      querySelectorAll: () =>
-        Array.from({ length: count }, () => ({
-          getAttribute: () => "slashCommand:swarm",
-        })),
+      querySelectorAll: (selector) =>
+        Array.from(
+          { length: selector.includes("slashCommand:swarm") ? count : 0 },
+          () => ({
+            getAttribute: () => "slashCommand:swarm",
+          }),
+        ),
       dispatchEvent: (e) => events.push(e),
     },
     root = { querySelector: () => editor },

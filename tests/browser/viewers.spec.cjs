@@ -446,3 +446,63 @@ test("visible cards load when Electron defers IntersectionObserver callbacks", a
     page.locator(".agpa-library-thumbnail[aria-busy=true]"),
   ).toHaveCount(0);
 });
+
+test("Library inherits the native sidebar label typography when it changes", async ({
+  page,
+}) => {
+  await mountLibrary(page, []);
+  const native = page.locator("[data-testid=automations-button] span");
+  const library = page.locator(
+    "[data-testid=agpa-library-button] span:last-child",
+  );
+  await expect(library).toHaveCSS("font-size", "19px");
+  await native.evaluate((node) => {
+    node.className = "fixture-resized";
+  });
+  await expect(library).toHaveCSS("font-size", "23px");
+  await expect(library).toHaveCSS("line-height", "29px");
+});
+
+test("Library hands off only exact documents handled by the active conversation", async ({
+  page,
+}) => {
+  await mountLibrary(page, [
+    {
+      extension: "md",
+      category: "documents",
+      bytes: Buffer.from("# Notes"),
+      conversationId: "project-chat",
+    },
+  ]);
+  const card = page.getByTitle("sample-0.md", { exact: true });
+  const native = page.getByRole("button", { name: "Open in Antigravity" });
+  await page.evaluate(() => {
+    history.replaceState(null, "", "/c/project-chat");
+    const view = document.createElement("div");
+    view.dataset.testid = "autoscroll-viewport";
+    view.innerHTML = '<a href="file:///fake/sample-0.md">Same filename</a>';
+    document.body.append(view);
+  });
+  await card.click();
+  await expect(native).toHaveCount(0);
+  await page.getByRole("button", { name: "Back to Library" }).click();
+  await page.evaluate(() => {
+    const view = document.querySelector("[data-testid=autoscroll-viewport]");
+    view.insertAdjacentHTML(
+      "beforeend",
+      '<a href="file:///fixture/sample-0.md">Exact file</a>',
+    );
+    view.lastElementChild.addEventListener("click", (event) => {
+      event.preventDefault();
+      document.body.dataset.nativePreview = "opened";
+    });
+  });
+  await card.click();
+  await expect(native).toBeVisible();
+  await native.click();
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-native-preview",
+    "opened",
+  );
+  await expect(page.locator(".agpa-library-preview")).toHaveCount(0);
+});

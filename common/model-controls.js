@@ -1,23 +1,24 @@
 /* Separate model/effort controls, delegating selection to native menu items. */
 (() => {
   "use strict";
-  const VERSION = "1.3.2";
+  const VERSION = "1.3.9";
   if (globalThis.__AGModelControls?.version === VERSION) return;
   globalThis.__AGModelControls?.destroy();
   const rules = globalThis.__AGPA_MODEL_CONTROLS__;
+  const teamworkIcon = globalThis.__AGPA_TEAMWORK_ICON__;
+  delete globalThis.__AGPA_TEAMWORK_ICON__;
   const swarm = globalThis.__AGPA_SWARM_FACTORY__();
   delete globalThis.__AGPA_MODEL_CONTROLS__;
   delete globalThis.__AGPA_SWARM_FACTORY__;
   const i18n = globalThis.__AGPAI18n;
   const controls = new Map(),
     unsupported = new Set(),
-    swarmStates = new WeakMap();
+    swarmControls = new Map();
   let session = null,
     stopped = false,
     scheduled = false,
     bypass = false,
-    modeBusy = false,
-    modeError = null;
+    modeBusy = null;
   const attributes = [
     "data-agpa-composer-footer",
     "data-agpa-footer-flat",
@@ -98,11 +99,7 @@
   async function commit(current, index) {
     if (session !== current || current.committing) return;
     const option = current.options[index];
-    if (
-      !option ||
-      (!option.taskOnly && !option.row?.isConnected) ||
-      !current.trigger.isConnected
-    ) {
+    if (!option?.row?.isConnected || !current.trigger.isConnected) {
       close();
       return;
     }
@@ -114,44 +111,24 @@
       close();
       return;
     }
-    const nativeLabel = option.nativeLabel || option.label;
-    const sameNative =
-      option.taskOnly ||
-      (option.swarm && swarm.active(current.trigger)) ||
-      (current.base === before.base && nativeLabel === before.effortLabel);
-    const desiredTask = current.preferred
-      ? swarm.active(current.trigger)
-      : !!option.swarm;
-    const sameTask = swarm.active(current.trigger) === desiredTask;
-    if (sameNative && sameTask) {
+    if (current.base === before.base && option.label === before.effortLabel) {
       close({ focus: true });
       return;
     }
     current.committing = true;
     if (current.range) current.range.disabled = true;
     try {
-      if (!sameNative) {
-        option.row.click();
-        await until(() => {
-          const selected = rules.selectionFor(current.trigger);
-          return (
-            selected?.base === current.base &&
-            selected.effortLabel === nativeLabel
-          );
-        }, current);
-      }
-      close({ focus: !current.preferred && sameTask });
-      if (!sameTask) {
-        modeBusy = true;
-        modeError = null;
-        schedule();
-        if (!(await swarm.set(current.trigger, desiredTask)))
-          modeError = current.trigger;
-      }
-      if (!option.taskOnly)
-        await remember(current.base, option.nativeValue || option.value);
+      option.row.click();
+      await until(() => {
+        const selected = rules.selectionFor(current.trigger);
+        return (
+          selected?.base === current.base &&
+          selected.effortLabel === option.label
+        );
+      }, current);
+      close({ focus: !current.preferred });
+      await remember(current.base, option.value);
     } finally {
-      modeBusy = false;
       if (session === current) close({ focus: !current.preferred });
       schedule();
     }
@@ -177,36 +154,14 @@
   function paintValue(current, index) {
     const option = current.options[index];
     current.value.textContent = option.label;
+    current.popup.toggleAttribute(
+      "data-agpa-extra-effort",
+      option.value === "xhigh" || option.value === "extra",
+    );
     current.range.setAttribute("aria-valuetext", option.label);
     current.range.style.setProperty(
-      "--effort-color",
-      option.swarm ? "#a464f6" : "#347df1",
-    );
-    current.popup.toggleAttribute("data-ultra", !!option.swarm);
-    current.value.title = option.swarm
-      ? t("Swarm for this prompt. Native effort: {effort}", {
-          effort:
-            option.nativeLabel || current.origin.effortLabel || t("Default"),
-        })
-      : "";
-    if (
-      option.swarm &&
-      current.previewIndex !== undefined &&
-      current.previewIndex !== index &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    )
-      current.range.animate(
-        [
-          { boxShadow: "0 0 0 0 #ba86ff80" },
-          { boxShadow: "0 0 18px 8px #a464f670" },
-          { boxShadow: "0 0 0 16px #a464f600" },
-        ],
-        { duration: 500, easing: "ease-out" },
-      );
-    current.previewIndex = index;
-    current.range.style.setProperty(
       "--effort-fill",
-      (index / (current.options.length - 1)) * 100 + "%",
+      (index / Math.max(1, current.options.length - 1)) * 100 + "%",
     );
     for (const [n, dot] of [...current.dots.children].entries())
       dot.toggleAttribute("data-active", n <= index);
@@ -253,13 +208,7 @@
     });
     extremes.append(
       element("span", {}, current.options[0].label),
-      element(
-        "span",
-        {},
-        current.options.at(-1).swarm
-          ? "🐝 " + current.options.at(-1).label
-          : current.options.at(-1).label,
-      ),
+      element("span", {}, current.options.at(-1).label),
     );
     popup.append(heading, track, extremes);
     current.popup = popup;
@@ -291,7 +240,6 @@
     current.button.setAttribute("aria-expanded", "true");
   }
   async function open(trigger, button, preferred, group) {
-    if (modeBusy) return;
     close();
     const origin = rules.selectionFor(trigger);
     if (!origin || !trigger.isConnected) return;
@@ -307,22 +255,6 @@
     };
     session = current;
     button?.setAttribute("aria-busy", "true");
-    if (!origin.effortLabel && swarm.active(trigger) && !preferred) {
-      current.taskOnly = true;
-      current.menu = document.body;
-      current.options = [
-        { value: "default", label: t("Default"), taskOnly: true },
-        {
-          value: "swarm",
-          label: t("Ultra (Swarm)"),
-          swarm: true,
-          taskOnly: true,
-          selected: true,
-        },
-      ];
-      showSlider(current);
-      return;
-    }
     document.documentElement.setAttribute("data-agpa-effort-bridge", "");
     try {
       if (trigger.getAttribute("aria-expanded") !== "true") trigger.click();
@@ -377,21 +309,6 @@
         }
         await commit(current, index);
       } else {
-        const active = swarm.active(trigger);
-        const target = current.options.at(-1);
-        if (swarm.editorFor(trigger)) {
-          if (active)
-            for (const option of current.options) option.selected = false;
-          current.options.push({
-            ...target,
-            value: "swarm",
-            label: t("Ultra (Swarm)"),
-            nativeValue: target.value,
-            nativeLabel: target.label,
-            swarm: true,
-            selected: active,
-          });
-        }
         showSlider(current);
       }
     } catch {
@@ -425,8 +342,7 @@
         !session.trigger.isConnected ||
         (session.popup &&
           (!session.menu.isConnected ||
-            (!session.taskOnly &&
-              session.trigger.getAttribute("aria-expanded") !== "true") ||
+            session.trigger.getAttribute("aria-expanded") !== "true" ||
             selected?.base !== session.origin.base ||
             selected.effortLabel !== session.origin.effortLabel))
       )
@@ -436,7 +352,7 @@
       const selection = trigger.isConnected && rules.selectionFor(trigger);
       if (
         !selection ||
-        (!selection.effortLabel && !swarm.active(trigger)) ||
+        !selection.effortLabel ||
         unsupported.has(selection.base)
       ) {
         button.remove();
@@ -466,10 +382,10 @@
         mark(trigger, "data-agpa-footer-model");
         mark(permission, "data-agpa-footer-permission");
       }
-      const active = swarm.active(trigger);
+      syncSwarm(trigger);
       if (
         !selection ||
-        (!selection.effortLabel && !active) ||
+        !selection.effortLabel ||
         unsupported.has(selection.base)
       )
         continue;
@@ -510,37 +426,27 @@
         trigger.after(button);
         controls.set(trigger, button);
       }
-      const label = active ? t("Ultra") : selection.effortLabel;
+      const label = selection.effortLabel;
       if (button.firstElementChild.textContent !== label)
         button.firstElementChild.textContent = label;
       button.setAttribute(
         "aria-label",
-        t("Reasoning effort: {effort}", {
-          effort: active ? t("Ultra (Swarm)") : label,
-        }),
+        t("Reasoning effort: {effort}", { effort: label }),
       );
-      button.toggleAttribute("data-swarm", active);
-      if (active && swarmStates.get(trigger) === false) celebrate(button);
-      swarmStates.set(trigger, active);
+      button.toggleAttribute(
+        "data-agpa-extra-effort",
+        label.toLowerCase() === "extra",
+      );
       button.title = t("Reasoning effort");
-      button.disabled = trigger.disabled || modeBusy;
+      button.disabled = trigger.disabled;
       if (selection.suffix) mark(selection.suffix, "data-agpa-effort-suffix");
-      let error = button.parentElement.querySelector("[data-agpa-swarm-error]");
-      if (modeError === trigger && !error) {
-        error = element("span", {
-          "data-agpa-swarm-error": "",
-          role: "status",
-          class: "agpa-swarm-error",
-        });
-        button.after(error);
-      }
-      if (error) {
-        if (modeError === trigger)
-          error.textContent = t(
-            "Could not change Swarm. Use /swarm in the message input.",
-          );
-        else error.remove();
-      }
+    }
+    for (const [trigger, control] of swarmControls) {
+      if (trigger.isConnected && swarm.editorFor(trigger)) continue;
+      control.group.remove();
+      control.menu.remove();
+      control.error?.remove();
+      swarmControls.delete(trigger);
     }
     hideNativeEfforts();
   }
@@ -550,30 +456,186 @@
       queueMicrotask(apply);
     }
   }
-  function celebrate(button) {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const rect = button.getBoundingClientRect();
-    const burst = element("span", {
-      "aria-hidden": "true",
-      class: "agpa-swarm-burst",
-    });
-    burst.style.left = rect.left + rect.width / 2 + "px";
-    burst.style.top = rect.top + rect.height / 2 + "px";
-    document.body.append(burst);
-    burst
-      .animate(
-        [
-          { transform: "translate(-50%,-50%) scale(.2)", opacity: 1 },
-          {
-            transform: "translate(-50%,-50%) scale(2.5)",
-            opacity: 0.7,
-            offset: 0.4,
-          },
-          { transform: "translate(-50%,-50%) scale(4)", opacity: 0 },
-        ],
-        { duration: 650, easing: "cubic-bezier(.2,.7,.3,1)" },
-      )
-      .finished.finally(() => burst.remove());
+  const modes = [
+    { id: "swarm", icon: "🐝", label: "Swarm" },
+    { id: "boost", icon: "🚀", label: "Boost" },
+    { id: "teamwork", image: teamworkIcon, label: "Teamwork" },
+  ];
+  function modeIcon(mode) {
+    return mode.image
+      ? element("img", { src: mode.image, alt: "", width: "16", height: "16" })
+      : document.createTextNode(mode.icon || "");
+  }
+  function syncSwarm(trigger) {
+    if (!swarm.editorFor(trigger)) return;
+    let control = swarmControls.get(trigger);
+    if (!control) {
+      const group = element("div", { class: "agpa-multi-agent" });
+      const button = element("button", {
+        type: "button",
+        class: "agpa-swarm-trigger",
+        "data-agpa-swarm-trigger": "",
+      });
+      const glyph = element("span", {
+        class: "agpa-mode-icon",
+        "aria-hidden": "true",
+      });
+      button.append(glyph);
+      const arrow = element("button", {
+        type: "button",
+        class: "agpa-multi-agent-arrow",
+        "aria-label": t("Multi-agent modes"),
+        "aria-haspopup": "menu",
+        "aria-expanded": "false",
+        title: t("Multi-agent modes"),
+      });
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 12 12");
+      svg.setAttribute("aria-hidden", "true");
+      const path = document.createElementNS(svg.namespaceURI, "path");
+      path.setAttribute("d", "M3 4.5 6 7.5 9 4.5");
+      svg.append(path);
+      arrow.append(svg);
+      const menu = element("div", {
+        class: "agpa-multi-agent-menu",
+        popover: "auto",
+        role: "menu",
+        "aria-label": t("Multi-agent modes"),
+      });
+      menu.id = "agpa-modes-" + crypto.randomUUID();
+      arrow.setAttribute("popoverTarget", menu.id);
+      arrow.setAttribute("aria-controls", menu.id);
+      function positionMenu() {
+        const rect = arrow.getBoundingClientRect();
+        menu.style.left =
+          Math.max(
+            8,
+            Math.min(
+              rect.right - menu.offsetWidth,
+              innerWidth - menu.offsetWidth - 8,
+            ),
+          ) + "px";
+        menu.style.top =
+          (rect.top >= menu.offsetHeight + 8
+            ? rect.top - menu.offsetHeight - 6
+            : Math.min(rect.bottom + 6, innerHeight - menu.offsetHeight - 8)) +
+          "px";
+      }
+      menu.addEventListener("beforetoggle", (event) => {
+        if (event.newState === "open") close();
+      });
+      menu.addEventListener("toggle", () => {
+        const open = menu.matches(":popover-open");
+        arrow.setAttribute("aria-expanded", String(open));
+        if (open) {
+          positionMenu();
+          (
+            menu.querySelector('[aria-checked="true"]') ||
+            menu.firstElementChild
+          ).focus();
+        }
+      });
+      menu.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          menu.hidePopover();
+          arrow.focus();
+          return;
+        }
+        const rows = [...menu.children];
+        const index = rows.indexOf(document.activeElement);
+        if (event.key === "ArrowDown") rows[(index + 1) % rows.length].focus();
+        else if (event.key === "ArrowUp")
+          rows[(index + rows.length - 1) % rows.length].focus();
+        else if (event.key === "Home") rows[0].focus();
+        else if (event.key === "End") rows.at(-1).focus();
+        else return;
+        event.preventDefault();
+        event.stopPropagation();
+      });
+      async function toggle(mode) {
+        if (modeBusy) return;
+        if (menu.matches(":popover-open")) menu.hidePopover();
+        close();
+        modeBusy = trigger;
+        control.error?.remove();
+        control.error = null;
+        schedule();
+        try {
+          const changed = await swarm
+            .set(trigger, !swarm.active(trigger, mode), mode)
+            .catch(() => false);
+          if (changed || !button.isConnected) return;
+          control.error = element(
+            "span",
+            { role: "status", class: "agpa-swarm-error" },
+            t("Could not change the mode. Use /{mode} in the message input.", {
+              mode,
+            }),
+          );
+          group.after(control.error);
+        } finally {
+          modeBusy = null;
+          schedule();
+        }
+      }
+      for (const mode of modes) {
+        const item = element("button", {
+          type: "button",
+          role: "menuitemcheckbox",
+          "aria-checked": "false",
+          "data-mode": mode.id,
+        });
+        const icon = element("span", {
+          class: "agpa-mode-icon",
+          "aria-hidden": "true",
+        });
+        icon.append(modeIcon(mode));
+        item.append(icon, mode.label);
+        item.addEventListener("click", () => toggle(mode.id));
+        menu.append(item);
+      }
+      control = {
+        group,
+        button,
+        glyph,
+        arrow,
+        menu,
+        positionMenu,
+        displayedMode: null,
+        error: null,
+      };
+      swarmControls.set(trigger, control);
+      group.append(button, arrow);
+      trigger.after(group);
+      document.body.append(menu);
+      button.addEventListener("pointerdown", (event) => event.preventDefault());
+      button.addEventListener("click", () => toggle(control.displayedMode.id));
+    }
+    const active = modes.find(({ id }) => swarm.active(trigger, id));
+    const displayed = active || modes[0];
+    if (control.displayedMode !== displayed) {
+      control.displayedMode = displayed;
+      control.glyph.replaceChildren(modeIcon(displayed));
+      control.button.setAttribute("aria-label", displayed.label);
+      control.button.title = displayed.label + " (/" + displayed.id + ")";
+    }
+    const pressed = String(Boolean(active));
+    if (control.button.getAttribute("aria-pressed") !== pressed)
+      control.button.setAttribute("aria-pressed", pressed);
+    for (const item of control.menu.children)
+      item.setAttribute(
+        "aria-checked",
+        String(swarm.active(trigger, item.dataset.mode)),
+      );
+    control.arrow.toggleAttribute(
+      "data-active",
+      Boolean(active && active.id !== "swarm"),
+    );
+    control.arrow.disabled = control.button.disabled =
+      trigger.disabled || Boolean(modeBusy);
+    control.button.toggleAttribute("aria-busy", modeBusy === trigger);
   }
   function click(event) {
     if (
@@ -710,11 +772,27 @@
   .agpa-effort-trigger[aria-busy=true]{cursor:progress;opacity:.7}
   .agpa-effort-trigger:hover,.agpa-effort-trigger[aria-expanded=true]{background:var(--secondary,#303030);color:var(--foreground,#eee)}
   .agpa-effort-trigger:focus-visible{outline:2px solid #398bdb;outline-offset:2px}.agpa-effort-trigger:disabled{opacity:.5;cursor:default}
-  .agpa-effort-trigger[data-swarm]{color:#d4b1ff;background:#8f46df26;box-shadow:inset 0 0 0 1px #9e5bef45}.agpa-swarm-burst{position:fixed;z-index:2147483647;pointer-events:none;width:14px;height:14px;border:1px solid #c595ff;border-radius:50%;box-shadow:0 -12px 0 -5px #d6b4ff,11px -5px 0 -5px #ba7cff,10px 8px 0 -5px #e5caff,0 13px 0 -5px #af67ff,-11px 6px 0 -5px #ddbbff,-11px -7px 0 -5px #ae5fff}.agpa-swarm-error{order:50;color:#f3a4aa;font-size:11px;flex-basis:100%;padding:4px 8px}
+  .agpa-multi-agent{order:22;display:flex;align-items:center;flex:none;border-radius:999px}
+  .agpa-swarm-trigger{display:inline-grid;place-items:center;width:28px;height:28px;flex:none;border:0;border-radius:50%;background:transparent;color:inherit;font:15px system-ui;cursor:pointer}
+  .agpa-mode-icon{display:inline-grid;place-items:center;width:16px;height:16px;flex:none}.agpa-mode-icon img{display:block}
+  .agpa-swarm-trigger[aria-pressed=false]>span{opacity:.55}.agpa-swarm-trigger:hover,.agpa-swarm-trigger[aria-pressed=true]{background:#e3ad2426}.agpa-swarm-trigger[aria-pressed=true]{box-shadow:inset 0 0 0 1px #e3ad2466}.agpa-swarm-trigger:focus-visible{outline:2px solid #398bdb}.agpa-swarm-trigger[aria-busy]{cursor:progress}.agpa-swarm-error{order:50;color:#f3a4aa;font-size:11px;flex-basis:100%;padding:4px 8px}
+  .agpa-multi-agent-arrow{display:grid;place-items:center;width:19px;height:26px;border:0;border-radius:7px;background:transparent;color:var(--muted-foreground,#aaa);cursor:pointer;padding:0}
+  .agpa-multi-agent-arrow svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+  .agpa-multi-agent-arrow:is(:hover,[aria-expanded=true]){background:var(--secondary,#333);color:var(--foreground,#eee)}
+  .agpa-multi-agent-arrow[data-active]{color:#edbc5b}
+  .agpa-multi-agent-arrow:focus-visible,.agpa-multi-agent-menu button:focus-visible{outline:2px solid #398bdb;outline-offset:-2px}
+  .agpa-multi-agent-menu{position:fixed;inset:auto;margin:0;padding:4px;min-width:132px;border:1px solid var(--border,#444);border-radius:10px;background:var(--popover,#242424);color:var(--popover-foreground,#eee);box-shadow:0 8px 24px #0005}
+  .agpa-multi-agent-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:none;color:inherit;font:13px system-ui;text-align:start;cursor:pointer}
+  .agpa-multi-agent-menu button:is(:hover,:focus-visible){background:var(--secondary,#333)}
+  .agpa-multi-agent-menu button[aria-checked=true]::after{content:"✓";margin-inline-start:auto;color:#edbc5b}
   :root[data-agpa-effort-bridge] [role=menu]{opacity:0!important;pointer-events:none!important}
   .agpa-effort-popup{position:fixed;inset:auto;margin:0;width:252px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:12px;border:1px solid var(--border,#444);border-radius:16px;background:var(--card,#252525);color:var(--foreground,#eee);font:12px/1.4 system-ui,sans-serif;box-shadow:0 10px 30px #0005;pointer-events:auto!important;opacity:1!important;visibility:visible!important}
+  .agpa-effort-trigger[data-agpa-extra-effort]{color:#d4b1ff;background:#8f46df26;box-shadow:inset 0 0 0 1px #9e5bef45}
+  .agpa-effort-trigger[data-agpa-extra-effort]:is(:hover,[aria-expanded=true]){background:#8f46df42}
+  .agpa-effort-popup[data-agpa-extra-effort]{border-color:#9c65df80;--effort-color:#a464f6}
+  .agpa-effort-popup[data-agpa-extra-effort] .agpa-effort-labels strong{color:#d4afff}
+  .agpa-effort-popup[data-agpa-extra-effort] .agpa-effort-dots span[data-active]{background:#dfbdff}
   .agpa-effort-popup::backdrop{background:transparent}
-  .agpa-effort-popup[data-ultra]{border-color:#9c65df80}.agpa-effort-popup[data-ultra] .agpa-effort-labels strong{color:#d4afff}.agpa-effort-popup[data-ultra] .agpa-effort-dots span[data-active]{background:#dfbdff}
   .agpa-effort-heading{display:grid;grid-template-columns:22px minmax(0,1fr) 22px;align-items:center;gap:6px;margin-bottom:9px}.agpa-effort-labels{grid-column:2;min-width:0;text-align:center;display:grid;gap:1px}.agpa-effort-labels strong{font-size:13px;font-weight:500;color:#6ba9ff}.agpa-effort-model{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--secondary-foreground,#aaa);font-size:11px}.agpa-effort-close{grid-column:3;border:0;background:transparent;color:var(--secondary-foreground,#aaa);font:18px/1 system-ui;cursor:pointer;padding:3px;border-radius:4px}.agpa-effort-close:focus-visible{outline:2px solid #398bdb}
   .agpa-effort-track{position:relative;height:28px;display:flex;align-items:center}.agpa-effort-track input{appearance:none;width:100%;height:24px;margin:0;border:0;border-radius:999px;background:linear-gradient(to right,var(--effort-color,#347df1) 0 var(--effort-fill),#454545 var(--effort-fill) 100%);cursor:pointer;position:relative;z-index:1;outline:none}.agpa-effort-track input::-webkit-slider-thumb{appearance:none;width:25px;height:25px;border-radius:50%;background:#fff;border:1px solid #ddd;box-shadow:0 1px 3px #0003}.agpa-effort-track input:focus-visible{outline:2px solid #90baff;outline-offset:3px}.agpa-effort-track input:disabled{cursor:wait}
   .agpa-effort-dots{position:absolute;inset:0 12px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;z-index:2}.agpa-effort-dots span{width:4px;height:4px;border-radius:50%;background:#858585}.agpa-effort-dots span[data-active]{background:#9cbeff}.agpa-effort-extremes{display:flex;justify-content:space-between;color:var(--secondary-foreground,#aaa);font-size:10px;margin-top:4px}
@@ -745,10 +823,10 @@
             (node) =>
               node.nodeType === 1 &&
               (node.matches(
-                "[data-testid=model-selector-trigger],[data-testid=permissions-selector-trigger],[role=menu]",
+                "[data-testid=model-selector-trigger],[data-testid=permissions-selector-trigger],[role=menu],[contenteditable=true]",
               ) ||
                 node.querySelector(
-                  "[data-testid=model-selector-trigger],[data-testid=permissions-selector-trigger]",
+                  "[data-testid=model-selector-trigger],[data-testid=permissions-selector-trigger],[contenteditable=true]",
                 )),
           )
         );
@@ -764,18 +842,13 @@
     attributeFilter: ["aria-expanded", "aria-label", "disabled"],
   });
   document.addEventListener("click", click, true);
-  const outside = (event) => {
-    if (
-      session?.taskOnly &&
-      !session.popup.contains(event.target) &&
-      event.target !== session.button
-    )
-      close({ native: false });
-  };
-  document.addEventListener("pointerdown", outside, true);
   window.addEventListener("keydown", keyboard, true);
   window.addEventListener("keyup", keyup, true);
-  const reposition = () => session && position(session);
+  const reposition = () => {
+    if (session) position(session);
+    for (const control of swarmControls.values())
+      if (control.menu.matches(":popover-open")) control.positionMenu();
+  };
   window.addEventListener("resize", reposition);
   window.addEventListener("scroll", reposition, true);
   const unsubscribe = i18n.subscribe(schedule);
@@ -786,7 +859,6 @@
       open: !!session?.popup,
       unsupported: [...unsupported],
       modeBusy,
-      modeError,
     }),
     destroy() {
       stopped = true;
@@ -795,7 +867,6 @@
       observer.disconnect();
       unsubscribe();
       document.removeEventListener("click", click, true);
-      document.removeEventListener("pointerdown", outside, true);
       window.removeEventListener("keydown", keyboard, true);
       window.removeEventListener("keyup", keyup, true);
       window.removeEventListener("resize", reposition);
@@ -803,10 +874,12 @@
       for (const button of controls.values()) button.remove();
       controls.clear();
       style.remove();
-      for (const node of document.querySelectorAll(
-        ".agpa-swarm-burst,[data-agpa-swarm-error]",
-      ))
-        node.remove();
+      for (const { group, menu, error } of swarmControls.values()) {
+        group.remove();
+        menu.remove();
+        error?.remove();
+      }
+      swarmControls.clear();
       for (const attribute of attributes)
         for (const node of document.querySelectorAll("[" + attribute + "]"))
           node.removeAttribute(attribute);

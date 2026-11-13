@@ -6,7 +6,7 @@ const path = require('node:path');
 const os = require('node:os');
 const {createManager, manifest, validateApps, read, atomic, SERVER, TOOLS, DESKTOP_TOOLS} = require('../common/computer-use.cjs');
 const {lease, filterServerMessage, allowedClientMessage} = require('../common/computer-use-bridge.cjs');
-const {VERSION, downloadVerified} = require('../common/computer-use-release.cjs');
+const {VERSION,ASSETS, downloadVerified} = require('../common/computer-use-release.cjs');
 async function fixture(t, platform = 'linux') {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'agpa-cu-'));
   t.after(() => fs.rm(root, {recursive: true, force: true}));
@@ -15,7 +15,7 @@ async function fixture(t, platform = 'linux') {
   const manager = createManager({platform, home: root, configDir: path.join(root, 'plugin'), adapter});
   await fs.mkdir(manager.paths.driverDirectory, {recursive: true});
   await fs.writeFile(manager.paths.driver, 'driver');
-  await fs.writeFile(path.join(manager.paths.driverDirectory, 'receipt.json'), JSON.stringify({version: VERSION}));
+  await fs.writeFile(path.join(manager.paths.driverDirectory, 'receipt.json'), JSON.stringify({version: VERSION,sha256:ASSETS[`linux-${process.arch}`][1]}));
   return {root, app, manager};
 }
 test('bounded scope excludes desktop capture, filesystem, browser grants and arbitrary code', () => {
@@ -119,6 +119,7 @@ test('an open bridge exits when its lease is revoked, without a client reconnect
   const policy = '{}'; const state = {version: 1, enabled: true, revision: 'one', apps: [], manifestHash: require('node:crypto').createHash('sha256').update(policy).digest('hex')};
   await fs.writeFile(path.join(directory, 'state.json'), JSON.stringify(state)); await fs.writeFile(path.join(directory, 'capabilities.json'), policy);
   const driver = path.join(directory, 'driver-' + VERSION, 'cua-driver');
+  await fs.writeFile(path.join(path.dirname(driver),'receipt.json'),JSON.stringify({version:VERSION,sha256:ASSETS[`linux-${process.arch}`][1]}));
   await fs.writeFile(driver, '#!' + process.execPath + '\nprocess.stdin.resume();process.stdout.write(JSON.stringify({jsonrpc:"2.0",id:1,result:{ready:true}})+"\\n");process.stdin.on("end",()=>process.exit(0));\n', {mode: 0o700});
   const child = spawn(process.execPath, [path.join(__dirname, '../common/computer-use-bridge.cjs')], {env: {...process.env, HOME: root, XDG_SESSION_TYPE: 'x11', XDG_CURRENT_DESKTOP: '', WAYLAND_DISPLAY: ''}, stdio: ['pipe','pipe','pipe']});
   t.after(() => child.kill()); child.stderr.resume();

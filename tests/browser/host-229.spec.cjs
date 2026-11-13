@@ -7,17 +7,23 @@ const presentation = fs.readFileSync(
   path.join(root, "common/project-presentation.js"),
   "utf8",
 );
+const { primaryLayout } = require("../../common/sidebar-layout.cjs");
 const renderer = fs.readFileSync(path.join(root, "common/renderer.js"), "utf8");
-async function setup(page, duplicate = false, remote = false) {
+async function setup(
+  page,
+  duplicate = false,
+  remote = false,
+  knowledge = false,
+) {
   await page.route("https://native.test/", (r) =>
     r.fulfill({
       contentType: "text/html",
       body: `<style>body{font:14px system-ui} .w-6{width:24px}.h-6{height:24px}[role=menu]{position:fixed;top:10px;left:100px;z-index:1000;background:white;padding:10px}</style>
- <div><button data-testid="sidebar-search-button">Search</button><button data-testid="sidebar-toggle" aria-expanded="true">Toggle</button></div>
- <div><div><nav role="navigation"><div data-testid="sidebar-navigation-items"><a data-testid="new-conversation-button" href="/">New</a><button data-testid="automations-button">Automations</button></div>
+ <div><button data-testid="app-icon-new-conversation-button"></button><button data-testid="sidebar-search-button">Search</button><button data-testid="sidebar-toggle" aria-expanded="true">Toggle</button></div>
+ <div data-testid="sidebar-split" style="display:flex;height:400px"><div data-native-sidebar><div><div><nav role="navigation"><div data-testid="sidebar-navigation-items"><a data-testid="new-conversation-button" href="/">New</a><button data-testid="automations-button">Automations</button></div>
  <div data-sidebar-section-drop-id="project-a"><div><button data-testid="project-header" data-project-label="Demo" data-project-icon="${remote ? "cloud" : "folder"}"><div class="w-6 h-6"><div><svg><path d="M1 1h2"/></svg></div></div>Demo</button></div><button id="project-menu-a" aria-haspopup="menu">Options</button><a href="/?project=project-a">New Conversation in Project</a></div>
  ${duplicate ? '<div data-sidebar-section-drop-id="project-b"><button data-testid="project-header" data-project-label="Demo">Demo</button><a href="/?project=project-b">New</a></div>' : ""}
- <button data-testid="settings-button">Settings</button></nav></div></div>
+ <button data-testid="settings-button">Settings</button></nav></div></div></div><main><aside aria-label="Overview">${knowledge ? '<button>Folders</button><section aria-label="Documents"></section>' : "<button>Review</button><button>Files</button><button>Terminal</button>"}</aside></main></div>
  <button data-testid="project-selector-trigger"><svg data-project-icon="${remote ? "cloud" : "folder"}"></svg><span class="truncate">Demo</span></button><main id="conversation"></main>`,
     }),
   );
@@ -40,9 +46,6 @@ async function setup(page, duplicate = false, remote = false) {
         history.pushState(null, "", a.getAttribute("href"));
       }),
     );
-    globalThis.__AGPAPrimaryLayout = () => ({
-      toggle: document.querySelector("[data-testid=sidebar-toggle]"),
-    });
     globalThis.__AGPA_CONFIG__ = {
       projects: {
         "project-a": { kind: "icon", icon: "flask", color: "#ff83c2" },
@@ -58,6 +61,9 @@ async function setup(page, duplicate = false, remote = false) {
       return original(...args);
     };
   });
+  await page.evaluate(
+    `globalThis.__AGPAPrimaryLayout=${primaryLayout.toString()}`,
+  );
   await page.evaluate(renderer);
 }
 test("2.29 headers, selectors, edit menus and compact project actions keep stable IDs", async ({
@@ -446,3 +452,31 @@ test("Computer use and Browser use navigation inherit native text size", async (
     ).toHaveCSS("line-height", "20px");
   }
 });
+
+for (const layout of ["Software Engineering", "Knowledge Work"])
+  test(`compact navigation stays outside the zero-width native pane in ${layout}`, async ({
+    page,
+  }) => {
+    await setup(page, false, false, layout === "Knowledge Work");
+    await page.evaluate(() => {
+      document.querySelector("[data-native-sidebar]").style.cssText =
+        "width:0; overflow:hidden";
+      document
+        .querySelector("[data-testid=sidebar-toggle]")
+        .setAttribute("aria-expanded", "false");
+    });
+    const rail = page.locator("[data-testid=sidebar-split] > [data-agpa-rail]");
+    await expect(
+      rail.getByRole("button", { name: "Automations" }),
+    ).toBeInViewport();
+    await expect(rail.getByRole("button", { name: "Demo" })).toBeInViewport();
+    await expect(
+      rail.getByRole("button", { name: "Settings" }),
+    ).toBeInViewport();
+    const overview = page.getByRole("complementary", { name: "Overview" });
+    await expect(
+      overview.getByRole("button", {
+        name: layout === "Knowledge Work" ? "Folders" : "Review",
+      }),
+    ).toBeVisible();
+  });

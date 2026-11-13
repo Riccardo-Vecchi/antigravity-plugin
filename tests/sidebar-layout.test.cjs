@@ -9,7 +9,7 @@ test("primary navigation never uses the file viewer sidebar toggle, even when it
   const primary = {},
     secondary = {},
     panel = {},
-    navigation = { parentElement: { parentElement: panel } },
+    navigation = { closest: () => null, parentElement: { parentElement: panel } },
     brand = { parentElement: { querySelector: () => primary } };
   const document = {
     querySelector(selector) {

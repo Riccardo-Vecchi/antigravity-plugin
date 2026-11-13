@@ -40,7 +40,7 @@ Daemon operational diagnostics use bounded event codes and known OS error codes.
 
 ## Model preferences
 
-Favorites, hidden-model flags and the last chosen native reasoning effort per model are kept in the plugin’s private `models.json`. Ultra inserts/removes only the native Teamwork command in the current unsent draft and keeps no separate Teamwork history or persistent task-mode setting. It never submits a prompt. The slider invokes existing native model-menu items; it does not call a model, record prompts, or change approval permissions.
+Favorites, hidden-model flags and the last chosen native reasoning effort per model are kept in the plugin’s private `models.json`. The Swarm button adds or removes the native Swarm chip in the current unsent draft. Swarm state lives in the draft. It never submits a prompt. The slider invokes existing native model-menu items; it does not call a model, record prompts, or change approval permissions.
 
 ## Gemini external links
 

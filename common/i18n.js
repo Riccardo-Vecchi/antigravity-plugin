@@ -1,7 +1,7 @@
 /* Translation applies only to this integration's controls, never user content. */
 (() => {
  'use strict';
- const VERSION='1.8.2';
+ const VERSION='1.8.4';
  let catalogs=globalThis.__AGPA_TRANSLATIONS__;
  delete globalThis.__AGPA_TRANSLATIONS__;
  if(globalThis.__AGPAI18n?.version===VERSION){globalThis.__AGPAI18n.setCatalogs(catalogs);return;}

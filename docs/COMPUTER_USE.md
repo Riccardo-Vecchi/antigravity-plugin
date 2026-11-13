@@ -7,12 +7,12 @@ Give the **native Antigravity agent** desktop tools through the maintained [Cua 
 1. Open **Settings → Computer use**, its own item in the Settings menu. Settings navigation has icons; its Projects group can be collapsed and uses your configured project appearance.
 2. Turn on the **Computer use** switch at the top. Your saved access is reused; first setup starts with **Entire desktop**. After enabling, choose **Selected apps** and apply changes if you prefer an application allowlist.
 3. A centered progress dialog shows the active step with a spinner, individual checks, and actual downloaded MB. **Continue in background** or Escape hides the dialog while setup continues; **Cancel setup** revokes it. Setup downloads the reviewed driver, verifies its SHA-256, installs the GNOME helper when needed, writes this integration's MCP entry and skill, checks the protocol and asks Antigravity to refresh only this server.
-4. Follow any OS access prompt. On GNOME/Wayland, the helper needs a **Linux session logout/login once** to load. Save your work, open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select **Refresh status**. **Locking/unlocking the screen keeps the same Linux session and does not load the extension.** Closing the app or signing out of Google also does not load it. The wizard never logs you out or restarts your apps.
+4. Follow any OS access prompt. On GNOME/Wayland, the helper needs a **Linux session logout/login once** to load. Save your work, open the system menu → Power → Log Out (on Zorin), then sign in to Linux again. Reopen Antigravity and select **Refresh status** under **Connection details**. **Locking/unlocking the screen keeps the same Linux session and does not load the extension.** Closing the app or signing out of Google also does not load it. The wizard never logs you out or restarts your apps.
 5. Start a **new Antigravity conversation** and describe the result you want. Existing conversations can keep their earlier tool list.
 
 Try: “Open Calculator, calculate 6 × 7 and verify the displayed result.” The agent should observe **42 in the app**, rather than report only a successful tool call.
 
-**Connection details** displays each check on its own line: green checkmark for passed, orange dot for pending. It checks driver installation, MCP registration, the generated agent skill, the protocol handshake, native server detection and the desktop helper. In Entire desktop mode, screen capture is checked **automatically** during setup when access is ready, or once when the page next detects that access has become ready (including after Linux login). A failed attempt stays pending without a polling/retry loop; **Test screen capture** remains available for an explicit retry. The plugin discards the returned image and reports only the result; this does not test mouse or keyboard input. Selected apps never triggers a full-desktop capture, and an MCP handshake alone never marks capture as passed.
+**Connection details** is collapsed by default and shows the overall connection state. Expand it to see driver updates, diagnostics and removal. The checklist displays each check on its own line: green checkmark for passed, orange dot for pending. It checks driver installation, MCP registration, the generated agent skill, the protocol handshake, native server detection and the desktop helper. In Entire desktop mode, screen capture is checked **automatically** during setup when access is ready, or once when the page next detects that access has become ready (including after Linux login). A failed attempt stays pending without a polling/retry loop; **Test screen capture** remains available for an explicit retry. The plugin discards the returned image and reports only the result; this does not test mouse or keyboard input. Selected apps never triggers a full-desktop capture, and an MCP handshake alone never marks capture as passed.
 
 If an upstream app change prevents automatic MCP refresh, use native **Customizations → Installed → MCP Servers**, or its Settings equivalent, and refresh/reopen Antigravity when convenient.
 
@@ -39,7 +39,7 @@ This check does not install or execute a newer release. Setup continues to insta
 
 Changing scope requires **Apply access changes**. It revokes earlier connections before starting the new scope. Choosing Entire desktop is not an `unrestricted`/bypass-approvals setting. Existing Antigravity approvals remain in force.
 
-In either mode, the bridge exposes only the reviewed GUI tool set (17 tools for Entire desktop and 14 for Selected apps in driver 0.46.1). It excludes direct shell execution, arbitrary scripts, filesystem tools, process termination and browser-profile attachment. GUI interaction can still modify files, accounts and signed-in applications as part of a task; visible contents may be processed by Antigravity's model. These controls limit this driver, not Antigravity's independent shell access or another process running as your user.
+In either mode, the bridge exposes only the reviewed GUI tool set (17 tools for Entire desktop and 14 for Selected apps in driver 0.47.23). It excludes direct shell execution, arbitrary scripts, filesystem tools, process termination and browser-profile attachment. GUI interaction can still modify files, accounts and signed-in applications as part of a task; visible contents may be processed by Antigravity's model. These controls limit this driver, not Antigravity's independent shell access or another process running as your user.
 
 ## 🎚️ Enable, disable and stop
 
@@ -63,7 +63,7 @@ The platform disable scripts also disconnect computer use. In Selected apps mode
 
 ## ♻️ Remove and set up again
 
-Open **Settings → Computer use → Remove computer use**, the red button, and confirm in the centered dialog. Cancel or press Escape to keep the setup. This revokes the connection, removes only the plugin's own MCP entry, deletes its verified managed driver, setup preferences and unchanged generated skill. Then turn on the top switch to download and configure it again.
+Open **Settings → Computer use → Connection details → Remove computer use**, the red button, and confirm in the centered dialog. Cancel or press Escape to keep the setup. This revokes the connection, removes only the plugin's own MCP entry, deletes its verified managed driver, setup preferences and unchanged generated skill. Then turn on the top switch to download and configure it again.
 
 Other MCP servers, conversations, Antigravity/Gemini data, other Cua installations and the **shared WinRects GNOME extension** remain untouched. A locally edited skill is preserved and reported: rename or remove it yourself before a fresh setup. Unrecognized driver folders or missing/invalid receipts stop removal instead of deleting unknown files. Use **Repair desktop helper** for a disabled or failed helper; reinstallation is unnecessary when it only needs the next Linux sign-in.
 
@@ -83,10 +83,10 @@ Windows is covered by adapter/configuration tests, release archive-layout verifi
 
 ## 🔧 Installation, privacy and compatibility
 
-- Reviewed driver: **0.46.1**, pinned to official release asset SHA-256 values. Future plugin releases can update the reviewed pin; setup never silently adopts an unreviewed driver.
+- Reviewed driver: **0.47.23**, pinned to official release asset SHA-256 values. Upstream marks this version as a prerelease. Existing installations can upgrade from Connection details without changing their access settings. Future plugin releases can update the reviewed pin; setup never silently adopts an unreviewed driver.
 - Downloads run no remote installer script. The driver is a separate MIT-licensed upstream dependency, not relicensed under the plugin's 0BSD license. No driver binaries or private configuration are published here. SHA-256 pin verification is not a claim of Sigstore signature verification.
 - Plugin-launched driver calls disable telemetry with `CUA_DRIVER_RS_TELEMETRY_ENABLED=0` and `CUA_TELEMETRY_ENABLED=0`. Other Cua installations are unchanged.
-- Local files live under the existing plugin configuration directory in `computer-use/`: `state.json`, `capabilities.json`, and `driver-0.46.1/`. They can contain local application paths and must not be shared or committed.
+- Local files live under the existing plugin configuration directory in `computer-use/`: `state.json`, `capabilities.json`, and `driver-0.47.23/`. They can contain local application paths and must not be shared or committed.
 - The wizard merges `~/.gemini/config/mcp_config.json` and installs its owned skill under `~/.gemini/config/skills/antigravity-plugin-computer-use/` (under the user's home on Windows too). Unrelated MCP entries and locally edited skills are preserved. Invalid JSON, symlinks, conflicts or detected concurrent edits stop configuration.
 - Automatic native MCP refresh uses a narrowly recognized Antigravity state-provider contract. It refreshes only this server and falls back to manual native refresh if the interface changes.
 
@@ -99,4 +99,4 @@ Verified live on Linux: the dedicated Settings page, navigation icons, Projects 
 - [Google Antigravity MCP](https://antigravity.google/docs/mcp)
 - [Cua with Antigravity and Gemini](https://cua.ai/docs/cua-driver/guides/gemini)
 - [Cua permissions](https://cua.ai/docs/cua-driver/guides/permissions)
-- [Cua Driver 0.46.1](https://github.com/trycua/cua/releases/tag/cua-driver-rs-v0.46.1)
+- [Cua Driver 0.47.23](https://github.com/trycua/cua/releases/tag/cua-driver-rs-v0.47.23)

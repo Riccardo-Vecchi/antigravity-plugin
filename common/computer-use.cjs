@@ -105,13 +105,7 @@ function createManager({platform = process.platform, home = os.homedir(), config
     else data.mcpServers[SERVER] = entry(false, (await record()).scope);
     await atomic(mcpFile, JSON.stringify(data, null, 2) + '\n', text);
   }
-  async function installed() {
-    try {
-      const stat = await fs.lstat(driver);
-      const receipt = parse(await read(path.join(driverDirectory, 'receipt.json')));
-      return stat.isFile() && !stat.isSymbolicLink() && receipt.version === release.VERSION;
-    } catch { return false; }
-  }
+  const installed = () => release.installedDriver(directory, adapter.executable, platform);
   async function environment() {
     if (!environmentCache || Date.now() - checkedAt > 15000) {
       environmentCache = await adapter.environment(); checkedAt = Date.now();
@@ -131,7 +125,8 @@ function createManager({platform = process.platform, home = os.homedir(), config
     const env = await environment();
     let skillReady = false;
     try {skillReady = !!state.skillHash && crypto.createHash('sha256').update(await read(skillFile)).digest('hex') === state.skillHash;} catch {}
-    const result = {platform, driverVersion: release.VERSION, installed: await installed(), enabled: !!state.enabled && configured, registered,
+    const currentDriver = await installed();
+    const result = {platform, driverVersion: currentDriver?.version || release.VERSION, driverUpgrade: !!currentDriver && currentDriver.version !== release.VERSION, installed: !!currentDriver, enabled: !!state.enabled && configured, registered,
       scope: state.scope || (state.apps?.length ? 'apps' : 'desktop'),
       apps: Array.isArray(state.apps) ? state.apps : [], suggestedApps: await adapter.defaultApps(),
       availableApps: adapter.applications ? await adapter.applications() : [],
@@ -171,18 +166,11 @@ function createManager({platform = process.platform, home = os.homedir(), config
   }
   async function uninstall() {
     const previous = await record();
-    let driverExists = false;
-    const stat = await fs.lstat(driverDirectory).catch(error => {if (error.code !== 'ENOENT') throw error;return null;});
-    if (stat) {
-      driverExists = true;
-      if (!stat.isDirectory() || stat.isSymbolicLink()) throw Error('unownedDriver');
-      const receipt = parse(await read(path.join(driverDirectory, 'receipt.json')));
-      const expected = release.ASSETS[`${platform}-${process.arch}`];
-      if (!expected || receipt.version !== release.VERSION || receipt.sha256 !== expected[1]) throw Error('unownedDriver');
-    }
+    const drivers = await release.driverDirectories(directory, platform);
+    if (drivers.some(item => !item.owned)) throw Error('unownedDriver');
     await disable();
     // Let already-open bridges observe revocation before deleting runtime files.
-    if (driverExists) await new Promise(resolve => setTimeout(resolve, 1400));
+    if (drivers.length) await new Promise(resolve => setTimeout(resolve, 1400));
     let skillRetained = false;
     const skill = await read(skillFile);
     if (skill) {
@@ -190,7 +178,7 @@ function createManager({platform = process.platform, home = os.homedir(), config
         await fs.unlink(skillFile);await fs.rmdir(path.dirname(skillFile)).catch(error => {if (!['ENOTEMPTY','ENOENT'].includes(error.code)) throw error;});
       } else skillRetained = true;
     }
-    if (driverExists) await fs.rm(driverDirectory, {recursive:true,force:true,maxRetries:10,retryDelay:200});
+    for (const item of drivers) await fs.rm(item.folder, {recursive:true,force:true,maxRetries:10,retryDelay:200});
     for (const file of [policyFile, stateFile]) {await read(file);await fs.rm(file, {force:true});}
     await fs.rmdir(directory).catch(error => {if (!['ENOTEMPTY','ENOENT'].includes(error.code)) throw error;});
     protocol = null;removal = {skillRetained, sharedHelperKept: !!(await environment()).helperInstalled};
@@ -234,18 +222,27 @@ function createManager({platform = process.platform, home = os.homedir(), config
       if (action === 'uninstall') {await mutate(uninstall);return;}
       removal = null;
       if (action === 'install' || action === 'setup') {
-        if (!(await installed())) {
+        const currentDriver = await installed();
+        if (!currentDriver || (action === 'install' && currentDriver.version !== release.VERSION)) {
           stage('driver','Downloading Cua Driver…');
-          await release.install(driverDirectory, adapter, {platform, fetcher, signal: abortOperation.signal,onProgress:download => {
-            if(generation === jobGeneration)stage('driver',download.phase==='download'?'Downloading Cua Driver…':download.phase==='verify'?'Verifying the download…':'Installing Cua Driver…',download);
-          }});
-          stage('driver','Checking Cua Driver…');
-          await run(driver, ['--version'], {timeout: 8000, windowsHide: true, env: {...process.env, CUA_DRIVER_RS_TELEMETRY_ENABLED: '0', CUA_TELEMETRY_ENABLED: '0'}});
+          await release.install(driverDirectory, adapter, {
+            platform, fetcher, signal: abortOperation.signal,
+            onProgress: download => {
+              if(generation === jobGeneration)stage('driver',download.phase==='download'?'Downloading Cua Driver…':download.phase==='verify'?'Verifying the download…':'Installing Cua Driver…',download);
+            },
+            validate: async candidate => {
+              stage('driver','Checking Cua Driver…');
+              const result = await run(candidate, ['--version'], {timeout: 8000, windowsHide: true, env: {...process.env, CUA_DRIVER_RS_TELEMETRY_ENABLED: '0', CUA_TELEMETRY_ENABLED: '0'}});
+              if (!result.stdout.includes(release.VERSION)) throw Error('driverVersion');
+              if (generation !== jobGeneration) throw Error('setupCancelled');
+            }
+          });
+          protocol = null;
         }
         if (action === 'setup') {
           stage('desktop','Preparing desktop access…');
           const env = await environment();
-          if (platform === 'linux' && env.needsHelper && !env.helperInstalled) {await adapter.setupHelper(driverDirectory); environmentCache = null;}
+          if (platform === 'linux' && env.needsHelper && !env.helperInstalled) {await adapter.setupHelper(currentDriver?.folder || driverDirectory); environmentCache = null;}
           if (generation !== jobGeneration) throw Error('setupCancelled');
           await mutate(() => generation === jobGeneration ? configure(value) : undefined);
           if (generation !== jobGeneration) throw Error('setupCancelled');
@@ -255,15 +252,17 @@ function createManager({platform = process.platform, home = os.homedir(), config
       else if (action === 'disconnect') await disable();
       else if (action === 'setupHelper') {
         stage('desktop','Preparing desktop access…');
-        if (platform !== 'linux' || !(await installed()) || !(await environment()).needsHelper) throw Error('helperUnavailable');
-        await adapter.setupHelper(driverDirectory); environmentCache = null;
+        const currentDriver = await installed();
+        if (platform !== 'linux' || !currentDriver || !(await environment()).needsHelper) throw Error('helperUnavailable');
+        await adapter.setupHelper(currentDriver.folder); environmentCache = null;
       } else {
         environmentCache = null;
         protocol = null;
         stage('driver','Checking Cua Driver…');
-        if (!(await installed())) throw Error('installFirst');
-        const version = await run(driver, ['--version'], {timeout: 8000, windowsHide: true, maxBuffer: 16000, env: {...process.env, CUA_DRIVER_RS_TELEMETRY_ENABLED: '0', CUA_TELEMETRY_ENABLED: '0'}});
-        if (!version.stdout.includes(release.VERSION)) throw Error('driverVersion');
+        const currentDriver = await installed();
+        if (!currentDriver) throw Error('installFirst');
+        const version = await run(currentDriver.file, ['--version'], {timeout: 8000, windowsHide: true, maxBuffer: 16000, env: {...process.env, CUA_DRIVER_RS_TELEMETRY_ENABLED: '0', CUA_TELEMETRY_ENABLED: '0'}});
+        if (!version.stdout.includes(currentDriver.version)) throw Error('driverVersion');
         if (!(await status()).enabled) throw Error('connectFirst');
         await checkConnection();
       }

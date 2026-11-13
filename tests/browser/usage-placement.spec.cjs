@@ -60,7 +60,7 @@ async function setup(page) {
   await page.evaluate(source);
 }
 for (const compact of [false, true])
-  test(`Usage stays docked from first paint with native glass and transform hints (${compact ? "compact" : "expanded"})`, async ({
+  test(`Usage stays docked from first paint without opening the model menu (${compact ? "compact" : "expanded"})`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1000, height: 720 });
@@ -92,22 +92,17 @@ for (const compact of [false, true])
       expect(frame.y).toBeGreaterThan(8);
       expect(Math.abs(frame.bottom - samples.anchor.bottom)).toBeLessThan(1.5);
     }
-    await page.evaluate(() =>
-      document.dispatchEvent(
-        new PointerEvent("pointerout", {
-          bubbles: true,
-          relatedTarget: document.body,
-        }),
-      ),
-    );
-    await expect(page.locator("[data-agpa-usage-menu]")).toHaveCount(0);
+    const popup = page.locator("[data-agpa-usage-menu]");
+    await expect(
+      page.locator("[data-testid=model-selector-panel]"),
+    ).toHaveCount(0);
+    await popup.hover();
+    await page.mouse.move(900, 100);
+    await expect(popup).toHaveCount(0);
     await page.locator("[data-testid=model-selector-trigger]").click();
-    await expect(page.locator("[data-agpa-usage-root]")).toBeVisible();
-    expect(
-      await page
-        .locator("[data-agpa-usage-root]")
-        .evaluate((n) => getComputedStyle(n).backdropFilter),
-    ).toContain("blur");
+    await expect(
+      page.getByRole("menuitem", { name: "View Usage" }),
+    ).toBeVisible();
   });
 test("Usage stays available on Automations without creating a conversation or opening the model menu", async ({
   page,
@@ -184,7 +179,14 @@ test("sidebar View Usage inherits the Settings typography", async ({
   await page.addStyleTag({
     content: "button{font-size:14px;line-height:20px}.text-sm{font-size:12px}",
   });
+  await page.locator("[data-testid=settings-button]").evaluate((button) => {
+    button.innerHTML = '<span class="text-sm">Settings</span>';
+  });
   const label = page.locator("[data-agpa-view-usage] > span").last();
+  await expect(label).toHaveCSS("font-size", "12px");
+  await page
+    .locator("[data-testid=settings-button] > span")
+    .evaluate((span) => span.classList.remove("text-sm"));
   await expect(label).toHaveCSS("font-size", "14px");
   await expect(label).toHaveCSS("line-height", "20px");
 });
