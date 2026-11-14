@@ -438,6 +438,17 @@ function detectActiveModel(doc = document) {
   return { name: cleanName, ceiling: 1000000 };
 }
 
+// Antigravity's observed automatic compaction budget. Keep this scoped to
+// known model generations and separate from the model's context capacity.
+// Evidence and version scope are recorded in docs/CONTEXT_BUDGET.md.
+function compactionThresholdFor(modelName, capacity) {
+  const threshold = 256000;
+  if (typeof modelName !== 'string' || !(capacity > threshold)) return null;
+  const name = modelName.replace(/\s+(?:\((?:thinking|low|medium|high|extra|xhigh)\)|thinking|low|medium|high|extra|xhigh|[([]?\d+(?:\.\d+)?\s*[km][)\]]?)$/gi, '');
+  const supported = /^(?:gemini 4 (?:argon|carbon|hydrogen)|claude (?:opus|sonnet) 5\.5|orchestrator \((?:argon|carbon)\))$/i;
+  return supported.test(name) ? threshold : null;
+}
+
 function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0, docTokens = 0, systemTokens = 0) {
   const totalChars = Math.max(0, Number(chars) || 0);
   const code = Math.min(totalChars, Math.max(0, Number(codeChars) || 0));
@@ -624,11 +635,19 @@ function contextWindowBreakdown(stats = {}) {
   const count = value => Number.isFinite(value) && value >= 0 ? value : 0;
   const used = count(stats.tokens);
   const capacity = count(stats.ceiling) || null;
+  const compactionThreshold = count(stats.compactionThreshold);
   const instructions = count(stats.systemTokens) > 0
     ? Math.min(used, count(stats.systemTokens)) : null;
   return {
     used,
     capacity,
+    ...(compactionThreshold > 0 && capacity > compactionThreshold ? {
+      compaction: {
+        threshold: compactionThreshold,
+        remaining: Math.max(0, compactionThreshold - used),
+        percentage: Math.min(100, used / compactionThreshold * 100),
+      },
+    } : {}),
     instructions,
     conversation: instructions === null ? null : used - instructions,
     free: capacity === null ? null : Math.max(0, capacity - used),
@@ -864,6 +883,9 @@ function extractConversationStats(doc = document, storage = undefined) {
   const activeModel = detectActiveModel(doc);
   const ceiling = activeModel.name ? activeModel.ceiling : (entry.ceiling || activeModel.ceiling);
   const modelName = activeModel.name || entry.modelName || '';
+  const compactionThreshold = compactionThresholdFor(modelName, ceiling);
+  entry.ceiling = ceiling;
+  entry.modelName = modelName;
 
   // Discover newly mounted turn blocks in viewport (only when unhydrated)
   if (!entry.apiTokens) {
@@ -1047,7 +1069,7 @@ function extractConversationStats(doc = document, storage = undefined) {
       tokens += estimateTokensPrecise(composerText, modelName);
     }
   }
-  const budget = budgetFn(tokens, ceiling);
+  const budget = budgetFn(tokens, compactionThreshold || ceiling);
   return {
     chars,
     codeChars,
@@ -1065,6 +1087,7 @@ function extractConversationStats(doc = document, storage = undefined) {
     mtime: entry.mtime || 0,
     tokens,
     ceiling,
+    compactionThreshold,
     modelName,
     budget,
     formatted: formatFn(tokens)

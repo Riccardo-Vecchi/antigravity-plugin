@@ -59,3 +59,50 @@ test("invalid inputs and over-capacity estimates never make negative segments", 
   assert.equal(summary.free, 0);
   assert.equal(summary.percentage, 100);
 });
+
+test("compaction headroom keeps model capacity and clamps past the threshold", () => {
+  const stats = { tokens: 100000, ceiling: 1000000, compactionThreshold: 256000 };
+  const summary = contextWindowBreakdown(stats);
+  assert.equal(summary.capacity, 1000000);
+  assert.equal(summary.free, 900000);
+  assert.equal(summary.percentage, 10);
+  assert.deepEqual(summary.compaction, {
+    threshold: 256000,
+    remaining: 156000,
+    percentage: 39.0625,
+  });
+  assert.deepEqual(contextWindowBreakdown({ ...stats, tokens: 300000 }).compaction, {
+    threshold: 256000,
+    remaining: 0,
+    percentage: 100,
+  });
+  assert.equal(contextWindowBreakdown({ ...stats, ceiling: 128000 }).compaction, undefined);
+});
+
+test("a named model restores its threshold from a legacy cache without changing capacity", () => {
+  const { extractConversationStats, loadConversationState, saveConversationState } =
+    require("../common/context-budget.cjs");
+  const entries = new Map();
+  const storage = {
+    setItem: (key, value) => entries.set(key, value),
+    getItem: (key) => entries.get(key),
+  };
+  const convKey = "/c/legacy-compaction-example";
+  saveConversationState(convKey, {
+    modelName: "Gemini 4 Argon (High)",
+    ceiling: 1000000,
+    apiTokens: 100000,
+    maxTurns: 1,
+  }, storage);
+  const doc = { location: { pathname: convKey } };
+  const stats = extractConversationStats(doc, storage);
+  assert.equal(stats.ceiling, 1000000);
+  assert.equal(stats.compactionThreshold, 256000);
+  assert.equal(stats.budget.percentage, 39);
+  assert.equal(loadConversationState(convKey, storage).ceiling, 1000000);
+
+  doc.querySelector = (selector) => selector.includes("model-selector-trigger")
+    ? { textContent: "Gemini 4 Argon Experimental" }
+    : null;
+  assert.equal(extractConversationStats(doc, storage).compactionThreshold, null);
+});
