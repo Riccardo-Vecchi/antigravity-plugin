@@ -199,32 +199,31 @@ test("native context controls replace the fallback without replacing native beha
   ).toBeVisible();
   await expect(model).not.toHaveAttribute("data-agpa-context-adjacent");
 });
-test("hover shows the graphical overview, click expands details and leaving dismisses only the preview", async ({
+test("hover shows estimated compaction progress and click adds model capacity", async ({
   page,
 }) => {
   await setup(page);
   await page.evaluate(() => {
-    const rules = globalThis.__AGPA_CONTEXT_BUDGET__,
-      stats = rules.extractConversationStats(document);
-    rules.extractConversationStats = () => ({
-      ...stats,
-      turns: 1,
-      chars: 4000,
-      tokens: 184400,
-      ceiling: 1000000,
-      formatted: "~184k",
-      budget: rules.budgetLevelFor(184400, 1000000),
+    history.replaceState(null, "", "/c/hydrogen-context");
+    globalThis.fixture.external("Gemini 4 Hydrogen", "xhigh");
+    const api = globalThis.__AGContextBudget;
+    api.hydrateFromTranscript(api.getActiveKey(), {
+      maxTurns: 1,
+      maxChars: 4000,
+      apiTokens: 184400,
     });
-    globalThis.__AGContextBudget.refresh();
+    api.refresh();
   });
   const pill = page.locator("[data-agpa-context-budget]"),
     tip = page.getByRole("tooltip", { name: "Context window" });
   await expect(pill).not.toHaveAttribute("title");
   await pill.hover();
   await expect(tip.locator(".agpa-context-donut")).toBeVisible();
-  await expect(tip.locator(".agpa-context-full")).toHaveText("18% full");
+  await expect(tip.locator(".agpa-context-full")).toHaveText(
+    "72% of compaction threshold",
+  );
   await expect(tip.locator(".agpa-context-used")).toHaveText(
-    "~184.4k of ~1M tokens used",
+    "~184.4k of ~256k tokens before compaction",
   );
   await expect(
     tip.locator(".agpa-context-row,.agpa-context-details,button"),
@@ -252,4 +251,47 @@ test("hover shows the graphical overview, click expands details and leaving dism
   await page.evaluate(() => globalThis.__AGContextBudget.destroy());
   await page.waitForTimeout(250);
   await expect(page.locator(".agpa-context-popup")).toHaveCount(0);
+});
+
+test("model changes update the compaction meter without carrying over the old threshold", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    history.replaceState(null, "", "/c/model-change-context");
+    const api = globalThis.__AGContextBudget;
+    api.hydrateFromTranscript(api.getActiveKey(), {
+      maxTurns: 1,
+      maxChars: 4000,
+      apiTokens: 220000,
+    });
+    globalThis.fixture.external("Gemini 4 Hydrogen", "high");
+    api.refresh();
+  });
+  const pill = page.locator("[data-agpa-context-budget]");
+  await expect(pill).toHaveAttribute("data-level", "saturated");
+  await expect(pill).toHaveAttribute("aria-label", /~220k of ~256k/);
+  await pill.click();
+  const popup = page.getByRole("dialog");
+  await expect(
+    popup.getByRole("progressbar", { name: "Compaction threshold" }),
+  ).toHaveAttribute("aria-valuenow", "86");
+  await expect(popup.getByText("Remaining before compaction")).toBeVisible();
+  await expect(popup.getByText("~36k", { exact: true })).toBeVisible();
+  await expect(popup.getByText("Model capacity")).toBeVisible();
+  await expect(popup.getByText("~1M", { exact: true })).toBeVisible();
+  await expect(
+    popup.getByRole("button", { name: "Insert /compact" }),
+  ).toBeVisible();
+
+  await page.evaluate(() => {
+    globalThis.fixture.external("Future Fixture", "minimal");
+    globalThis.__AGContextBudget.refresh();
+  });
+  await expect(pill).toHaveAttribute("aria-label", /Context budget/);
+  await expect(pill).toHaveAttribute("data-level", "moderate");
+  await expect(popup).toHaveCount(0);
+  await pill.click();
+  await expect(popup.locator(".agpa-context-full")).toHaveText("22% full");
+  await expect(popup.getByText("Remaining before compaction")).toHaveCount(0);
 });

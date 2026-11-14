@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.22.3
+
+- Show progress toward automatic compaction in the fallback context indicator for models with a known threshold. Keep the model capacity visible in the click panel and defer to the native indicator when available.
+
 ## 1.22.2
 
 - Restore custom project icons and remote cloud badges in project search, conversation search, and the composer project picker.

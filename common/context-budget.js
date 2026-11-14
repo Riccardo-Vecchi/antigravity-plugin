@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.3.2';
+  const VERSION = '1.3.3';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -114,16 +114,22 @@
       const unit = value >= 1000000 ? 1000000 : 1000;
       return '~' + Number((value / unit).toFixed(1)) + (unit === 1000 ? 'k' : 'M');
     };
-    const percent = totals.percentage === null ? '—' : Math.round(totals.percentage) + '%';
+    const compaction = totals.compaction;
+    const meterLimit = compaction?.threshold ?? totals.capacity;
+    const meterPercentage = compaction?.percentage ?? totals.percentage;
+    const percent = meterPercentage === null ? '—' : Math.round(meterPercentage) + '%';
+    const headlineText = compaction ? t('{percent} of compaction threshold', {percent}) : t('{percent} full', {percent});
+    const usageText = compaction
+      ? t('{used} of {threshold} tokens before compaction', {used:format(totals.used),threshold:format(compaction.threshold)})
+      : t('{used} of {capacity} tokens used', {used:format(totals.used),capacity:format(totals.capacity)});
     if (!preview) header.append(closeBtn);
     const hero = element('div', {class:'agpa-context-hero'});
     const donut = element('div', {class:'agpa-context-donut', 'aria-hidden':'true'});
-    donut.style.setProperty('--context-percent', (totals.percentage || 0) + '%');
+    donut.style.setProperty('--context-percent', (meterPercentage || 0) + '%');
     donut.append(element('strong', {class:'agpa-context-percent', text:percent}));
     const headline = element('div', {class:'agpa-context-headline'});
-    headline.append(element('div', {class:'agpa-context-full', text:t('{percent} full', {percent})}), element('div', {
-      class:'agpa-context-used',
-      text:t('{used} of {capacity} tokens used', {used:format(totals.used),capacity:format(totals.capacity)})
+    headline.append(element('div', {class:'agpa-context-full', text:headlineText}), element('div', {
+      class:'agpa-context-used', text:usageText
     }));
     hero.append(donut,headline);popup.append(hero);
     if (preview) {
@@ -135,15 +141,15 @@
 
     const meter = element('div', {
       class: 'agpa-context-meter', role: 'progressbar',
-      'aria-label': t('Context window'), 'aria-valuemin': '0', 'aria-valuemax': '100'
+      'aria-label': t(compaction ? 'Compaction threshold' : 'Context window'), 'aria-valuemin': '0', 'aria-valuemax': '100'
     });
-    if (totals.percentage !== null) meter.setAttribute('aria-valuenow', String(Math.round(totals.percentage)));
+    if (meterPercentage !== null) meter.setAttribute('aria-valuenow', String(Math.round(meterPercentage)));
     meter.setAttribute('aria-valuetext', percent);
     const instructionsSegment = element('span', {class:'agpa-context-meter-instructions'});
     const conversationSegment = element('span', {class:'agpa-context-meter-used'});
-    const instructionsPercent = totals.capacity ? Math.min(totals.percentage || 0, (totals.instructions || 0) / totals.capacity * 100) : 0;
+    const instructionsPercent = meterLimit ? Math.min(meterPercentage || 0, (totals.instructions || 0) / meterLimit * 100) : 0;
     instructionsSegment.style.width = instructionsPercent + '%';
-    conversationSegment.style.width = Math.max(0, (totals.percentage || 0) - instructionsPercent) + '%';
+    conversationSegment.style.width = Math.max(0, (meterPercentage || 0) - instructionsPercent) + '%';
     meter.append(instructionsSegment,conversationSegment);
     popup.append(meter);
 
@@ -155,8 +161,13 @@
       return item;
     }
     popup.append(row(t('Instructions and tools'), format(totals.instructions), '⚙︎', 'agpa-context-instructions'),
-      row(t('Conversation'), format(totals.conversation), '☷', 'agpa-context-conversation'),
-      row(t('Free'), format(totals.free), '○', 'agpa-context-free'));
+      row(t('Conversation'), format(totals.conversation), '☷', 'agpa-context-conversation'));
+    if (compaction) {
+      popup.append(row(t('Remaining before compaction'), format(compaction.remaining), '○', 'agpa-context-free'),
+        row(t('Model capacity'), format(totals.capacity), '▤'));
+    } else {
+      popup.append(row(t('Free'), format(totals.free), '○', 'agpa-context-free'));
+    }
     popup.append(element('p', {
       class: 'agpa-context-desc agpa-context-estimate',
       text: t('Estimated from available data; the actual context may differ.')
@@ -250,10 +261,13 @@
 
     pill.removeAttribute('title');
     pill.style.setProperty('--agpa-context-fill', Math.max(0, Math.min(100, stats.budget.percentage)) + '%');
-    const ariaText = t('Context budget: {tokens} tokens ({turns} turns)', {
-      tokens: stats.formatted,
-      turns: String(stats.turns)
-    });
+    const ariaText = stats.compactionThreshold
+      ? t('{used} of {threshold} tokens before compaction', {
+        used: stats.formatted, threshold: rules.formatTokens(stats.compactionThreshold)
+      })
+      : t('Context budget: {tokens} tokens ({turns} turns)', {
+        tokens: stats.formatted, turns: String(stats.turns)
+      });
     if (pill.getAttribute('aria-label') !== ariaText) pill.setAttribute('aria-label', ariaText);
   }
 
@@ -265,6 +279,7 @@
     if (stopped) return;
 
     const stats = rules.extractConversationStats(document);
+    if (popup && activeStats?.modelName !== stats.modelName) closePopup();
     activeStats = stats;
 
     const convKey = rules.getConversationKey ? rules.getConversationKey(document) : 'default';

@@ -1,12 +1,16 @@
 # 🧭 Context window
 
-The global indicator sits immediately before the model selector. It is hidden in new chats until conversation data is available. Hover for a graphical overview of utilization and tokens used; click for the full breakdown. Open it for context utilization, the estimated capacity, a breakdown of instructions/tools, conversation and free space, and available input/cache/output counters. No per-turn token badges, deltas or footprint calculations are performed.
+The global indicator sits immediately before the model selector. It is hidden in new chats until conversation data is available. Hover for a graphical overview of utilization and tokens used. Click for the breakdown of instructions, tools, conversation and available input, cache and output counters. No per-turn token badges, deltas or footprint calculations are performed.
 
 ## 🔎 Native controls first
 
 When Antigravity provides its own `context-usage-indicator`, the plugin leaves its values, popup and behavior native and hides the fallback. No rollout flags or account preferences are changed.
 
 The fallback uses the latest available transcript API counters and local estimates. Model capacities inferred from labels and locally estimated system/tool/rule components are approximate; they are not a guarantee of the host's active context. Cache counters are not counted twice. Unknown breakdown categories remain unavailable instead of being invented.
+
+For models with a documented or observed compaction limit, the fallback ring shows progress toward that limit. The click panel shows the tokens remaining before compaction and the estimated model capacity. For other models, the ring uses the estimated model capacity. The threshold is an estimate and can vary with the host version or configuration.
+
+The 256,000-token estimate is scoped to Gemini 4 Argon, Carbon and Hydrogen, both named Orchestrator variants, and Claude Opus/Sonnet 5.5. [Google’s Desktop forum response for Argon](https://discuss.ai.google.dev/t/enable-larger-than-250k-gemini-context-sizes-in-antigravity-desktop/198191/2) describes automatic compaction around 250k. Independent IDE catalog observations report 256,000 for [Argon](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.16.19), [Carbon](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.16.20), [Hydrogen](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.17.0), [Orchestrator](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.17.1) and [Claude 5.5](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.16.18).
 
 ## ⚙️ Implementation
 
