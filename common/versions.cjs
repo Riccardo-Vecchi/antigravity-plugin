@@ -1,6 +1,6 @@
 "use strict";
 module.exports = Object.freeze({
-  suite: "1.22.1",
+  suite: "1.22.2",
   library: "1.3.4",
   workspace: "1.2.0",
   sidebarLayout: "1.0.2",
@@ -11,7 +11,7 @@ module.exports = Object.freeze({
   teamworkBadge: "1.0.2",
   updates: "1.2.3",
   projectPresentation: "1.3.3",
-  appearance: "1.11.4",
+  appearance: "1.11.5",
   geminiSwitch: "1.2.0",
   geminiOrigin: "1.1.2",
   inline: "1.2.1",

@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.22.1](https://img.shields.io/badge/version-1.22.1-blue)](CHANGELOG.md)
+[![Version 1.22.2](https://img.shields.io/badge/version-1.22.2-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -34,7 +34,7 @@
 - Model favorites, a collapsible **Other** group, and provider logos in chat and Automations. **Orchestrator (Argon)** pairs the Google G with a converging arrow.
 - **View Usage** opens the same live quota popup from the expanded or compact sidebar, including outside conversations.
 - Global **Context window & token budget** beside the model selector, with a capacity breakdown popup. [Details](docs/CONTEXT_BUDGET.md).
-- Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar and project selector.
+- Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar, project search and project selector.
 - Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.
 - Fixed Antigravity/Gemini icons or a Dynamic mode, including supported tray integrations.
 - Startup view, Remember last view, desktop autostart, and automatic or manual plugin updates.

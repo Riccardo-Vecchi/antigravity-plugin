@@ -1,7 +1,7 @@
 /* Local project appearance. No conversation, project metadata, or tool mutations. */
 (() => {
   'use strict';
-  const VERSION = '1.11.4';
+  const VERSION = '1.11.5';
   const i18n=globalThis.__AGPAI18n;
   const initial = globalThis.__AGPA_CONFIG__ || { projects: {} };
   delete globalThis.__AGPA_CONFIG__;
@@ -128,7 +128,7 @@
     if(!native){icon?.remove();return;}
     const value=project&&config.projects?.[project.id];
     if(!value){native.removeAttribute('data-agpa-inline-native');icon?.remove();return;}
-    const remote=(native.getAttribute('data-project-icon')||native.getAttribute('data-project-glyph'))==='cloud';
+    const remote=project.remote||(native.getAttribute('data-project-icon')||native.getAttribute('data-project-glyph'))==='cloud';
     const size=native.getAttribute('width')==='14'?14:16;
     const signature=JSON.stringify([project.id,value,remote,size]);
     if(icon?.getAttribute('data-agpa-inline')===signature&&native.hasAttribute('data-agpa-inline-native')){remoteBadge(icon,remote);return;}
@@ -145,22 +145,37 @@
     // Selector rows expose a name, not an ID. Refuse ambiguous duplicate labels.
     return matches.length===1?matches[0]:null;
   }
+  const projectGlyph = '[data-project-icon]';
+  const searchInput = '[data-testid=fastpick-input]';
+  const searchResult = '[role=option][data-testid^=fastpick-item-][data-item-id]';
   function applySelectors() {
-    for(const item of document.querySelectorAll('[data-testid="project-selector-item"]'))
-      inlineIcon(item,projectNamed(item.getAttribute('data-project-name')));
-    for(const trigger of document.querySelectorAll('[data-testid="project-selector-trigger"]')) {
-      const name=trigger.querySelector(':scope > span.truncate')?.textContent;
-      inlineIcon(trigger,projectNamed(name));
+    for (const item of document.querySelectorAll('[data-testid=project-selector-item],[data-testid=project-selector-trigger]')) {
+      const name = item.getAttribute('data-project-name') || item.querySelector(':scope > span.truncate')?.textContent;
+      const native = item.querySelector(':scope > '+projectGlyph+', :scope > span > '+projectGlyph);
+      if (native) inlineIcon(native.parentElement,projectNamed(name?.trim()));
+    }
+    for (const input of document.querySelectorAll(searchInput)) {
+      const list = document.getElementById(input.getAttribute('aria-controls'));
+      if (list?.getAttribute('role') !== 'listbox') continue;
+      for (const row of list.querySelectorAll(searchResult)) {
+        // Fastpick shares rows across categories. Only an exact project ID
+        // identifies a project, including when display names are duplicated.
+        const project = knownProjects.get(row.dataset.itemId);
+        const content = row.firstElementChild;
+        if (content) inlineIcon(content,project,':scope > svg:not([data-agpa-appearance-ui]):not([data-project-glyph])');
+        applyConversationGlyph(row);
+      }
     }
   }
+  function applyConversationGlyph(row) {
+    const native=row.querySelector('[data-project-glyph]');
+    if(!native){row.querySelectorAll('[data-agpa-conversation-project]').forEach(icon=>icon.remove());return;}
+    const label=native.nextElementSibling?.textContent?.trim()||row.getAttribute('data-subtext');
+    inlineIcon(native.parentElement,projectNamed(label),':scope > [data-project-glyph]');
+    native.parentElement.querySelector(':scope > .agpa-inline-icon')?.setAttribute('data-agpa-conversation-project','');
+  }
   function applyConversationProjects() {
-    for(const row of document.querySelectorAll('[data-testid=conversation-row-sidebar]')){
-      const native=row.querySelector('[data-project-glyph]');
-      if(!native){row.querySelectorAll('[data-agpa-conversation-project]').forEach(icon=>icon.remove());continue;}
-      const label=native.nextElementSibling?.textContent?.trim()||row.getAttribute('data-subtext');
-      inlineIcon(native.parentElement,projectNamed(label),':scope > [data-project-glyph]');
-      native.parentElement.querySelector(':scope > .agpa-inline-icon')?.setAttribute('data-agpa-conversation-project','');
-    }
+    for(const row of document.querySelectorAll('[data-testid=conversation-row-sidebar]'))applyConversationGlyph(row);
   }
   function nativeSidebar(){return document.querySelector('[data-testid="settings-button"]')?.closest('[role="navigation"]');}
   function nativeControl(selector) {return selector === '[data-testid=sidebar-search-button]' ? globalThis.__AGPAPrimaryLayout(document).toggle?.parentElement?.querySelector(selector) : nativeSidebar()?.querySelector(selector);}
@@ -346,7 +361,7 @@
     });
     editorTranslate=paint;document.body.append(dialog);paint();dialog.showModal();search.focus();
   }
-  const watched = '[data-sidebar-section-drop-id],[data-testid=project-header],[data-testid=project-selector-trigger],[data-testid=project-selector-item],[data-testid=sidebar-toggle],[data-testid=settings-button],[data-testid=sidebar-navigation-items],[data-testid=conversation-row-sidebar],[role=menu]';
+  const watched = searchInput+','+searchResult+', [data-sidebar-section-drop-id],[data-testid=project-header],[data-testid=project-selector-trigger],[data-testid=project-selector-item],[data-testid=sidebar-toggle],[data-testid=settings-button],[data-testid=sidebar-navigation-items],[data-testid=conversation-row-sidebar],[role=menu]';
   const observer=new MutationObserver(records => {
     const owned = node => node.nodeType === 1 && (node.hasAttribute('data-agpa-appearance-ui') || node.closest('[data-agpa-appearance-ui]'));
     if (records.some(record => {
@@ -357,7 +372,7 @@
       return target.closest(watched) || changed.some(node => node.nodeType === 1 && (node.matches(watched) || node.querySelector(watched)));
     })) schedule();
   });
-  observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['data-open','data-project-glyph','data-subtext','data-project-icon','data-project-label','data-project-name','data-sidebar-section-drop-id','aria-labelledby','aria-expanded','data-selected']});
+  observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['data-open','data-project-glyph','data-subtext','data-project-icon','data-project-label','data-project-name','data-sidebar-section-drop-id','aria-labelledby','aria-expanded','data-selected','aria-controls','data-item-id']});
   window.addEventListener('agpa:project-presentation',schedule);
   window.addEventListener('popstate',schedule);
   window.addEventListener('hashchange',schedule);

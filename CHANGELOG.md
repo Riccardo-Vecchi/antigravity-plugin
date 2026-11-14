@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.22.2
+
+- Restore custom project icons and remote cloud badges in project search, conversation search, and the composer project picker.
+
 ## 1.22.1
 
 - Add a localized **Multi-agent modes** heading above Swarm, Boost, and Teamwork.

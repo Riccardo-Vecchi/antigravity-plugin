@@ -480,3 +480,61 @@ for (const layout of ["Software Engineering", "Knowledge Work"])
       }),
     ).toBeVisible();
   });
+
+test("project search resolves exact IDs and the composer supports wrapped icons", async ({
+  page,
+}) => {
+  await setup(page, true, true);
+  await page.evaluate(() => {
+    const trigger = document.querySelector(
+      "[data-testid=project-selector-trigger]",
+    );
+    const native = trigger.querySelector("svg");
+    const wrapper = document.createElement("span");
+    trigger.prepend(wrapper);
+    wrapper.append(native);
+    const header = document.querySelector(
+      "[data-sidebar-section-drop-id=project-b] [data-testid=project-header]",
+    );
+    header.setAttribute("data-project-label", "Different");
+    const dialog = document.createElement("div");
+    dialog.innerHTML =
+      '<input data-testid="fastpick-input" aria-controls="search-list"><div role="listbox" id="search-list"></div>';
+    const list = dialog.lastElementChild;
+    for (const id of ["project-a", "project-b", "conversation-a"]) {
+      const option = document.createElement("div");
+      option.role = "option";
+      option.dataset.itemId = id;
+      option.dataset.testid = "fastpick-item-" + id;
+      option.innerHTML =
+        id === "conversation-a"
+          ? '<div><span><svg width="14" data-project-glyph="cloud"></svg><span>Demo</span></span></div>'
+          : '<div><svg width="14"></svg><span>Demo</span></div>';
+      list.append(option);
+    }
+    document.body.append(dialog);
+  });
+  const trigger = page.getByTestId("project-selector-trigger");
+  await expect(
+    trigger.locator("span > .agpa-inline-icon [data-agpa-remote-badge]"),
+  ).toBeVisible();
+  const project = page.getByTestId("fastpick-item-project-a");
+  await expect(project.locator(".agpa-inline-icon")).toHaveCSS(
+    "color",
+    "rgb(255, 131, 194)",
+  );
+  await expect(project.locator("[data-agpa-remote-badge]")).toBeVisible();
+  await expect(
+    page.getByTestId("fastpick-item-project-b").locator(".agpa-inline-icon"),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .getByTestId("fastpick-item-conversation-a")
+      .locator("[data-agpa-conversation-project] [data-agpa-remote-badge]"),
+  ).toBeVisible();
+  await project.evaluate((row) =>
+    row.setAttribute("data-item-id", "conversation-b"),
+  );
+  await expect(project.locator(".agpa-inline-icon")).toHaveCount(0);
+  await expect(project.locator("svg")).toBeVisible();
+});
