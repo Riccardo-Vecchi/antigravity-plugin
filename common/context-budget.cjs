@@ -57,6 +57,9 @@ function loadConversationState(convKey, storage) {
               parsed.maxImageTokens = sum;
             }
           }
+          if (parsed.ceiling === 1000000 && (!parsed.modelName || !/1\s*m\b/i.test(parsed.modelName))) {
+            parsed.ceiling = 256000;
+          }
         }
         return parsed;
       }
@@ -401,7 +404,7 @@ function estimateSystemBaseline(doc = document) {
 }
 
 function detectActiveModel(doc = document) {
-  if (!doc) return { name: '', ceiling: 1000000 };
+  if (!doc) return { name: '', ceiling: 256000 };
   const trigger = doc.querySelector?.('[data-testid=model-selector-trigger], [data-agpa-footer-model]');
   const rawName = trigger?.querySelector?.(':scope > span:not([data-agpa-model-ui])')?.textContent ||
     trigger?.textContent || '';
@@ -424,18 +427,18 @@ function detectActiveModel(doc = document) {
     return { name: cleanName || 'GPT-OSS 120B', ceiling: 128000 };
   }
 
-  // 2. Claude: Sonnet 5.5 & Opus 5.5 (1M context window)
+  // 2. Claude: Sonnet 5.5 & Opus 5.5 (~256k context window in Antigravity)
   if (lower.includes('sonnet') || lower.includes('opus') || lower.includes('claude')) {
-    return { name: cleanName || 'Claude 5.5', ceiling: 1000000 };
+    return { name: cleanName || 'Claude 5.5', ceiling: 256000 };
   }
 
-  // 3. Google Gemini: Gemini 4 Argon, Gemini 3.8 Flash, Gemini 3.1 Pro (all Gemini >= 3 have 1M)
+  // 3. Google Gemini: Gemini 4 Argon, Gemini 3.8 Flash, Gemini 3.1 Pro (~256k context window in Antigravity)
   if (lower.includes('gemini') || lower.includes('carbon') || lower.includes('argon')) {
-    return { name: cleanName || 'Gemini', ceiling: 1000000 };
+    return { name: cleanName || 'Gemini', ceiling: 256000 };
   }
 
-  // Default to 1M (standard context window for current Antigravity models)
-  return { name: cleanName, ceiling: 1000000 };
+  // Default to ~256k (indicative context window limit for current Antigravity models)
+  return { name: cleanName, ceiling: 256000 };
 }
 
 function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0, docTokens = 0, systemTokens = 0) {
@@ -597,9 +600,9 @@ function calculateEffectiveTokens(entry, composerText = '', modelName = '') {
   return total;
 }
 
-function budgetLevelFor(tokens, ceiling = 1000000) {
+function budgetLevelFor(tokens, ceiling = 256000) {
   const count = Number(tokens) || 0;
-  const max = Math.max(1000, Number(ceiling) || 1000000);
+  const max = Math.max(1000, Number(ceiling) || 256000);
   const healthyThreshold = Math.round(max * 0.175);
   const moderateThreshold = Math.round(max * 0.425);
   const elevatedThreshold = Math.round(max * 0.80);
@@ -781,7 +784,7 @@ function collectImages(doc, modelName = '') {
 }
 
 function extractConversationStats(doc = document, storage = undefined) {
-  if (!doc) return { chars: 0, codeChars: 0, turns: 0, imageTokens: 0, imageCount: 0, docTokens: 0, docCount: 0, systemTokens: 0, systemBaseline: null, tokens: 0, ceiling: 1000000, modelName: '', budget: budgetLevelFor(0, 1000000), formatted: '0' };
+  if (!doc) return { chars: 0, codeChars: 0, turns: 0, imageTokens: 0, imageCount: 0, docTokens: 0, docCount: 0, systemTokens: 0, systemBaseline: null, tokens: 0, ceiling: 256000, modelName: '', budget: budgetLevelFor(0, 256000), formatted: '0' };
   const convKey = getConversationKey(doc);
   const store = storage !== undefined ? storage : getStorage(doc);
 
@@ -810,12 +813,16 @@ function extractConversationStats(doc = document, storage = undefined) {
         pendingTurns: stored.pendingTurns || 0,
         transcriptChars: stored.transcriptChars || 0,
         transcriptTurns: stored.transcriptTurns || 0,
-        ceiling: stored.ceiling || 1000000,
+        ceiling: stored.ceiling || 256000,
         modelName: stored.modelName || '',
         updatedAt: stored.updatedAt || Date.now()
       };
       conversationCache.set(convKey, entry);
     }
+  }
+
+  if (entry && entry.ceiling === 1000000 && (!entry.modelName || !/1\s*m\b/i.test(entry.modelName))) {
+    entry.ceiling = 256000;
   }
 
   if (!entry) {

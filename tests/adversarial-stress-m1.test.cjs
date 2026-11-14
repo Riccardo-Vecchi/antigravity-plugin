@@ -377,8 +377,8 @@ test('Adversarial 3.3: End-to-end multi-step turn lifecycle and model switching'
   const initialStats = contextBudget.extractConversationStats(mockDoc, mockStorage);
   assert.strictEqual(initialStats.apiTokens, 0);
 
-  // Model starts on Gemini
-  assert.strictEqual(initialStats.ceiling, 1000000);
+  // Model starts on Gemini (~256k context ceiling in Antigravity)
+  assert.strictEqual(initialStats.ceiling, 256000);
 
   // First step transcript arrives: 3500 api tokens
   contextBudget.hydrateFromTranscript(convKey, {

@@ -543,11 +543,11 @@ test('Tier 1 - F5.4: detectActiveModel detects Gemini, Claude, and OpenAI model 
 
   const m1 = contextBudget.detectActiveModel(makeDoc('Gemini 4 Argon (high)'));
   assert.ok(m1.name.includes('Gemini 4 Argon'));
-  assert.equal(m1.ceiling, 1000000);
+  assert.equal(m1.ceiling, 256000);
 
   const m2 = contextBudget.detectActiveModel(makeDoc('Claude 3.5 Sonnet'));
   assert.ok(m2.name.includes('Claude'));
-  assert.equal(m2.ceiling, 1000000);
+  assert.equal(m2.ceiling, 256000);
 
   const m3 = contextBudget.detectActiveModel(makeDoc('GPT-OSS 120B'));
   assert.ok(m3.name.includes('GPT-OSS'));
@@ -1507,12 +1507,12 @@ test('Tier 4 - Scenario 4.4: Context saturation boundary & /compact action recom
   contextBudget.clearCache();
 
   const convKey = '/c/01ed90cd-c026-4190-bfd8-5bb6444c0719';
-  // Hydrate with 850,000 tokens on 1M ceiling (85% saturation)
+  // Hydrate with 217,600 tokens on 256k ceiling (85% saturation)
   contextBudget.hydrateFromTranscript(convKey, {
-    apiTokens: 850000,
-    maxChars: 1500000,
+    apiTokens: 217600,
+    maxChars: 400000,
     maxTurns: 45,
-    ceiling: 1000000
+    ceiling: 256000
   });
 
   const stats = contextBudget.extractConversationStats(doc);

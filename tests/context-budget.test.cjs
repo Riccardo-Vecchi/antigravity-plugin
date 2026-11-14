@@ -72,39 +72,39 @@ test('detectActiveModel identifies Antigravity models and sets context ceiling d
     querySelector: sel => sel.includes('model-selector-trigger') ? { textContent: name } : null
   });
 
-  // Google Gemini models (Gemini 4 Carbon/Argon, Gemini 3.8 Flash, all >= 3 have 1M)
-  assert.equal(rules.detectActiveModel(makeDoc('Gemini 4 Carbon (high)')).ceiling, 1000000);
-  assert.equal(rules.detectActiveModel(makeDoc('Gemini 4 Argon (high)')).ceiling, 1000000);
-  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (high)')).ceiling, 1000000);
-  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (medium)')).ceiling, 1000000);
-  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (low)')).ceiling, 1000000);
+  // Google Gemini models (Gemini 4 Carbon/Argon, Gemini 3.8 Flash, all >= 3 have ~256k in Antigravity)
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 4 Carbon (high)')).ceiling, 256000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 4 Argon (high)')).ceiling, 256000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (high)')).ceiling, 256000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (medium)')).ceiling, 256000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.8 Flash (low)')).ceiling, 256000);
 
-  // Anthropic Claude (Sonnet 5.5 and Opus 5.5 both have 1M)
-  assert.equal(rules.detectActiveModel(makeDoc('Claude Sonnet 5.5 (Thinking)')).ceiling, 1000000);
-  assert.equal(rules.detectActiveModel(makeDoc('Claude Opus 5.5 (Thinking)')).ceiling, 1000000);
-  assert.equal(rules.detectActiveModel(makeDoc('Claude Sonnet 4.6')).ceiling, 1000000);
-  assert.equal(rules.detectActiveModel(makeDoc('Claude Opus 4.6')).ceiling, 1000000);
-  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.1 Pro')).ceiling, 1000000);
+  // Anthropic Claude (Sonnet 5.5 and Opus 5.5 both have ~256k in Antigravity)
+  assert.equal(rules.detectActiveModel(makeDoc('Claude Sonnet 5.5 (Thinking)')).ceiling, 256000);
+  assert.equal(rules.detectActiveModel(makeDoc('Claude Opus 5.5 (Thinking)')).ceiling, 256000);
+  assert.equal(rules.detectActiveModel(makeDoc('Claude Sonnet 4.6')).ceiling, 256000);
+  assert.equal(rules.detectActiveModel(makeDoc('Claude Opus 4.6')).ceiling, 256000);
+  assert.equal(rules.detectActiveModel(makeDoc('Gemini 3.1 Pro')).ceiling, 256000);
 
   // OpenAI (GPT-OSS 120B has 128k)
   assert.equal(rules.detectActiveModel(makeDoc('GPT-OSS 120B')).ceiling, 128000);
 
-  // Default fallback for current Antigravity models
-  assert.equal(rules.detectActiveModel(null).ceiling, 1000000);
+  // Default fallback for current Antigravity models (~256k indicative ceiling)
+  assert.equal(rules.detectActiveModel(null).ceiling, 256000);
 });
 
-test('budgetLevelFor categorizes tokens into healthy, moderate, elevated, and saturated on 1M default', () => {
-  assert.equal(rules.budgetLevelFor(50000).level, 'healthy');
-  assert.equal(rules.budgetLevelFor(250000).level, 'moderate');
-  assert.equal(rules.budgetLevelFor(500000).level, 'elevated');
-  assert.equal(rules.budgetLevelFor(900000).level, 'saturated');
-  assert.equal(rules.budgetLevelFor(900000).color, '#ff666a');
+test('budgetLevelFor categorizes tokens into healthy, moderate, elevated, and saturated on 256k default', () => {
+  assert.equal(rules.budgetLevelFor(20000).level, 'healthy');
+  assert.equal(rules.budgetLevelFor(60000).level, 'moderate');
+  assert.equal(rules.budgetLevelFor(150000).level, 'elevated');
+  assert.equal(rules.budgetLevelFor(220000).level, 'saturated');
+  assert.equal(rules.budgetLevelFor(220000).color, '#ff666a');
 });
 
 test('budgetLevelFor scales thresholds dynamically based on model ceiling', () => {
-  // 100k tokens on Gemini 4 / Claude 4.6 (1M max) is healthy (10%)
-  assert.equal(rules.budgetLevelFor(100000, 1000000).level, 'healthy');
-  assert.equal(rules.budgetLevelFor(100000, 1000000).percentage, 10);
+  // 100k tokens on Gemini 4 / Claude 4.6 (256k max) is moderate (39%)
+  assert.equal(rules.budgetLevelFor(100000, 256000).level, 'moderate');
+  assert.equal(rules.budgetLevelFor(100000, 256000).percentage, 39);
 
   // 100k tokens on GPT-OSS 120B (128k max) is elevated (78%)
   assert.equal(rules.budgetLevelFor(100000, 128000).level, 'elevated');
@@ -116,6 +116,7 @@ test('formatTokens formats token counts cleanly', () => {
   assert.equal(rules.formatTokens(1240), '~1k');
   assert.equal(rules.formatTokens(45200), '~45k');
   assert.equal(rules.formatTokens(185000), '~185k');
+  assert.equal(rules.formatTokens(256000), '~256k');
   assert.equal(rules.formatTokens(1000000), '~1M');
 });
 
@@ -244,7 +245,7 @@ test('saveConversationState, loadConversationState and clearConversationState pe
     maxChars: 45000,
     maxTurns: 8,
     maxImageTokens: 1105,
-    ceiling: 1000000,
+    ceiling: 256000,
     modelName: 'Gemini 4 Carbon (high)'
   };
 
@@ -273,7 +274,7 @@ test('extractConversationStats restores conversation memory on startup without s
     maxChars: 240000,
     maxTurns: 18,
     maxImageTokens: 2210,
-    ceiling: 1000000,
+    ceiling: 256000,
     modelName: 'Gemini 4 Carbon (high)',
     blocks: [['p:old turn 1', 1000], ['p:old turn 2', 2000]],
     images: [['img:1', 1105], ['img:2', 1105]]
@@ -299,7 +300,7 @@ test('extractConversationStats restores conversation memory on startup without s
   assert.equal(restored.chars, 240000, 'full cumulative characters restored from storage');
   assert.equal(restored.turns, 18, 'all 18 turns restored without scrolling up');
   assert.equal(restored.imageTokens, 2210, 'image tokens preserved from storage');
-  assert.equal(restored.ceiling, 1000000);
+  assert.equal(restored.ceiling, 256000);
   assert.equal(restored.modelName, 'Gemini 4 Carbon (high)');
   assert.ok(restored.tokens >= 60000 + 2160 + 2210, 'true token count available on startup');
 });
@@ -1174,7 +1175,7 @@ test('fresh new conversation screen (convKey default) starts with 0 turns and ze
     outputTokens: 615,
     maxChars: 300000,
     maxTurns: 0,
-    ceiling: 1000000
+    ceiling: 256000
   }));
 
   const storageAdapter = {
