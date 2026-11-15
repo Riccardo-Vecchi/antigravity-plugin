@@ -23,7 +23,7 @@
 | Platform | Status |
 | --- | --- |
 | 🐧 Linux x86-64 | Verified with Antigravity App 2.31.2 on Zorin/GNOME 46 |
-| <img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows 11 x64 | **Experimental**; community-verified installation on 2.31.2; desktop automation validation is pending |
+| <img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows 11 x64 | **Experimental**; community-verified installation on 2.31.2 on Windows 11 |
 
 ## ✨ Features
 
