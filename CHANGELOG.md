@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.22.4
+
+- Update the fallback compaction meter to 512,000 tokens for Gemini 4 Argon, Carbon and Hydrogen.
+- Update the reviewed Cua Driver to 0.52.9 with pinned Linux and Windows release checksums. Preserve existing installations and access settings until the driver is explicitly upgraded.
+
 ## 1.22.3
 
 - Show progress toward automatic compaction in the fallback context indicator for models with a known threshold. Keep the model capacity visible in the click panel and defer to the native indicator when available.

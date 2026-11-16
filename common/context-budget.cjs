@@ -442,11 +442,12 @@ function detectActiveModel(doc = document) {
 // known model generations and separate from the model's context capacity.
 // Evidence and version scope are recorded in docs/CONTEXT_BUDGET.md.
 function compactionThresholdFor(modelName, capacity) {
-  const threshold = 256000;
-  if (typeof modelName !== 'string' || !(capacity > threshold)) return null;
+  if (typeof modelName !== 'string') return null;
   const name = modelName.replace(/\s+(?:\((?:thinking|low|medium|high|extra|xhigh)\)|thinking|low|medium|high|extra|xhigh|[([]?\d+(?:\.\d+)?\s*[km][)\]]?)$/gi, '');
-  const supported = /^(?:gemini 4 (?:argon|carbon|hydrogen)|claude (?:opus|sonnet) 5\.5|orchestrator \((?:argon|carbon)\))$/i;
-  return supported.test(name) ? threshold : null;
+  const gemini4 = /^gemini 4 (?:argon|carbon|hydrogen)$/i;
+  const earlierLimit = /^(?:claude (?:opus|sonnet) 5\.5|orchestrator \((?:argon|carbon)\))$/i;
+  const threshold = gemini4.test(name) ? 512000 : earlierLimit.test(name) ? 256000 : null;
+  return threshold !== null && capacity > threshold ? threshold : null;
 }
 
 function estimateTokens(chars, turns, imageTokens = 0, codeChars = 0, docTokens = 0, systemTokens = 0) {

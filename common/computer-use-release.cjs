@@ -5,18 +5,21 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const VERSION = '0.47.23';
+const VERSION = '0.52.9';
 const ASSETS = Object.freeze({
+  'linux-x64': ['linux-x86_64-binary.tar.gz', 'f20c3d3b468778d03ec25bef32a40be2b83b3ef8961cf7816295acdbcf5ff273'],
+  'linux-arm64': ['linux-arm64-binary.tar.gz', 'b3c1be792b132b9af8a0b3f54e9d2e3edab74860d27c1ed539f4907d111daf0a'],
+  'win32-x64': ['windows-x86_64-binary.zip', 'b05c6ab050100d2b532dfa948c94742d0b95bfaf13e46e6ce44c1ee4224290e3'],
+});
+const DRIVER_RELEASES = [[VERSION, ASSETS], ['0.47.23', {
   'linux-x64': ['linux-x86_64-binary.tar.gz', '6fe5e63713eed904acef4c5ac6931264dba1f9239c16b37576c0b29c4b18c1b8'],
   'linux-arm64': ['linux-arm64-binary.tar.gz', '7bfa309fa2639c5d04bf2559af435b6bedcdd59b53e31975ac2d1025a22fb6bb'],
   'win32-x64': ['windows-x86_64-binary.zip', '3f2180741bf695f1c862ca64361aaf2f2688bf75d37792b42df842d176002beb'],
-});
-const PREVIOUS_ASSETS = Object.freeze({
+}], ['0.46.1', {
   'linux-x64': ['linux-x86_64-binary.tar.gz', '3f45c54b736bb8cbd75b4ad90095fceea9a787c22bc9e60b17ca1c8215dcc96b'],
   'linux-arm64': ['linux-arm64-binary.tar.gz', 'c1cf1f9635153cf9c347310008669893928d5e043db7522b37dfc59f0caef5f5'],
   'win32-x64': ['windows-x86_64-binary.zip', 'ec49cca509f25f65db2fa917718215f55f959d5ef650bf8ab2238a201d5666ac'],
-});
-const DRIVER_RELEASES = [[VERSION, ASSETS], ['0.46.1', PREVIOUS_ASSETS]];
+}]];
 
 async function driverDirectories(directory, platform, arch = process.arch) {
   const result = [];

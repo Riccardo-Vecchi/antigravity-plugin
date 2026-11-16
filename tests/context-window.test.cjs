@@ -61,21 +61,23 @@ test("invalid inputs and over-capacity estimates never make negative segments", 
 });
 
 test("compaction headroom keeps model capacity and clamps past the threshold", () => {
-  const stats = { tokens: 100000, ceiling: 1000000, compactionThreshold: 256000 };
+  const stats = { tokens: 100000, ceiling: 1000000, compactionThreshold: 512000 };
   const summary = contextWindowBreakdown(stats);
   assert.equal(summary.capacity, 1000000);
   assert.equal(summary.free, 900000);
   assert.equal(summary.percentage, 10);
   assert.deepEqual(summary.compaction, {
-    threshold: 256000,
-    remaining: 156000,
-    percentage: 39.0625,
+    threshold: 512000,
+    remaining: 412000,
+    percentage: 19.53125,
   });
-  assert.deepEqual(contextWindowBreakdown({ ...stats, tokens: 300000 }).compaction, {
-    threshold: 256000,
+  assert.equal(contextWindowBreakdown({ ...stats, tokens: 256000 }).compaction.percentage, 50);
+  assert.deepEqual(contextWindowBreakdown({ ...stats, tokens: 512000 }).compaction, {
+    threshold: 512000,
     remaining: 0,
     percentage: 100,
   });
+  assert.equal(contextWindowBreakdown({ ...stats, tokens: 512001 }).compaction.percentage, 100);
   assert.equal(contextWindowBreakdown({ ...stats, ceiling: 128000 }).compaction, undefined);
 });
 
@@ -97,12 +99,22 @@ test("a named model restores its threshold from a legacy cache without changing 
   const doc = { location: { pathname: convKey } };
   const stats = extractConversationStats(doc, storage);
   assert.equal(stats.ceiling, 1000000);
-  assert.equal(stats.compactionThreshold, 256000);
-  assert.equal(stats.budget.percentage, 39);
+  assert.equal(stats.compactionThreshold, 512000);
+  assert.equal(stats.budget.percentage, 20);
   assert.equal(loadConversationState(convKey, storage).ceiling, 1000000);
 
-  doc.querySelector = (selector) => selector.includes("model-selector-trigger")
-    ? { textContent: "Gemini 4 Argon Experimental" }
-    : null;
-  assert.equal(extractConversationStats(doc, storage).compactionThreshold, null);
+  for (const [label, expected] of [
+    ["Gemini 4 Carbon Medium", 512000],
+    ["Gemini 4 Hydrogen (Extra)", 512000],
+    ["Claude Opus 5.5 (Thinking)", 256000],
+    ["Orchestrator (Argon)", 256000],
+    ["Gemini 4 Argon (128k)", null],
+    ["Gemini 4 Argon Experimental", null],
+    ["GPT-OSS 120B", null],
+  ]) {
+    doc.querySelector = (selector) => selector.includes("model-selector-trigger")
+      ? { textContent: label }
+      : null;
+    assert.equal(extractConversationStats(doc, storage).compactionThreshold, expected, label);
+  }
 });

@@ -28,7 +28,7 @@ async function setup(page, state = {}) {
       enabled: true,
       installed: true,
       registered: true,
-      driverVersion: "0.47.23",
+      driverVersion: "0.52.9",
       protocol: { ok: true, desktop: { ok: true } },
       ...patch,
     };
@@ -173,6 +173,6 @@ test("a driver check keeps the installed driver marked passed", async ({
   await page.locator("summary").click();
   const driver = page.locator("[data-cu-checks] [data-cu-check-id=driver]");
   await expect(driver).toContainText("Passed");
-  await expect(driver).toContainText("0.47.23");
+  await expect(driver).toContainText("0.52.9");
   await expect(driver.locator(".agpa-cu-spinner")).toHaveCount(0);
 });

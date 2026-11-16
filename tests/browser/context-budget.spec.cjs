@@ -220,10 +220,10 @@ test("hover shows estimated compaction progress and click adds model capacity", 
   await pill.hover();
   await expect(tip.locator(".agpa-context-donut")).toBeVisible();
   await expect(tip.locator(".agpa-context-full")).toHaveText(
-    "72% of compaction threshold",
+    "36% of compaction threshold",
   );
   await expect(tip.locator(".agpa-context-used")).toHaveText(
-    "~184.4k of ~256k tokens before compaction",
+    "~184.4k of ~512k tokens before compaction",
   );
   await expect(
     tip.locator(".agpa-context-row,.agpa-context-details,button"),
@@ -263,21 +263,21 @@ test("model changes update the compaction meter without carrying over the old th
     api.hydrateFromTranscript(api.getActiveKey(), {
       maxTurns: 1,
       maxChars: 4000,
-      apiTokens: 220000,
+      apiTokens: 440000,
     });
     globalThis.fixture.external("Gemini 4 Hydrogen", "high");
     api.refresh();
   });
   const pill = page.locator("[data-agpa-context-budget]");
   await expect(pill).toHaveAttribute("data-level", "saturated");
-  await expect(pill).toHaveAttribute("aria-label", /~220k of ~256k/);
+  await expect(pill).toHaveAttribute("aria-label", /~440k of ~512k/);
   await pill.click();
   const popup = page.getByRole("dialog");
   await expect(
     popup.getByRole("progressbar", { name: "Compaction threshold" }),
   ).toHaveAttribute("aria-valuenow", "86");
   await expect(popup.getByText("Remaining before compaction")).toBeVisible();
-  await expect(popup.getByText("~36k", { exact: true })).toBeVisible();
+  await expect(popup.getByText("~72k", { exact: true })).toBeVisible();
   await expect(popup.getByText("Model capacity")).toBeVisible();
   await expect(popup.getByText("~1M", { exact: true })).toBeVisible();
   await expect(
@@ -289,9 +289,9 @@ test("model changes update the compaction meter without carrying over the old th
     globalThis.__AGContextBudget.refresh();
   });
   await expect(pill).toHaveAttribute("aria-label", /Context budget/);
-  await expect(pill).toHaveAttribute("data-level", "moderate");
+  await expect(pill).toHaveAttribute("data-level", "elevated");
   await expect(popup).toHaveCount(0);
   await pill.click();
-  await expect(popup.locator(".agpa-context-full")).toHaveText("22% full");
+  await expect(popup.locator(".agpa-context-full")).toHaveText("44% full");
   await expect(popup.getByText("Remaining before compaction")).toHaveCount(0);
 });

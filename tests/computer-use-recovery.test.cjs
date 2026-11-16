@@ -87,31 +87,39 @@ test('screen diagnostic discards image data and normal checks never request capt
  const captured=await probe(process.execPath,fake,{desktop:true});assert.equal(captured.desktop.ok,true);assert.ok(!JSON.stringify(captured).includes('private-pixels'));
 });
 
-test('re-enabling with a reviewed driver preserves it until an explicit upgrade', async t => {
- let downloads = 0;
- const {manager} = await fixture(t, {
-  fetcher: async () => { downloads++; throw Error('unexpectedDownload'); },
-  probe: async () => ({ok:true, toolCount:17}),
- });
- const current = manager.paths.driverDirectory;
- const previous = path.join(path.dirname(current), 'driver-0.46.1');
- const sha256 = {
+for (const [version, digests] of [
+ ['0.47.23', {
+  x64: '6fe5e63713eed904acef4c5ac6931264dba1f9239c16b37576c0b29c4b18c1b8',
+  arm64: '7bfa309fa2639c5d04bf2559af435b6bedcdd59b53e31975ac2d1025a22fb6bb',
+ }],
+ ['0.46.1', {
   x64: '3f45c54b736bb8cbd75b4ad90095fceea9a787c22bc9e60b17ca1c8215dcc96b',
   arm64: 'c1cf1f9635153cf9c347310008669893928d5e043db7522b37dfc59f0caef5f5',
- }[process.arch];
- await fs.rename(current, previous);
- await fs.writeFile(path.join(previous, 'receipt.json'), JSON.stringify({version:'0.46.1', sha256}));
- const state = await manager.status();
- assert.equal(state.installed, true);
- assert.equal(state.driverVersion, '0.46.1');
- assert.equal(state.driverUpgrade, true);
- let next = await manager.perform('setup', {scope:'desktop'});
- while (next.operation) {
-  await new Promise(resolve => setTimeout(resolve, 20));
-  next = await manager.status();
- }
- assert.equal(next.error, null);
- assert.equal(next.enabled, true);
- assert.equal(next.driverVersion, '0.46.1');
- assert.equal(downloads, 0);
-});
+ }],
+]) {
+ test('re-enabling with reviewed driver ' + version + ' preserves it until an explicit upgrade', async t => {
+  let downloads = 0;
+  const {manager} = await fixture(t, {
+   fetcher: async () => { downloads++; throw Error('unexpectedDownload'); },
+   probe: async () => ({ok:true, toolCount:17}),
+  });
+  const current = manager.paths.driverDirectory;
+  const previous = path.join(path.dirname(current), 'driver-' + version);
+  const sha256 = digests[process.arch];
+  await fs.rename(current, previous);
+  await fs.writeFile(path.join(previous, 'receipt.json'), JSON.stringify({version, sha256}));
+  const state = await manager.status();
+  assert.equal(state.installed, true);
+  assert.equal(state.driverVersion, version);
+  assert.equal(state.driverUpgrade, true);
+  let next = await manager.perform('setup', {scope:'desktop'});
+  while (next.operation) {
+   await new Promise(resolve => setTimeout(resolve, 20));
+   next = await manager.status();
+  }
+  assert.equal(next.error, null);
+  assert.equal(next.enabled, true);
+  assert.equal(next.driverVersion, version);
+  assert.equal(downloads, 0);
+ });
+}
