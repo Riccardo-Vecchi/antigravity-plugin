@@ -13,7 +13,7 @@
 [![Unofficial](https://img.shields.io/badge/Google-unofficial-lightgrey)](NOTICE.md)
 [![License 0BSD](https://img.shields.io/badge/license-0BSD-blue)](LICENSE)
 
-**Unofficial plugin** for the Google Antigravity app on **Linux and Windows**. Requires the official Antigravity app to be installed separately. **Tested with Antigravity App 2.33.0 on Linux.**
+**Unofficial plugin** for the Google Antigravity app on **Linux and Windows**. Requires the official Antigravity app to be installed separately.
 
 > [!NOTE]
 > Independent project, not affiliated with or endorsed by Google. Antigravity and Gemini names and logos belong to Google. See [NOTICE](NOTICE.md).
