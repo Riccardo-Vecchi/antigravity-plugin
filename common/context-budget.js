@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.3.4';
+  const VERSION = '1.3.5';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -451,7 +451,7 @@
     }
     if (relevant) schedule();
   });
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 
   const onPointerDown = e => {
     if (popup && !popup.contains(e.target) && !e.target.closest('[data-agpa-context-budget]')) {

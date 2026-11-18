@@ -106,6 +106,8 @@ test("a named model restores its threshold from a legacy cache without changing 
   for (const [label, expected] of [
     ["Gemini 4 Carbon Medium", 512000],
     ["Gemini 4 Hydrogen (Extra)", 512000],
+    ["Gemini 3.8 Flash (Medium)", 256000],
+    ["Gemini 3.8 Flash (Low)", 256000],
     ["Claude Opus 5.5 (Thinking)", 256000],
     ["Orchestrator (Argon)", 256000],
     ["Gemini 4 Argon (128k)", null],
