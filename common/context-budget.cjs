@@ -445,7 +445,7 @@ function compactionThresholdFor(modelName, capacity) {
   if (typeof modelName !== 'string') return null;
   const name = modelName.replace(/\s+(?:\((?:thinking|low|medium|high|extra|xhigh)\)|thinking|low|medium|high|extra|xhigh|[([]?\d+(?:\.\d+)?\s*[km][)\]]?)$/gi, '');
   const gemini4 = /^gemini 4 (?:argon|carbon|hydrogen)$/i;
-  const earlierLimit = /^(?:claude (?:opus|sonnet) 5\.5|orchestrator \((?:argon|carbon)\))$/i;
+  const earlierLimit = /^(?:gemini 3\.8(?:\s+flash)?|claude (?:opus|sonnet) 5\.5|orchestrator \((?:argon|carbon)\))$/i;
   const threshold = gemini4.test(name) ? 512000 : earlierLimit.test(name) ? 256000 : null;
   return threshold !== null && capacity > threshold ? threshold : null;
 }
