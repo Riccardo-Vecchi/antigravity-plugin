@@ -295,3 +295,36 @@ test("model changes update the compaction meter without carrying over the old th
   await expect(popup.locator(".agpa-context-full")).toHaveText("44% full");
   await expect(popup.getByText("Remaining before compaction")).toHaveCount(0);
 });
+
+test("in-place model labels refresh the compaction ring from Gemini 4 to Flash", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    history.replaceState(null, "", "/c/flash-model-change");
+    globalThis.fixture.external("Gemini 4 Hydrogen", "high");
+    const api = globalThis.__AGContextBudget;
+    api.hydrateFromTranscript(api.getActiveKey(), {
+      maxTurns: 1,
+      maxChars: 4000,
+      apiTokens: 100000,
+    });
+  });
+  const pill = page.locator("[data-agpa-context-budget]");
+  await expect(pill).toHaveAttribute("aria-label", /~100k of ~512k/);
+  await page.evaluate(() => {
+    const label = document.querySelector(
+      "[data-testid=model-selector-trigger] > span",
+    );
+    label.firstChild.data = "Gemini 3.8 Flash";
+  });
+  await expect(pill).toHaveAttribute("aria-label", /~100k of ~256k/);
+  await expect(pill).toHaveCSS("--agpa-context-fill", "39%");
+  await page.evaluate(() => {
+    const label = document.querySelector(
+      "[data-testid=model-selector-trigger] > span",
+    );
+    label.firstChild.data = "Gemini 4 Hydrogen";
+  });
+  await expect(pill).toHaveAttribute("aria-label", /~100k of ~512k/);
+});

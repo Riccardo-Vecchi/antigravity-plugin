@@ -10,7 +10,7 @@ The fallback uses the latest available transcript API counters and local estimat
 
 For models with a documented or observed compaction limit, the fallback ring shows progress toward that limit. The click panel shows the tokens remaining before compaction and the estimated model capacity. For other models, the ring uses the estimated model capacity. The threshold is an estimate and can vary with the host version or configuration.
 
-The estimated compaction threshold is **512,000 tokens** for Gemini 4 Argon, Carbon and Hydrogen, following the [November 16 Antigravity announcement](https://x.com/_mohansolo/status/2122119826575646918). The fallback still estimates **256,000 tokens** for [Claude Opus and Sonnet 5.5](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.16.18) and the [named Orchestrator variants](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.17.1), based on earlier IDE catalog observations.
+The estimated compaction threshold is **512,000 tokens** for Gemini 4 Argon, Carbon and Hydrogen, following the [November 16 Antigravity announcement](https://x.com/_mohansolo/status/2122119826575646918). The fallback estimates **256,000 tokens** for Gemini 3.8 Flash, [Claude Opus and Sonnet 5.5](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.16.18) and the [named Orchestrator variants](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.17.1), based on earlier IDE catalog observations.
 
 ## ⚙️ Implementation
 

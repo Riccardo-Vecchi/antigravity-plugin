@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os');
-const {discover,parseDesktop}=require('../linux/installation.cjs');
+const {discover,parseDesktop,debuggingExec}=require('../linux/installation.cjs');
 async function fixture(t){
  const home=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-detect-'));t.after(()=>fs.rm(home,{recursive:true,force:true}));
  const env={XDG_DATA_DIRS:path.join(home,'system')},apps=path.join(home,'.local/share/applications');
@@ -39,4 +39,39 @@ test('discovery rejects renamed non-AppImages, conflicting launchers and hidden 
  const found=await f.find();assert.notEqual(found.desktopFile,path.join(f.apps,'vendor.desktop'));
  await fs.mkdir(f.apps,{recursive:true});await fs.writeFile(path.join(f.apps,'antigravity-appimage.desktop'),'unrelated file');await assert.rejects(f.find(),{code:'AGPA_CONFLICTING_LAUNCHER'});
  f.env.AGPA_APPIMAGE=exe;await fs.writeFile(exe,'not an AppImage');await assert.rejects(f.find(),{code:'AGPA_INVALID_APPIMAGE'});
+});
+
+test('Linux launch debugging preserves arguments and an explicit user port',()=>{
+ const exec='"/My Apps/Antigravity.AppImage" --example %U';
+ const updated=debuggingExec(exec);
+ assert.equal(updated,exec+' --remote-debugging-address=127.0.0.1 --remote-debugging-port=0');
+ assert.equal(parseDesktop('[Desktop Entry]\nType=Application\nExec='+updated+'\n').executable,'/My Apps/Antigravity.AppImage');
+ assert.equal(debuggingExec(updated),updated);
+ assert.equal(debuggingExec(exec+' --remote-debugging-port=9137'),exec+' --remote-debugging-port=9137');
+});
+test('debug opt-in restores the original launcher command and respects later user edits',options,async t=>{
+ const vm=require('node:vm'),{createRequire}=require('node:module');
+ const f=await fixture(t),exe=await f.image('Apps/Antigravity.AppImage');
+ const launcher=await f.desktop('antigravity.desktop',exe);
+ const before=await fs.readFile(launcher,'utf8');
+ const module={exports:{}},localRequire=createRequire(path.resolve('linux/desktop.cjs'));
+ const customRequire=name=>{
+  if(name==='node:os')return {...os,homedir:()=>f.home};
+  if(name==='../common/platform-paths.cjs')return {getPaths:()=>({configDir:path.join(f.home,'.config/antigravity-plugin')})};
+  if(name==='./installation.cjs')return {...localRequire(name),discover:f.find};
+  return localRequire(name);
+ };
+ const code=await fs.readFile('linux/desktop.cjs','utf8');
+ vm.runInNewContext(code+'\nmodule.exports.testDesktopWithIcon=desktopWithIcon;',{require:customRequire,module,console,__dirname:path.resolve('linux'),process});
+ const change=await module.exports.testDesktopWithIcon('antigravity');
+ assert.match(change.after,/--remote-debugging-port=0/);
+ await fs.writeFile(launcher,change.after);
+ const repeated=await module.exports.testDesktopWithIcon('antigravity');
+ assert.equal(repeated.after,change.after);
+ const restored=await module.exports.testDesktopWithIcon('restore');
+ assert.equal(restored.after,before);
+ await fs.writeFile(launcher,change.after.replace(' --example ',' --user-change '));
+ const userEdited=await module.exports.testDesktopWithIcon('restore');
+ assert.match(userEdited.after,/--user-change/);
+ assert.match(userEdited.after,/--remote-debugging-port=0/);
 });

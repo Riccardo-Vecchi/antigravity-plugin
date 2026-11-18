@@ -6,14 +6,14 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.22.4](https://img.shields.io/badge/version-1.22.4-blue)](CHANGELOG.md)
+[![Version 1.22.5](https://img.shields.io/badge/version-1.22.5-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
 [![Unofficial](https://img.shields.io/badge/Google-unofficial-lightgrey)](NOTICE.md)
 [![License 0BSD](https://img.shields.io/badge/license-0BSD-blue)](LICENSE)
 
-**Unofficial plugin** for the Google Antigravity app on **Linux and Windows**. Requires the official Antigravity app to be installed separately. **Tested with Antigravity App 2.31.2 on Linux.**
+**Unofficial plugin** for the Google Antigravity app on **Linux and Windows**. Requires the official Antigravity app to be installed separately. **Tested with Antigravity App 2.33.0 on Linux.**
 
 > [!NOTE]
 > Independent project, not affiliated with or endorsed by Google. Antigravity and Gemini names and logos belong to Google. See [NOTICE](NOTICE.md).
@@ -22,7 +22,7 @@
 
 | Platform | Status |
 | --- | --- |
-| 🐧 Linux x86-64 | Verified with Antigravity App 2.31.2 on Zorin/GNOME 46 |
+| 🐧 Linux x86-64 | Verified with Antigravity App 2.33.0 on Zorin/GNOME 46 |
 | <img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows 11 x64 | **Experimental**; community-verified version 2.31.2 on Windows 11 |
 
 ## ✨ Features

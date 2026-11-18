@@ -31,7 +31,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\install.ps1 -A
 
 The invocation's execution policy applies to that process only. The installer does not change the system execution policy.
 
-Use **Antigravity (customized)** in the Start menu. It launches the official application and attaches the companion. If Antigravity is already running, the launcher focuses it without restarting it. In that case, native icon changes become available after the next launch through the customized shortcut; open pages and drafts are not discarded automatically.
+Use **Antigravity (customized)** in the Start menu. From Antigravity 2.33.0, the customized launcher explicitly enables renderer debugging on a random loopback port. If the app is running from its standard shortcut, close it and reopen it through the customized shortcut once. It launches the official application and attaches the companion. If Antigravity is already running, the launcher focuses it without restarting it. In that case, native icon changes become available after the next launch through the customized shortcut; open pages and drafts are not discarded automatically.
 
 The shared controls remain in the same locations:
 

@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 const BASE = __dirname;
-const { connect } = require("./cdp-connection.cjs");
+const { connect, nativePageTarget } = require("./cdp-connection.cjs");
 const { createGeminiLinks, externalURL } = require("./gemini-links.cjs");
 const diagnostic = require("./diagnostics.cjs").createDiagnostics();
 const legacyBootstrap =
@@ -1150,21 +1150,7 @@ async function discover() {
   if (!res.ok) throw Error("Antigravity debugging endpoint unavailable.");
   const data = await res.json();
   return data
-    .filter((t) => {
-      if (
-        t.type !== "page" ||
-        !/^https:\/\/127\.0\.0\.1:\d+\//.test(t.url || "")
-      )
-        return false;
-      try {
-        const u = new URL(t.webSocketDebuggerUrl);
-        return (
-          u.protocol === "ws:" && u.hostname === "127.0.0.1" && u.port === port
-        );
-      } catch {
-        return false;
-      }
-    })
+    .filter((t) => nativePageTarget(t, port))
     .map((t) => ({ ...t, key: `${port}:${t.id}` }));
 }
 async function poll() {

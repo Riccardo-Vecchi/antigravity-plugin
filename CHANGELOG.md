@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.22.5
+
+- Restore plugin connectivity with Antigravity 2.33.0 by enabling loopback debugging in the application launchers. Accept origin-only native page URLs during discovery and helper reload.
+- Recognize Gemini 3.8 Flash's estimated 256k compaction threshold and refresh the meter when the model label changes in place. Includes PR #7.
+- Update the Linux compatibility baseline to Antigravity App 2.33.0.
+
 ## 1.22.4
 
 - Update the fallback compaction meter to 512,000 tokens for Gemini 4 Argon, Carbon and Hydrogen.

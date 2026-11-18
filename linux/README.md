@@ -4,16 +4,16 @@ For quick setup, see the [README](../README.md). Shared settings and sessions ar
 
 ## Tested Linux setup
 
-- Antigravity App **2.28.0**, official Linux x86-64 AppImage.
+- Antigravity App **2.33.0**, official Linux x86-64 AppImage.
 - Zorin OS with **GNOME Shell 46**, Wayland, Zorin taskbar, and Zorin AppIndicator.
 - Node.js **22+**, with built-in `fetch` and `WebSocket`.
 - Python 3 with PyGObject/Gio, a user systemd session, `update-desktop-database`, and `gtk-update-icon-cache`.
 
-The integration uses the app's existing local debugging endpoint. Other app versions, packaging formats, desktop environments, and future Google UI changes may require adjustments. Tray customization is detected at runtime and is optional; it is not claimed to work on every Linux tray implementation.
+The integration uses a loopback debugging endpoint. From Antigravity 2.33.0, the plugin enables it explicitly in the detected application launcher and its owned login launcher. Other app versions, packaging formats, desktop environments, and future Google UI changes may require adjustments. Tray customization is detected at runtime and is optional; it is not claimed to work on every Linux tray implementation.
 
 ## Install on Linux
 
-Install the latest official Antigravity AppImage first. The tested compatibility baseline is 2.29.0.
+Install the latest official Antigravity AppImage first. The tested compatibility baseline is 2.33.0.
 
 Linux discovery first reads valid Antigravity `.desktop` entries in the XDG user and system applications directories. It accepts executable AppImages with the AppImage header, including quoted paths and launcher arguments. System launchers are represented by a user override; system files are not edited.
 
@@ -27,7 +27,7 @@ Environment="AGPA_APPIMAGE=/absolute/path/Antigravity.AppImage"
 Environment="AGPA_DESKTOP_FILE=/absolute/path/antigravity.desktop"
 ```
 
-The launcher must point directly to that AppImage; quoted paths and arguments are preserved. After saving, restart the helper with `systemctl --user restart antigravity-plugin.service`. Explicit invalid selections are reported rather than replaced with another app. Missing/ambiguous desktop detection leaves the other plugin controls available.
+The launcher must point directly to that AppImage. Quoted paths and arguments are preserved. The plugin appends `--remote-debugging-address=127.0.0.1 --remote-debugging-port=0` when no debugging port is already configured. Disabling restores the prior command if it still matches the plugin-managed value. After saving, restart the helper with `systemctl --user restart antigravity-plugin.service`. Explicit invalid selections are reported rather than replaced with another app. Missing/ambiguous desktop detection leaves the other plugin controls available.
 
 ```bash
 gh repo clone Riccardo-Vecchi/antigravity-plugin
@@ -42,7 +42,7 @@ systemctl --user status antigravity-plugin.service
 journalctl --user -u antigravity-plugin.service -n 30 --no-pager
 ```
 
-Open Antigravity normally. The helper waits when the app is closed and reapplies the UI additions to new windows.
+Open Antigravity from the detected application launcher. If it was already running without debugging, close and reopen it once after installation. The helper waits when the app is closed and reapplies the UI additions to new windows. After an in-app Antigravity update restarts without launch arguments, reopen it from that launcher.
 
 ## How the Linux live icons work
 

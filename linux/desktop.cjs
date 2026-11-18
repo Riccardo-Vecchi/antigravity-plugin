@@ -40,10 +40,10 @@ async function desktopWithIcon(choice){
  await resolveInstallation();
  const stat=await fs.lstat(DESKTOP).catch(e=>{if(e.code==='ENOENT')return {mode:0o644,isFile:()=>true};throw e;});if(!stat.isFile())throw Error('The Antigravity launcher is not a regular file.');
  const before=await fs.readFile(DESKTOP,'utf8').catch(e=>{if(e.code==='ENOENT')return installation.text;throw e;});
- const lines=before.split('\n');let inside=false,start=-1,end=lines.length,iconLine=-1;
+ const lines=before.split('\n');let inside=false,start=-1,end=lines.length,iconLine=-1,execLine=-1;
  for(let i=0;i<lines.length;i++){
   if(/^\[.*\]$/.test(lines[i])){if(inside){end=i;break;}inside=lines[i]==='[Desktop Entry]';if(inside)start=i;}
-  else if(inside){if(lines[i].startsWith('Icon='))iconLine=i;}
+  else if(inside){if(lines[i].startsWith('Icon='))iconLine=i;if(lines[i].startsWith('Exec='))execLine=i;}
  }
  if(start<0||await fs.realpath(discovery.parseDesktop(before)?.executable||'')!==await fs.realpath(EXECUTABLE))throw Error('The Antigravity launcher changed. Check its configuration before changing the icon.');
  const backupFile=path.join(DIRECTORY,'launcher-original-icons.json');
@@ -52,6 +52,21 @@ async function desktopWithIcon(choice){
  if(!Object.hasOwn(backup.entries,DESKTOP)){
   const old=iconLine>=0?lines[iconLine].slice(5):null;backup.entries[DESKTOP]=[CURRENT_ICON,LEGACY_ICON].includes(old)?'antigravity':old;
   await fs.mkdir(DIRECTORY,{recursive:true,mode:0o700});await atomic(backupFile,JSON.stringify(backup)+'\n',0o600);
+ }
+ if(execLine>=0){
+  const exec=lines[execLine].slice(5);
+  if(choice==='restore'){
+   const saved=backup.execEntries?.[DESKTOP];
+   if(saved && exec===saved.after && typeof saved.before==='string' && !/[\r\n\0]/.test(saved.before))lines[execLine]='Exec='+saved.before;
+  }else{
+   const updated=discovery.debuggingExec(exec);
+   if(updated!==exec){
+    backup.execEntries ||= {};
+    backup.execEntries[DESKTOP]={before:exec,after:updated};
+    await atomic(backupFile,JSON.stringify(backup)+'\n',0o600);
+    lines[execLine]='Exec='+updated;
+   }
+  }
  }
  const value=choice==='restore'?backup.entries[DESKTOP]:CURRENT_ICON;
  if(value!==null&&(typeof value!=='string'||value.length>8192||/[\r\n\0]/.test(value)))throw Error('Invalid launcher icon backup.');
@@ -111,7 +126,7 @@ async function syncAutostart(enabled){
  await resolveInstallation();
  await fs.access(EXECUTABLE);
  await fs.mkdir(path.dirname(AUTOSTART),{recursive:true,mode:0o700});
- const executable=installation.entry.Exec;
+ const executable=discovery.debuggingExec(installation.entry.Exec);
  const text=['[Desktop Entry]','Type=Application','Name=Antigravity','Comment=Launch Antigravity at desktop sign-in','Exec='+executable,'TryExec='+EXECUTABLE,'Icon='+CURRENT_ICON,'Terminal=false','StartupNotify=false','X-GNOME-Autostart-enabled=true','X-Antigravity-Local-Integration=true',''].join('\n');
  await atomic(AUTOSTART,text,0o644);
 }
@@ -142,14 +157,13 @@ async function ensureTray(){if(paused)return getState();await syncTray(effective
 async function windowOpened(){return renderIcon({force:true});}
 async function initialize({suspended=false}={}){
  paused=suspended;
- let saved=false;
- try{const stat=await fs.stat(PREFERENCES);if(stat.size>4096)throw Error('Application preferences are too large.');state=validate(JSON.parse(await fs.readFile(PREFERENCES,'utf8')));saved=true;}
+ try{const stat=await fs.stat(PREFERENCES);if(stat.size>4096)throw Error('Application preferences are too large.');state=validate(JSON.parse(await fs.readFile(PREFERENCES,'utf8')));}
  catch(error){if(error.code!=='ENOENT')throw error;}
  state.autostart=await readAutostart();
  lastView=await session.read();
  currentView=state.startupView==='last'?lastView:state.startupView;
  try{await resolveInstallation();}catch(error){installation=null;console.warn(error.message);}
- if(paused)await pause();else if(saved&&installation)await renderIcon({live:false,force:true});
+ if(paused)await pause();else if(installation){await renderIcon({live:false,force:true});if(state.autostart)await syncAutostart(true);}
  return getState();
 }
 async function pause(){

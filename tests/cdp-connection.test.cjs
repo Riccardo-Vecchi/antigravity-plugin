@@ -1,7 +1,11 @@
 "use strict";
 const test = require("node:test"),
   assert = require("node:assert/strict");
-const { connect, loopbackSocket } = require("../common/cdp-connection.cjs");
+const {
+  connect,
+  loopbackSocket,
+  nativePageTarget,
+} = require("../common/cdp-connection.cjs");
 function fixture(options = {}) {
   let socket;
   class Socket {
@@ -130,4 +134,27 @@ test("listener failures do not prevent subsequent replies", async () => {
   assert.equal(await result, true);
   assert.deepEqual(failures, ["listener"]);
   c.close();
+});
+
+test("native discovery accepts origin-only pages and rejects guests and foreign endpoints", () => {
+  const target = {
+    type: "page",
+    url: "https://127.0.0.1:46275",
+    webSocketDebuggerUrl: "ws://127.0.0.1:33723/devtools/page/native",
+  };
+  assert.equal(nativePageTarget(target, "33723"), true);
+  assert.equal(
+    nativePageTarget({ ...target, url: target.url + "/c/example" }, "33723"),
+    true,
+  );
+  for (const patch of [
+    { type: "webview" },
+    { type: "iframe" },
+    { url: "https://gemini.google.com/" },
+    { url: "https://127.0.0.1.attacker.test:46275/" },
+    { url: "https://user@127.0.0.1:46275/" },
+    { webSocketDebuggerUrl: "ws://127.0.0.1:9999/devtools/page/native" },
+    { webSocketDebuggerUrl: "ws://user@127.0.0.1:33723/devtools/page/native" },
+  ])
+    assert.equal(nativePageTarget({ ...target, ...patch }, "33723"), false);
 });

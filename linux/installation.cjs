@@ -17,6 +17,11 @@ function parseDesktop(text) {
   if (!path.isAbsolute(executable) || /[\r\n\0]/.test(executable) || /%[A-Za-z]/.test(executable)) return null;
   return {...data, executable};
 }
+function debuggingExec(exec) {
+  // Electron creates DevToolsActivePort only when debugging is explicitly enabled.
+  if (/(?:^|\s)--remote-debugging-port(?:=|\s|$)/.test(exec)) return exec;
+  return exec + ' --remote-debugging-address=127.0.0.1 --remote-debugging-port=0';
+}
 async function appImage(file) {
   let handle;
   try {
@@ -87,4 +92,4 @@ async function discover({home = os.homedir(), env = process.env} = {}) {
   const text = `[Desktop Entry]\nType=Application\nName=Antigravity\nExec=${quoted}\nIcon=antigravity\nTerminal=false\nStartupWMClass=Antigravity\n`;
   return {...image, text, entry: parseDesktop(text), desktopFile, generated: true};
 }
-module.exports = {discover, parseDesktop, appImage, IDENTITY_MARKER};
+module.exports = {discover, parseDesktop, appImage, debuggingExec, IDENTITY_MARKER};

@@ -1,6 +1,6 @@
 "use strict";
 module.exports = Object.freeze({
-  suite: "1.22.4",
+  suite: "1.22.5",
   library: "1.3.4",
   workspace: "1.2.0",
   sidebarLayout: "1.0.2",

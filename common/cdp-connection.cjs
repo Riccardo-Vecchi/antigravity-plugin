@@ -14,6 +14,24 @@ function loopbackSocket(value) {
   return url.href;
 }
 
+function nativePageTarget(target, port) {
+  if (target?.type !== "page") return false;
+  try {
+    const page = new URL(target.url);
+    const socket = new URL(loopbackSocket(target.webSocketDebuggerUrl));
+    return (
+      page.protocol === "https:" &&
+      page.hostname === "127.0.0.1" &&
+      !!page.port &&
+      !page.username &&
+      !page.password &&
+      socket.port === String(port)
+    );
+  } catch {
+    return false;
+  }
+}
+
 // Shared transport. Callers own reconnection; pending calls never survive closure.
 async function connect(
   value,
@@ -135,4 +153,4 @@ async function connect(
     },
   };
 }
-module.exports = { loopbackSocket, connect };
+module.exports = { loopbackSocket, nativePageTarget, connect };

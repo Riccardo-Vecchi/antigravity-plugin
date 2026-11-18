@@ -2,6 +2,14 @@
 
 Compatibility audit for plugin 1.17.0 on Linux, 4 November 2026.
 
+## Antigravity 2.33.0 repair — 18 November 2026
+
+The 2.33.0 package creates its debugging endpoint only when started with an explicit remote-debugging port. The Linux application and login launchers now opt in with a loopback address and a random port. The Windows customized launcher supplies the same arguments. Existing configured ports are respected. Native page discovery and reload handoff accept origin-only URLs while retaining native-page and loopback-socket checks.
+
+Regression checks cover in-place model label changes, Gemini 3.8 Flash's estimated 256k compaction threshold, launcher command restoration, and native endpoint validation.
+
+On the user's running Linux 2.33.0 AppImage, restarting with explicit debugging restored the helper connection. The installed preview was checked for project styling, View Usage, Computer use and Browser use settings, Library catalog loading and previews, and the Gemini round trip. The helper restarted while keeping the native window mounted. Windows 2.33.0 has source and adapter coverage, with target-machine validation pending.
+
 ## Native features take priority
 
 - Standard sidebar opening and closing use the native layout and animation.

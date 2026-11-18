@@ -2,6 +2,7 @@
 "use strict";
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const { nativePageTarget } = require("./cdp-connection.cjs");
 const restore = process.argv.includes("--restore");
 const expression = restore
   ? `(()=>{const entries=globalThis.__AGPA_RELOAD_HANDOFF__||[];for(const entry of entries){if(entry.api.destroy===entry.wrapper)entry.api.destroy=entry.original;}delete globalThis.__AGPA_RELOAD_HANDOFF__;return true})()`
@@ -35,11 +36,7 @@ const expression = restore
   }
   let count = 0;
   for (const t of targets) {
-    if (t.type !== "page" || !/^https:\/\/127\.0\.0\.1:\d+\//.test(t.url || ""))
-      continue;
-    const u = new URL(t.webSocketDebuggerUrl);
-    if (u.protocol !== "ws:" || u.hostname !== "127.0.0.1" || u.port !== port)
-      continue;
+    if (!nativePageTarget(t, port)) continue;
     const ws = new WebSocket(t.webSocketDebuggerUrl);
     try {
       await new Promise((resolve, reject) => {

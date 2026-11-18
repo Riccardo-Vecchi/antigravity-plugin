@@ -7,6 +7,7 @@ const crypto=require('node:crypto');
 const {spawn}=require('node:child_process');
 const paths=require('../common/platform-paths.cjs').getPaths();
 const {attachNative}=require('./native-attach.cjs');
+const {nativePageTarget}=require('../common/cdp-connection.cjs');
 const pipe='\\\\.\\pipe\\agpa-'+crypto.createHash('sha256').update(paths.configDir.toLowerCase()).digest('hex').slice(0,24);
 let daemon=null,launching=null,server=null;
 async function installation(){
@@ -17,7 +18,7 @@ async function installation(){
 }
 function log(message){fs.appendFileSync(path.join(paths.configDir,'launcher.log'),new Date().toISOString()+' '+message+'\n');}
 async function appRunning(){
- try{const value=(await fsp.readFile(path.join(paths.profileDir,'DevToolsActivePort'),'utf8')).split('\n')[0];if(!/^\d{2,5}$/.test(value)||Number(value)>65535)return false;const targets=await fetch('http://127.0.0.1:'+value+'/json/list',{signal:AbortSignal.timeout(1200)}).then(r=>r.json());return targets.some(t=>t.type==='page'&&/^https:\/\/127\.0\.0\.1:\d+\//.test(t.url||''));}catch{return false;}
+ try{const value=(await fsp.readFile(path.join(paths.profileDir,'DevToolsActivePort'),'utf8')).split('\n')[0];if(!/^\d{2,5}$/.test(value)||Number(value)>65535)return false;const targets=await fetch('http://127.0.0.1:'+value+'/json/list',{signal:AbortSignal.timeout(1200)}).then(r=>r.json());return targets.some(t=>nativePageTarget(t,value));}catch{return false;}
 }
 function cleanEnvironment(){const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;delete env.NODE_OPTIONS;delete env.NODE_INSPECT_RESUME_ON_START;return env;}
 async function launch(){
@@ -25,7 +26,8 @@ async function launch(){
  launching=(async()=>{
   const data=await installation();
   if(await appRunning()){spawn(data.appExe,[],{env:cleanEnvironment(),detached:true,stdio:'ignore',windowsHide:false}).unref();log('Focused existing Antigravity; no process was restarted.');return;}
-  const args=data.nativeIconsSupported===false?[]:['--inspect=127.0.0.1:0'];
+  const args=['--remote-debugging-address=127.0.0.1','--remote-debugging-port=0'];
+  if(data.nativeIconsSupported!==false)args.push('--inspect=127.0.0.1:0');
   const child=spawn(data.appExe,args,{env:cleanEnvironment(),stdio:['ignore','ignore','pipe'],detached:true,windowsHide:false});
   child.unref();child.stderr.unref();
   let attached=false,buffer='';
