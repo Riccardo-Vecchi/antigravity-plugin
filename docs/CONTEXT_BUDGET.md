@@ -4,13 +4,15 @@ The global indicator sits immediately before the model selector. It is hidden in
 
 ## 🔎 Native controls first
 
-When Antigravity provides its own `context-usage-indicator`, the plugin leaves its values, popup and behavior native and hides the fallback. No rollout flags or account preferences are changed.
+When Antigravity provides its own `context-usage-indicator`, the plugin uses the native values and popup, hides the fallback and skips local estimation and transcript reads. No rollout flags or account preferences are changed.
 
 The fallback uses the latest available transcript API counters and local estimates. Model capacities inferred from labels and locally estimated system/tool/rule components are approximate; they are not a guarantee of the host's active context. Cache counters are not counted twice. Unknown breakdown categories remain unavailable instead of being invented.
 
 For models with a documented or observed compaction limit, the fallback ring shows progress toward that limit. The click panel shows the tokens remaining before compaction and the estimated model capacity. For other models, the ring uses the estimated model capacity. The threshold is an estimate and can vary with the host version or configuration.
 
 The estimated compaction threshold is **512,000 tokens** for Gemini 4 Argon, Carbon and Hydrogen, following the [November 16 Antigravity announcement](https://x.com/_mohansolo/status/2122119826575646918). The fallback estimates **256,000 tokens** for Gemini 3.8 Flash, [Claude Opus and Sonnet 5.5](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.16.18) and the [named Orchestrator variants](https://github.com/AGI-is-going-to-arrive/Antigravity-Context-Window-Monitor/releases/tag/v1.17.1), based on earlier IDE catalog observations.
+
+Google documents a [1 million-token model capacity for Gemini 4 Neon](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/). The fallback uses that capacity until an Antigravity compaction threshold for Neon is verified.
 
 ## ⚙️ Implementation
 

@@ -1,6 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
- 'use strict';const VERSION='1.3.5';
+ 'use strict';const VERSION='1.5.2';
  if(globalThis.__AGModelUI?.version===VERSION)return;
  globalThis.__AGModelUI?.destroy();
  const i=globalThis.__AGPAI18n,providerFor=globalThis.__AGPAProviderFor,permissionFor=globalThis.__AGPAPermissionFor,assets=globalThis.__AGPA_LAB_ICONS__;
@@ -25,6 +25,27 @@
    return image;
   }));
  }
+ // The element identifies a Gemini 4 variant. Its use case comes from the DeepMind model cards.
+ const geminiVariants = new Map([
+  ['hydrogen', ['H', 'Fast everyday tasks']],
+  ['argon', ['Ar', 'Complex engineering workflows']],
+  ['neon', ['Ne', 'Deep reasoning with fast turnaround']],
+  ['carbon', ['C', 'Long, demanding projects']],
+ ]);
+ function decorateVariant(element,name) {
+  const match = /^Gemini 4 (Hydrogen|Argon|Neon|Carbon)(?:$|\s*\()/i.exec(name);
+  const variant = match && geminiVariants.get(match[1].toLowerCase());
+  const previous = element.querySelector(':scope > [data-agpa-element]');
+  if (!variant) { previous?.remove(); return; }
+  const [symbol,description] = variant;
+  if (previous?.dataset.agpaElement !== symbol) {
+   previous?.remove();
+   const badge = node('span',{'data-agpa-element':symbol,'aria-hidden':'true',class:'agpa-model-element'});
+   i.set(badge,description,{},'title');
+   element.querySelector(':scope > [data-agpa-icon="google"]')?.after(badge);
+  }
+  return description;
+ }
  // Quota groups can combine providers; decorate labels without replacing native data.
  function decorateQuota(root){
   for(const heading of root.querySelectorAll('[role=presentation],strong,span.truncate')){
@@ -42,15 +63,60 @@
   }
  }
  const choice=name=>preferences.models[name]||{favorite:false,hidden:false};
+ function modelGroup(name) {
+  return choice(name).hidden ? 2 : choice(name).favorite ? 0 : 1;
+ }
+ function orderedNames(names) {
+  const ranks = new Map((preferences.order || []).map((name,index) => [name,index]));
+  return [...new Set(names)].sort((a,b) => modelGroup(a) - modelGroup(b) ||
+   (ranks.get(a) ?? ranks.size) - (ranks.get(b) ?? ranks.size));
+ }
+ function requestPreference(name,field,value) {
+  const requestId=crypto.randomUUID();
+  return new Promise((resolve,reject)=>{
+   const timer=setTimeout(()=>{pending.delete(requestId);reject(Error('timeout'));},12000);
+   pending.set(requestId,{resolve,reject,timer});
+   globalThis.__agpaModelPreferences(JSON.stringify({requestId,name,field,value}));
+  });
+ }
  async function save(name,field,value){
   if(saving)return false;saving=true;error='';schedule();paintDialog();
-  const requestId=crypto.randomUUID();
-  try{preferences=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(requestId);reject(Error('timeout'));},12000);pending.set(requestId,{resolve,reject,timer});globalThis.__agpaModelPreferences(JSON.stringify({requestId,name,field,value}));});}
+  try{preferences=await requestPreference(name,field,value);}
   catch{error='Could not save model preferences. Try again.';}
   finally{saving=false;schedule();paintDialog();}
   return !error;
  }
  function entries(panel){return [...panel.querySelectorAll('[data-testid=model-selector-item],[data-testid=model-selector-effort-group]')].map(e=>({row:e.closest('[role=menuitem]'),name:e.dataset.modelLabel||e.dataset.modelBase})).filter(e=>e.row&&e.name);}
+ // Keep the native information target. Only its short novelty label expires.
+ const announcementsByPanel = new WeakMap();
+ const newLabel = /^(?:new|nuov[oa]|nouveau|neu|nuev[oa]|新着|新規|全新|新增)$/iu;
+ function updateAnnouncements(panel,models) {
+  let opening = announcementsByPanel.get(panel);
+  if (!opening) {
+   opening = { baseline: !preferences.seenAnnouncements, seen: new Set(preferences.seenAnnouncements), requested: new Set() };
+   announcementsByPanel.set(panel,opening);
+  }
+  const acknowledge = [];
+  for (const {row,name} of models) {
+   const badge = [...row.querySelectorAll('.rounded-full')].find(el=>newLabel.test(el.textContent.trim()));
+   const label = badge?.querySelector(':scope > span') || badge;
+   // React may reuse a badge for a different notice or model.
+   for (const previous of row.querySelectorAll('[data-agpa-seen-new]')) {
+    if (previous !== label) previous.removeAttribute('data-agpa-seen-new');
+   }
+   if (!label) continue;
+   label.toggleAttribute('data-agpa-seen-new',opening.baseline || opening.seen.has(name));
+   if (opening.seen.has(name) || opening.requested.has(name) || (!opening.baseline && choice(name).hidden && !showHidden)) continue;
+   opening.requested.add(name);
+   acknowledge.push(name);
+  }
+  if (acknowledge.length || (opening.baseline && !opening.initialized)) {
+   opening.initialized = true;
+   requestPreference(null,'seenAnnouncements',acknowledge).then(next=>{
+    preferences.seenAnnouncements = next.seenAnnouncements;
+   }).catch(()=>{}); // Retry at the next opening if the preference store was unavailable.
+  }
+ }
  function permissionColors(){
   for(const e of document.querySelectorAll('[data-testid^="permissions-preset-option-"]')){const id=e.dataset.testid.slice('permissions-preset-option-'.length),mode=id==='request_review'?'review':['default','auto','turbo'].includes(id)?id:null;if(mode)setAttr(e,'data-agpa-permission',mode);}
   for(const e of document.querySelectorAll('[data-testid=permissions-selector-trigger]')){const mode=permissionFor(e.textContent);if(mode)setAttr(e,'data-agpa-permission',mode);else e.removeAttribute('data-agpa-permission');}
@@ -185,10 +251,9 @@
    const labelClass=label?.tagName==='SPAN'?label.className:'truncate';
    if(button.lastElementChild.className!==labelClass)button.lastElementChild.className=labelClass;
   }
-  for(const panel of document.querySelectorAll('[data-testid=model-selector-panel]')){
-   const row=[...panel.querySelectorAll('[role=menuitem][aria-haspopup=menu]')].find(e=>e.querySelector('path[d^="M479.04-325.92"]')||e.textContent.trim()===i.t('View Usage'));
-   const submenu=row?.parentElement.querySelector('[role=menu][data-nested]');
-   if(submenu)decorateQuota(submenu);
+  for (const row of document.querySelectorAll('[data-testid=model-selector-panel] [role=menuitem][aria-haspopup=menu]')) {
+   const quota = !!row.querySelector('path[d^="M479.04-325.92"]') || row.textContent.trim() === i.t('View Usage');
+   row.toggleAttribute('data-agpa-picker-quota', quota);
   }
  }
  const automationPickers = '[data-testid=new-sidecar-model], [data-testid=sidecar-model-option]';
@@ -202,18 +267,29 @@
  function apply(){
   scheduled=0;if(stopped)return;
   permissionColors();decorateUsage();decorateAutomationModels();
-  for(const trigger of document.querySelectorAll('[data-testid=model-selector-trigger]'))mark(trigger,trigger.querySelector('span:not([data-agpa-model-ui])')?.textContent||'');
+  for (const trigger of document.querySelectorAll('[data-testid=model-selector-trigger]')) {
+   const label = trigger.querySelector(':scope > span:not([data-agpa-model-ui])');
+   // The native label contains the model as text and the current effort in a child span.
+   if (!label) continue;
+   const name = [...label.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join('').trim() || label.textContent.trim();
+   mark(trigger,name);
+   decorateVariant(trigger,name);
+  }
   for(const panel of document.querySelectorAll('[data-testid=model-selector-panel]')){
    const models=entries(panel);if(!models.length)continue;known=models.map(({name})=>name);
+   const displayOrder = orderedNames(known);
    if(!seenPanels.has(panel)){seenPanels.add(panel);showHidden=false;}
+   updateAnnouncements(panel,models);
    const header=panel.querySelector('[data-testid=model-selector-header]');
    if(header&&!header.querySelector('[data-agpa-model-manage]')){
     const manage=node('button',{type:'button','data-agpa-model-manage':'',class:'agpa-model-manage',text:'Manage models'});
     manage.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();document.querySelector('[data-testid=model-selector-trigger][aria-expanded=true]')?.click();openDialog();});header.append(manage);
    }
    for(const {row,name}of models){
-    mark(row,name);const c=choice(name);setAttr(row,'data-agpa-model-key',name);setAttr(row,'data-agpa-model-other',String(c.hidden));setAttr(row,'data-agpa-model-hidden',String(c.hidden&&!showHidden));
-    if(!originalOrders.has(row))originalOrders.set(row,row.style.order);const order=c.hidden?'2':c.favorite?'-1':originalOrders.get(row);if(row.style.order!==order)row.style.order=order;
+    mark(row,name);decorateVariant(row,name);const c=choice(name);setAttr(row,'data-agpa-model-key',name);setAttr(row,'data-agpa-model-other',String(c.hidden));setAttr(row,'data-agpa-model-hidden',String(c.hidden&&!showHidden));
+    if(!originalOrders.has(row))originalOrders.set(row,row.style.order);
+    const position = displayOrder.indexOf(name);
+    const order = preferences.order?.length ? String(c.hidden ? position + 2 : position - displayOrder.length) : c.hidden?'2':c.favorite?'-1':originalOrders.get(row);if(row.style.order!==order)row.style.order=order;
     let star=row.querySelector(':scope > [data-agpa-model-favorite]');
     if(!star){star=node('button',{type:'button',tabindex:'-1','data-agpa-model-favorite':'',class:'agpa-model-star'});star.addEventListener('pointerdown',e=>e.stopPropagation());star.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();save(name,'favorite',!choice(name).favorite);});row.append(star);}
     let visibility=row.querySelector(':scope > [data-agpa-model-visibility]');
@@ -242,25 +318,62 @@
  function openDialog(){
   if(!dialog){
    const close=node('button',{type:'button',text:'Done'});close.onclick=()=>dialog.close();
-   dialog=node('dialog',{class:'agpa-model-dialog','aria-labelledby':'agpa-model-title'},node('h3',{id:'agpa-model-title',text:'Manage models'}),node('p',{text:'Pin favorites to the top. Move models to Other to keep the main menu tidy, and uncheck Hidden to restore them. Your selected model is unchanged.'}),node('div',{'data-agpa-model-list':''}),node('p',{'data-agpa-model-status':'',role:'status'}),close);
+   dialog=node('dialog',{class:'agpa-model-dialog','aria-labelledby':'agpa-model-title'},node('h3',{id:'agpa-model-title',text:'Manage models'}),node('p',{text:'Use the arrows to reorder each group. Favorites appear first. Hidden models appear under Other.'}),node('div',{'data-agpa-model-list':''}),node('p',{'data-agpa-model-status':'',role:'status'}));
+   const reset = node('button',{type:'button','data-agpa-reset-order':'',text:'Reset order'});
+   reset.onclick = () => save(null, 'order', []);
+   dialog.append(node('footer',{},reset,close));
    dialog.addEventListener('close',()=>document.querySelector('[data-testid=model-selector-trigger]')?.focus());document.body.append(dialog);
   }
   paintDialog();dialog.showModal();
  }
  function paintDialog(){
   if(!dialog)return;const container=dialog.querySelector('[data-agpa-model-list]');
-  if(container.dataset.models!==JSON.stringify(known)){
-   container.dataset.models=JSON.stringify(known);container.replaceChildren();
-   for(const name of known){const row=node('div',{class:'agpa-model-setting'}),label=node('span');label.textContent=name;mark(label,name);row.append(label);
-    for(const [field,title]of [['favorite','Favorite'],['hidden','Hidden']]){const input=node('input',{type:'checkbox','data-model-name':name,'data-field':field});input.onchange=()=>save(name,field,input.checked);row.append(node('label',{},input,node('span',{text:title})));}container.append(row);
+  const names = orderedNames(known);
+  const signature = JSON.stringify(names.map(name => [name, modelGroup(name)]));
+  if(container.dataset.models!==signature){
+   const focused = document.activeElement;
+   container.dataset.models=signature;container.replaceChildren();
+   for(const [index,name] of names.entries()){
+    const row = node('div',{class:'agpa-model-setting'});
+    const label = node('span',{class:'agpa-setting-model'});
+    const caption = node('span',{class:'agpa-model-caption'});
+    const modelName = node('span');
+    modelName.textContent = name;
+    caption.append(modelName);label.append(caption);mark(label,name);
+    const description = decorateVariant(label,name);
+    if (description) caption.append(node('small',{text:description}));
+    const moves = node('div',{class:'agpa-model-moves'});
+    row.append(label,moves);
+    for (const [delta,title] of [[-1,'Move {model} up'],[1,'Move {model} down']]) {
+     const adjacent = names[index + delta];
+     const move = node('button',{type:'button','data-model-name':name,'data-move':String(delta)});
+     i.set(move,title,{model:name},'aria-label');
+     i.set(move,title,{model:name},'title');
+
+     move.disabled = !adjacent || modelGroup(adjacent) !== modelGroup(name);
+     move.onclick = () => {
+      const next = names.slice();
+      [next[index], next[index+delta]] = [adjacent,name];
+      save(null,'order',next);
+     };
+     moves.append(move);
+    }
+    for(const [field,title]of [['favorite','Favorite'],['hidden','Hidden']]){const input=node('input',{type:'checkbox','data-model-name':name,'data-field':field});input.onchange=()=>save(name,field,input.checked);row.append(node('label',{'data-option':field},input,node('span',{text:title})));}container.append(row);
+   }
+   if (focused?.dataset.modelName) {
+    const sameRow = [...container.querySelectorAll('[data-model-name]')].filter(el => el.dataset.modelName === focused.dataset.modelName);
+    const target = sameRow.find(el => !el.disabled && el.dataset.move === focused.dataset.move && el.dataset.field === focused.dataset.field) || sameRow.find(el => !el.disabled);
+    target?.focus();
    }
   }
+  const reset = dialog.querySelector('[data-agpa-reset-order]');
+  container.setAttribute('aria-busy',String(saving));
+  reset.disabled = saving || !preferences.order?.length;
   for(const input of container.querySelectorAll('input')){input.checked=choice(input.dataset.modelName)[input.dataset.field];input.disabled=saving;}
   i.set(dialog.querySelector('[data-agpa-model-status]'),error||'');
  }
  let search='',lastSearch=0;
  function keyboard(event){
-  if(event.key==='Escape'&&quotaPopup){closeUsage();usageButton?.focus();return;}
   if(quotaPopup&&event.key==='Escape'){const button=usageButton;closeUsage();if(event.target.closest?.('[data-agpa-usage-menu]'))button?.focus();event.stopImmediatePropagation();return;}
   if(event.target.closest?.('[data-agpa-effort-ui]'))return;
   if(dialog?.open&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();dialog.close();return;}
@@ -268,7 +381,8 @@
   if(['Enter',' '].includes(event.key)&&event.target.matches?.('[data-agpa-model-manage],[data-agpa-model-footer]')){event.preventDefault();event.stopImmediatePropagation();event.target.click();return;}
   const panel=event.target.closest?.('[data-testid=model-selector-panel]')||(event.target.closest?.('[data-testid=model-selector-trigger][aria-expanded=true]')&&document.querySelector('[data-testid=model-selector-panel]'));
   if(!panel||event.target.closest('[data-agpa-model-favorite]'))return;
-  const models=entries(panel).filter(({row})=>row.getAttribute('data-agpa-model-hidden')!=='true'&&row.getAttribute('aria-disabled')!=='true').sort((a,b)=>Number(choice(a.name).hidden)-Number(choice(b.name).hidden)||Number(choice(b.name).favorite)-Number(choice(a.name).favorite));
+  const available = new Map(entries(panel).filter(({row}) => row.getAttribute('data-agpa-model-hidden') !== 'true' && row.getAttribute('aria-disabled') !== 'true').map(entry => [entry.name, entry]));
+  const models = orderedNames(available.keys()).map(name => available.get(name));
   const extras=[...panel.querySelectorAll('[role=menuitem]')].filter(row=>!row.hasAttribute('data-agpa-model-key'));
   const actions=[panel.querySelector('[data-agpa-model-manage]'),...models.filter(m=>!choice(m.name).hidden).map(m=>m.row),panel.querySelector('[data-agpa-model-footer]'),...models.filter(m=>choice(m.name).hidden).map(m=>m.row),...extras].filter(e=>e?.getClientRects().length&&!e.hidden);
   const target=event.target.closest('[role=menuitem],[data-agpa-model-manage],[data-agpa-model-footer]'),index=actions.indexOf(target);
@@ -281,18 +395,44 @@
   }
  }
  const style=node('style',{text:`
+ [data-agpa-picker-quota],[data-agpa-seen-new]{display:none!important}
  [data-agpa-quota-heading]{display:flex!important;align-items:center;gap:7px}.agpa-quota-logos{display:inline-flex;align-items:center;gap:4px;flex-shrink:0}
  [data-agpa-model-groups]{display:flex;flex-direction:column}[data-agpa-model-other=true]{padding-left:16px!important}.agpa-model-visibility{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:24px;height:24px;border:0;background:none;color:var(--muted-foreground,#aaa);cursor:pointer;opacity:0}[data-agpa-model-key]:hover>.agpa-model-visibility,[data-agpa-model-key]:focus-within>.agpa-model-visibility,.agpa-model-visibility:focus-visible{opacity:1}.agpa-model-visibility:disabled{opacity:.35}.agpa-model-show{border-top:1px solid var(--border,#444)!important;margin-top:4px}.agpa-model-show:focus-visible,.agpa-model-visibility:focus-visible{outline:2px solid #398bdb;outline-offset:-2px}
+ .agpa-model-dialog button:disabled{opacity:.32;cursor:default}
+ .agpa-model-moves{display:flex;align-items:center;gap:4px}
+ .agpa-model-moves button{display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid var(--border,#444);border-radius:50%;background:color-mix(in srgb,currentColor 6%,transparent);color:inherit;cursor:pointer}
+ .agpa-model-moves button::before{content:"";width:7px;height:7px;border:solid currentColor;border-width:1.7px 1.7px 0 0;border-radius:1px;transform:translateY(2px) rotate(-45deg)}
+ .agpa-model-moves [data-move="1"]::before{transform:translateY(-2px) rotate(135deg)}
+ .agpa-model-moves button:hover:enabled{background:color-mix(in srgb,currentColor 15%,transparent)}
+ .agpa-model-dialog :is(button,input):focus-visible{outline:2px solid var(--ring,#78aafa);outline-offset:2px}
+ .agpa-model-element{--element-color:#78bfff;display:inline-grid;place-items:center;flex:none;box-sizing:border-box;width:21px;height:19px;border-radius:5px;color:color-mix(in srgb,var(--element-color) 67%,currentColor);background:color-mix(in srgb,var(--element-color) 13%,transparent);border:1px solid color-mix(in srgb,var(--element-color) 40%,transparent);font:600 11px/1 system-ui}
+ .agpa-model-element::before{content:attr(data-agpa-element)}
+ [data-agpa-element=Ar]{--element-color:#b796ee}[data-agpa-element=Ne]{--element-color:#50c5b4}[data-agpa-element=C]{--element-color:#e4ae64}
+ .agpa-model-caption{min-width:0;display:grid;gap:2px;overflow-wrap:anywhere}
+ .agpa-model-caption small{font-size:11px;color:var(--muted-foreground,#aaa)}
  .agpa-lab-icon{width:16px;height:16px;object-fit:contain;flex-shrink:0;display:inline-block;vertical-align:middle}.agpa-model-setting>span{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
  [data-agpa-model-hidden=true]{display:none!important}.agpa-model-star{margin-left:auto;flex-shrink:0;width:24px;height:24px;border:0;background:none;color:var(--muted-foreground,#aaa);cursor:pointer;font-size:17px;opacity:0}.agpa-model-star[aria-pressed=true]{color:#e6b94b;opacity:1}[role=menuitem]:hover>.agpa-model-star,[role=menuitem]:focus>.agpa-model-star,.agpa-model-star:focus-visible{opacity:1}
  [data-testid=model-selector-header]{display:flex;align-items:center;justify-content:space-between;gap:18px}.agpa-model-manage,.agpa-model-show{font:inherit;border:0;background:transparent;color:var(--muted-foreground,#aaa);cursor:pointer;font-size:12px}.agpa-model-show{padding:8px;text-align:left}.agpa-model-show[hidden]{display:none}
- .agpa-model-dialog{width:min(640px,calc(100vw - 40px));max-height:calc(100vh - 50px);overflow:auto;border:1px solid var(--border,#444);border-radius:14px;padding:24px;background:var(--background,#171717);color:var(--foreground,#eee);font:13px/1.6 system-ui,sans-serif}.agpa-model-dialog::backdrop{background:#0009}.agpa-model-dialog h3{margin:0;font-size:18px}.agpa-model-dialog p{color:var(--muted-foreground,#aaa)}.agpa-model-dialog>button{float:right;padding:7px 16px;border-radius:7px;border:1px solid var(--border,#444);background:transparent;color:inherit;cursor:pointer}.agpa-model-setting{display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--border,#333)}.agpa-model-setting label{display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer}.agpa-model-error{font-size:12px;color:#ff8888}.agpa-model-dialog input{accent-color:#398bdb}
+ .agpa-model-dialog{position:fixed;inset:0;margin:auto;box-sizing:border-box;width:min(640px,calc(100vw - 40px));max-height:calc(100vh - 50px);overflow:auto;border:1px solid var(--border,#444);border-radius:14px;padding:24px;background:var(--background,#171717);color:var(--foreground,#eee);font:13px/1.6 system-ui,sans-serif}.agpa-model-dialog::backdrop{background:#0009}.agpa-model-dialog h3{margin:0;font-size:18px}.agpa-model-dialog p{color:var(--muted-foreground,#aaa)}
+ .agpa-model-dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+ .agpa-model-dialog footer button{font:inherit;padding:5px 14px;border:1px solid var(--border,#444);border-radius:9px;background:transparent;color:inherit;cursor:pointer}
+ .agpa-model-dialog footer button:last-child{background:var(--foreground,#eee);color:var(--background,#171717)}
+ .agpa-model-setting{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border,#333)}
+ .agpa-model-setting label{--option-accent:#deab45;display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--border,#444);border-radius:9px;cursor:pointer;font-size:12px}
+ .agpa-model-setting [data-option=hidden]{--option-accent:#9d91e2}
+ .agpa-model-setting label:has(:checked){border-color:color-mix(in srgb,var(--option-accent) 48%,transparent);background:color-mix(in srgb,var(--option-accent) 12%,transparent)}
+ .agpa-model-setting input{appearance:none;display:grid;place-items:center;flex:none;width:15px;height:15px;margin:0;border-radius:5px;border:1.5px solid var(--muted-foreground,#aaa);background:transparent;cursor:pointer}
+ .agpa-model-setting input:checked{border-color:var(--option-accent);background:var(--option-accent)}
+ .agpa-model-setting input:checked::before{content:"";width:4px;height:7px;border:solid #211d27;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+ .agpa-model-setting label:has(:disabled){opacity:.55;cursor:default}
+ @media(forced-colors:active){.agpa-model-setting input{appearance:auto}.agpa-model-setting input::before{display:none}}
+ .agpa-model-error{font-size:12px;color:#ff8888}
  [data-agpa-permission=review]{--agpa-permission:#70aaff}[data-agpa-permission=default]{--agpa-permission:#55bd8a}[data-agpa-permission=auto]{--agpa-permission:#d6a246}[data-agpa-permission=turbo]{--agpa-permission:#ee6f78}
  [data-testid=permissions-selector-trigger][data-agpa-permission]{color:color-mix(in srgb,var(--foreground,#eee) 18%,var(--agpa-permission))!important;background:color-mix(in srgb,var(--agpa-permission) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--agpa-permission) 23%,transparent)}
  [data-testid^=permissions-preset-option-][data-agpa-permission]>[data-icon],[data-testid^=permissions-preset-option-][data-agpa-permission]>span.flex.min-w-0>span:first-child{color:color-mix(in srgb,var(--foreground,#eee) 18%,var(--agpa-permission))!important}
 
  .agpa-standalone-usage{box-sizing:border-box;position:fixed;z-index:10000;width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;padding:10px;border:1px solid var(--border,#36373c);border-radius:13px;background:var(--background,#17181c);color:var(--foreground,#eee);font:12px/1.5 system-ui;box-shadow:0 12px 30px #0005}.agpa-standalone-usage header{display:flex;align-items:center;justify-content:space-between;color:var(--muted-foreground,#aaa);padding:0 2px 4px}.agpa-quota-refresh{border:0;background:transparent;color:inherit;cursor:pointer;font:18px system-ui}.agpa-quota-refresh:disabled{opacity:.4}.agpa-standalone-usage section+section{margin-top:10px}.agpa-standalone-usage strong{display:block;font-weight:500;padding:2px}.agpa-quota-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:1px 12px;padding:4px 2px;color:var(--muted-foreground,#aaa)}.agpa-quota-row small{grid-column:1/-1;text-align:right;font-size:11px}.agpa-quota-value{display:flex;align-items:center;gap:6px}.agpa-quota-ring{width:14px;height:14px;display:inline-block;border-radius:50%;background:conic-gradient(var(--quota-color) var(--quota-left),#62636b var(--quota-left));mask:radial-gradient(circle,transparent 48%,#000 52%)}.agpa-quota-row[aria-disabled=true]{opacity:.5}
- @media(max-width:600px){.agpa-model-setting{flex-wrap:wrap}.agpa-model-setting>span{flex-basis:100%}}
+ @media(max-width:600px){.agpa-model-setting{grid-template-columns:auto auto 1fr;gap:6px}.agpa-setting-model{grid-column:1/-1}.agpa-model-setting label{justify-self:start}}
  `});document.head.append(style);
  const watched=automationPickers+', [data-testid=settings-button],[role=menu][data-nested],[data-testid=model-selector-trigger],[data-testid=model-selector-panel],[data-testid^=permissions-]';
  const observer=new MutationObserver(records=>{
@@ -301,6 +441,6 @@
  document.addEventListener('pointerdown',usageOutside,true);
  window.addEventListener('resize',positionUsage);
  window.addEventListener('keydown',keyboard,true);const unsubscribe=i.subscribe(()=>{schedule();paintDialog();});
- globalThis.__AGModelUI={version:VERSION,openUsage,leaveUsage,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;document.removeEventListener('pointerdown',usageOutside,true);window.removeEventListener('resize',positionUsage);closeUsage();observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');e.removeAttribute('data-agpa-model-other');}for(const e of document.querySelectorAll('[data-agpa-quota-heading]'))e.removeAttribute('data-agpa-quota-heading');for(const e of document.querySelectorAll('[data-agpa-model-groups]'))e.removeAttribute('data-agpa-model-groups');for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
+ globalThis.__AGModelUI={version:VERSION,openUsage,leaveUsage,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;document.removeEventListener('pointerdown',usageOutside,true);window.removeEventListener('resize',positionUsage);closeUsage();observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const attr of ['data-agpa-picker-quota','data-agpa-seen-new'])for(const e of document.querySelectorAll('['+attr+']'))e.removeAttribute(attr);for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');e.removeAttribute('data-agpa-model-other');}for(const e of document.querySelectorAll('[data-agpa-quota-heading]'))e.removeAttribute('data-agpa-quota-heading');for(const e of document.querySelectorAll('[data-agpa-model-groups]'))e.removeAttribute('data-agpa-model-groups');for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
  schedule();
 })();

@@ -1,7 +1,7 @@
 /* Small, reversible additions to the native Settings navigation. */
 (() => {
  'use strict';
- const VERSION = '1.2.5';
+ const VERSION = '1.3.0';
  if (globalThis.__AGSettingsNavigation?.version === VERSION) return;
  globalThis.__AGSettingsNavigation?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -13,6 +13,7 @@
   App: 'M4 4h16v12H4zM8 20h8M12 16v4',
   Appearance: 'M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1-3.7 1.6 1.6 0 0 1 1-2.8h2a4 4 0 0 0 4-4C21 6 17 3 12 3ZM7 10h.01M10 6h.01M15 6h.01M18 10h.01',
   Notifications: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',
+  Browser: 'M22 12a10 10 0 1 1-20 0 10 10 0 1 1 20 0ZM2 12h20M12 2c5 5 5 15 0 20-5-5-5-15 0-20Z',
   Models: 'm12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z',
   Conversations: 'M21 11a8 8 0 0 1-8 8H7l-5 3 2-6a8 8 0 1 1 17-5Z',
   Shortcuts: 'M3 5h18v14H3zM6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M10 13h.01M14 13h.01M18 13h.01M8 16h8',
@@ -28,8 +29,24 @@
   const p = document.createElementNS(NS, 'path'); p.setAttribute('d', paths[name] || paths.folder); svg.append(p); return svg;
  }
  const pages = new Map(), navigations = new Map();
- const definitions = [['computer','Computer use','computer'],['browser','Browser use','browser']];
+ const definitions = [['computer','Computer use','computer'],['browser','External browser','browser']];
  let active = false, host, dialog, nativeFrame, projectButton, scheduled = false, stopped = false;
+ let browserSection, browserVisible = false;
+ function browserIsVisible() { return !!browserSection?.isConnected && !active && browserSection.checkVisibility(); }
+ function notifyPage() {
+  browserVisible = browserIsVisible();
+  window.dispatchEvent(new CustomEvent('agpa:settings-page', {detail:{computerUse: active === 'computer', page: active || (browserVisible && 'browser')}}));
+ }
+ function mountBrowserSection(container) {
+  if (!container) {browserSection?.remove();browserSection=null;return;}
+  if (browserSection?.parentElement === container) return;
+  browserSection?.remove();
+  browserSection=document.createElement('section');
+  browserSection.dataset.agpaExternalBrowser='';
+  browserSection.setAttribute('aria-labelledby','agpa-external-browser-heading');
+  const title=document.createElement('h3');title.id='agpa-external-browser-heading';i18n.set(title,'External browser');
+  browserSection.append(title);container.append(browserSection);
+ }
  let collapsed = false;
  try {collapsed = localStorage.getItem('agpa.settings.projectsCollapsed') === 'true';} catch {}
  const style = document.createElement('style'); style.id = 'agpa-settings-navigation-styles';
@@ -37,6 +54,9 @@
   [data-agpa-settings-icon]{flex-shrink:0;opacity:.85;margin-right:3px}
   [data-testid^=settings-nav-item-]:not(.bg-sidebar-secondary)>[data-agpa-settings-icon]:not([data-project-style]){color:var(--secondary-foreground,#9d9d9d)}
   [data-agpa-native-settings-hidden]{display:none!important}
+  [data-agpa-external-browser]{border-top:1px solid var(--border,#38383c);padding-top:18px;margin-top:4px}
+  [data-agpa-external-browser]>h3{font:inherit;font-weight:600;margin:0 0 12px}
+  [data-agpa-cu-nav-wrapper][hidden]{display:none!important}
   .agpa-settings-page{position:absolute;inset:0;overflow:auto;background:var(--background,#111);z-index:2}
   .agpa-settings-page[hidden]{display:none}
   .agpa-settings-page-inner{max-width:672px;margin:auto;padding:24px;display:flex;flex-direction:column;gap:18px}
@@ -58,18 +78,19 @@
  document.head.append(style);
  function setActive(value) {
   const key = value === true ? 'computer' : value;
+  if(key==='browser' && browserSection?.isConnected){dialog.querySelector('[data-testid=settings-nav-item-Browser]')?.click();return;}
   active = pages.get(key)?.isConnected ? key : false;
   for (const [id,page] of pages) page.hidden = active !== id;
   if (nativeFrame) nativeFrame.toggleAttribute('data-agpa-native-settings-hidden', !!active);
   dialog?.toggleAttribute('data-agpa-cu-active', !!active);
   for (const [id,nav] of navigations) nav.setAttribute('aria-current', active === id ? 'page' : 'false');
-  window.dispatchEvent(new CustomEvent('agpa:settings-page', {detail: {computerUse: active === 'computer', page: active}}));
+  notifyPage();
  }
  function apply() {
   if (stopped) return;
   const app = document.querySelector('[data-testid=settings-nav-item-App]');
   const nextDialog = app?.closest('[role=dialog]');
-  if (!nextDialog) {if (active) setActive(false); return;}
+  if (!nextDialog) {if (active || browserVisible) setActive(false); return;}
   dialog = nextDialog;
   for (const button of dialog.querySelectorAll('[data-testid^=settings-nav-item-]')) {
    const key = button.dataset.testid.slice('settings-nav-item-'.length);
@@ -92,6 +113,11 @@
    globalThis.__AGProjectPresentation?.remoteBadge(visual,!!appearance&&project?.remote);
    previous ? previous.replaceWith(visual) : button.prepend(visual);
   }
+  const browserNav = dialog.querySelector('[data-testid=settings-nav-item-Browser]');
+  const browserLabel = browserNav?.querySelector(':scope > span:not([data-agpa-settings-icon])')?.textContent.trim();
+  const browserAnchor = browserNav && (dialog.querySelector('[data-testid=builtin-browser-download-dir-row],[data-testid=clear-browser-history-button]') ||
+   [...dialog.querySelectorAll('div.p-6 h2')].find(title => title.textContent.trim() === browserLabel));
+  mountBrowserSection(browserAnchor?.closest('div.p-6'));
   let anchor = app.parentElement;
   for (const [key,labelKey,iconKey] of definitions) {
    let navigation = navigations.get(key);
@@ -103,6 +129,7 @@
     i18n.set(navigation,labelKey,{},'title');navigation.append(icon(iconKey),label);navigation.addEventListener('click',()=>setActive(key));wrapper.append(navigation);anchor.after(wrapper);navigations.set(key,navigation);
    }
    anchor = navigation.parentElement;
+   if (key === 'browser') anchor.hidden = !!browserSection;
   }
   const heading = [...dialog.querySelectorAll('h2')].find(h => h.closest('div.p-6'));
   const frame = heading?.closest('div.p-6')?.closest('div.flex.w-full.h-full.overflow-auto.min-h-0');
@@ -116,6 +143,8 @@
    }
    if(active)nativeFrame.setAttribute('data-agpa-native-settings-hidden','');
   }
+  if (browserSection && active === 'browser') setActive(false);
+  else if (browserIsVisible() !== browserVisible) notifyPage();
   // The project group is bounded by its native heading and next sibling list.
   const projectHeading = [...dialog.querySelectorAll('h2')].find(h => {
    const group = h.parentElement.nextElementSibling;
@@ -137,10 +166,12 @@
  function onClick(event) {if (event.target.closest('[data-testid^=settings-nav-item-]')) setActive(false);}
  document.addEventListener('click', onClick, true);
  window.addEventListener('agpa:project-presentation',schedule);
- const observer = new MutationObserver(schedule); observer.observe(document.body, {subtree: true, childList: true, attributes:true, attributeFilter:['data-project-icon','data-project-label']});
- globalThis.__AGSettingsNavigation = {version: VERSION, getPage: (key='computer') => pages.get(key)?.isConnected ? pages.get(key).firstElementChild : null, isOpen: (key='computer') => active === key,
+ const observer = new MutationObserver(records => {
+  if (records.some(r => r.attributeName !== 'style' || (browserSection && r.target.contains(browserSection)))) schedule();
+ }); observer.observe(document.body, {subtree: true, childList: true, attributes:true, attributeFilter:['data-project-icon','data-project-label','style']});
+ globalThis.__AGSettingsNavigation = {version: VERSION, getPage(key='computer') {if(key==='browser' && browserSection?.isConnected)return browserSection;return pages.get(key)?.isConnected ? pages.get(key).firstElementChild : null;}, isOpen: (key='computer') => active === key || (key==='browser' && browserIsVisible()),
   setProjectStyles(next) {projectStyles = next || {projects:{}};schedule();},
   open(key='computer') {apply(); setActive(key);}, icon,
-  destroy() {setActive(false); stopped = true; observer.disconnect(); document.removeEventListener('click', onClick, true);window.removeEventListener('agpa:project-presentation',schedule); for(const page of pages.values())page.remove();for(const navigation of navigations.values())navigation.parentElement?.remove(); projectButton?.remove(); for (const e of document.querySelectorAll('[data-agpa-settings-icon]')) e.remove(); for (const e of document.querySelectorAll('[data-agpa-projects-heading],[data-agpa-projects-group]')) {e.removeAttribute('data-agpa-projects-heading');e.removeAttribute('data-agpa-projects-group');e.removeAttribute('data-collapsed');} style.remove(); delete globalThis.__AGSettingsNavigation;}};
+  destroy() {browserSection?.remove();browserSection=null;setActive(false); stopped = true; observer.disconnect(); document.removeEventListener('click', onClick, true);window.removeEventListener('agpa:project-presentation',schedule); for(const page of pages.values())page.remove();for(const navigation of navigations.values())navigation.parentElement?.remove(); projectButton?.remove(); for (const e of document.querySelectorAll('[data-agpa-settings-icon]')) e.remove(); for (const e of document.querySelectorAll('[data-agpa-projects-heading],[data-agpa-projects-group]')) {e.removeAttribute('data-agpa-projects-heading');e.removeAttribute('data-agpa-projects-group');e.removeAttribute('data-collapsed');} style.remove(); delete globalThis.__AGSettingsNavigation;}};
  schedule();
 })();

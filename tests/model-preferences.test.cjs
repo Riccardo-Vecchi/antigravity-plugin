@@ -36,3 +36,27 @@ test('per-model native effort survives favorite/visibility changes and reloads w
  for(const value of [true,null,'High','../high','', 'x'.repeat(33)])await assert.rejects(reopened.update({name:'Gemini Flash',field:'effort',value}));
  assert.equal(await fs.readFile(file,'utf8'),before);
 });
+
+test('custom order survives reload, model changes and temporary catalog omissions', async t => {
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-model-order-'));
+ t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+ const file=path.join(dir,'models.json'), store=createStore(file);
+ await store.update({field:'order',value:['C','B','A']});
+ await store.update({name:'B',field:'favorite',value:true});
+ await store.update({field:'order',value:['A','B']});
+ assert.deepEqual((await createStore(file).load()).order,['C','A','B']);
+ for (const value of [null,['A','A'],['__proto__'],[' A']]) await assert.rejects(store.update({field:'order',value}));
+ const reset=await store.update({field:'order',value:[]});
+ assert.deepEqual(reset,{version:1,models:{B:{favorite:true,hidden:false}}});
+});
+
+test('seen model announcements merge across clients and survive an order reset', async t => {
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-model-news-'));
+ t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+ const file=path.join(dir,'models.json'), first=createStore(file), second=createStore(file);
+ await first.update({field:'seenAnnouncements',value:['A']});
+ await second.update({field:'seenAnnouncements',value:['B','A']});
+ await first.update({field:'order',value:[]});
+ await assert.rejects(first.update({field:'seenAnnouncements',value:[{}]}));
+ assert.deepEqual((await createStore(file).load()).seenAnnouncements,['A','B']);
+});

@@ -1,7 +1,7 @@
 /* Separate model/effort controls, delegating selection to native menu items. */
 (() => {
   "use strict";
-  const VERSION = "1.3.10";
+  const VERSION = "1.3.11";
   if (globalThis.__AGModelControls?.version === VERSION) return;
   globalThis.__AGModelControls?.destroy();
   const rules = globalThis.__AGPA_MODEL_CONTROLS__;
@@ -783,6 +783,8 @@
   [data-agpa-footer-tail]{order:40}
   [data-agpa-effort-suffix]{display:none!important}
   [data-agpa-native-effort-menu]{visibility:hidden!important;pointer-events:none!important}
+  /* The picker mounts before lazy effort submenus. Hide the native level on first paint. */
+  [data-testid=model-selector-panel] [data-testid=model-selector-effort-group]+span.shrink-0:not(.rounded-full,[data-tooltip-id]):not(:has(*)),
   [data-agpa-native-model-row] [data-testid=model-selector-effort-group]+span{display:none!important}
   .agpa-effort-trigger{display:inline-flex;align-items:center;gap:3px;order:21;height:28px;flex-shrink:0;border:0;border-radius:999px;background:transparent;color:var(--muted-foreground,#999);font:inherit;font-size:12px;padding:0 8px;cursor:pointer;white-space:nowrap}
   .agpa-effort-trigger[aria-busy=true]{cursor:progress;opacity:.7}

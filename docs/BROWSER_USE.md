@@ -1,10 +1,10 @@
-# 🌐 Browser use
+# 🌐 External browser
 
-Use your Chromium browser and existing logins with the official Chrome DevTools MCP tools. No extension or manual package installation is required.
+Use your Chromium browser and existing logins with the official Chrome DevTools MCP tools. No extension or manual package installation is required. For the integrated browser and other native backends, use Antigravity’s [Browser settings](https://antigravity.google/docs/browser).
 
 ## 🔌 Connect
 
-1. Open **Settings → Browser use** and enable it.
+1. Open **Settings → Browser → External browser** and enable it.
 2. Choose your browser. On Windows, copy the address shown in Settings, paste it into your browser’s address bar, and open **Remote debugging**. On Linux, click **Connect browser** to open the browser’s settings page.
 3. Enable **Allow remote debugging**. On Windows, return to Antigravity and click **Connect browser** once the button appears. Approve the browser’s connection prompt. With multiple profiles, windows or installed web apps (PWAs), the request may appear in another window; check each of them. Settings updates automatically.
 

@@ -102,7 +102,7 @@ for (const compact of [false, true])
     await page.locator("[data-testid=model-selector-trigger]").click();
     await expect(
       page.getByRole("menuitem", { name: "View Usage" }),
-    ).toBeVisible();
+    ).toHaveCount(0);
   });
 test("Usage stays available on Automations without creating a conversation or opening the model menu", async ({
   page,

@@ -78,7 +78,7 @@ test("disabled shows only the switch; enabling shows browser choice and native c
   page,
 }) => {
   await setup(page);
-  const toggle = page.getByRole("switch", { name: "Browser use" });
+  const toggle = page.getByRole("switch", { name: "External browser" });
   await expect(toggle).toHaveAttribute("aria-checked", "false");
   await expect(page.locator("button")).toHaveCount(1);
   await toggle.click();
@@ -156,7 +156,9 @@ test("reopening a recreated settings dialog restores controls even when connecti
       .replaceWith(document.querySelector("main").cloneNode(false));
     window.dispatchEvent(new Event("agpa:settings-page"));
   });
-  await expect(page.getByRole("switch", { name: "Browser use" })).toBeVisible();
+  await expect(
+    page.getByRole("switch", { name: "External browser" }),
+  ).toBeVisible();
   await expect(page.getByRole("combobox")).toContainText("Brave");
   await page.evaluate(() => {
     globalThis.fake.browser.connected = true;

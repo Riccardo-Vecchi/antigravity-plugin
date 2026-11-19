@@ -41,12 +41,18 @@ async function setup(page, includeOrchestrator = false) {
       const prefs = { version: 1, models: {} };
       globalThis.__agpaModelPreferences = (payload) => {
         const { requestId, name, field, value } = JSON.parse(payload);
-        prefs.models[name] = {
-          favorite: false,
-          hidden: false,
-          ...prefs.models[name],
-          [field]: value,
-        };
+        if (field === "seenAnnouncements")
+          prefs.seenAnnouncements = [
+            ...new Set([...(prefs.seenAnnouncements || []), ...value]),
+          ];
+        else if (field === "order") prefs.order = value;
+        else
+          prefs.models[name] = {
+            favorite: false,
+            hidden: false,
+            ...prefs.models[name],
+            [field]: value,
+          };
         queueMicrotask(() =>
           globalThis.__AGModelUI.onResult(
             requestId,
@@ -67,7 +73,7 @@ async function setup(page, includeOrchestrator = false) {
           return;
         }
         host.innerHTML =
-          '<div role="menu"><div data-testid="model-selector-panel"><div data-testid="model-selector-header">Model</div><div class="rows"></div><div><div role="menuitem" aria-haspopup="menu" id="usage">View Usage</div></div></div></div>';
+          '<div role="menu"><div data-testid="model-selector-panel"><div data-testid="model-selector-header">Model</div><div class="rows"></div><div><div role="menuitem" aria-haspopup="menu" id="usage">View Usage</div><div role="menuitem" aria-haspopup="menu">Main Agent</div></div></div></div>';
         const rows = host.querySelector(".rows");
         for (const name of [
           "Gemini Fixture",
@@ -83,6 +89,15 @@ async function setup(page, includeOrchestrator = false) {
           label.dataset.modelLabel = name;
           label.textContent = name;
           row.append(label);
+          const badge = document.createElement("div");
+          badge.className = "rounded-full";
+          if (name === "Gemini Fixture") {
+            badge.dataset.tooltipId = "details";
+            badge.innerHTML =
+              "<span>New</span><svg width='12' height='12'></svg>";
+          } else
+            badge.textContent = name === "Claude Fixture" ? "New" : "Notice";
+          if (!name.startsWith("Orchestrator")) row.append(badge);
           rows.append(row);
           row.onclick = () => {
             globalThis.fixture.changes++;
@@ -90,13 +105,6 @@ async function setup(page, includeOrchestrator = false) {
             trigger.click();
           };
         }
-        host.querySelector("#usage").onclick = () => {
-          if (host.querySelector("[data-nested]")) return;
-          const wrapper = document.createElement("div");
-          wrapper.innerHTML =
-            '<div role="menu" data-nested><div role="presentation">Gemini Models</div><div role="presentation">Claude and GPT models</div><div><span class="truncate">Gemini 4 Argon</span></div></div>';
-          host.querySelector("#usage").parentElement.append(wrapper);
-        };
         trigger.setAttribute("aria-expanded", "true");
       };
     },
@@ -162,31 +170,51 @@ test("models move to a separate Other group and restore without changing the sel
   await expect(trigger).toContainText("Claude Fixture");
   expect(await page.evaluate(() => globalThis.fixture.changes)).toBe(1);
 });
-test("native quota headings show all relevant labs without changing quota text or duplicating icons", async ({
+test("Usage belongs to the sidebar and the host entry returns on teardown", async ({
   page,
 }) => {
   await setup(page);
-  await page.locator("[data-testid=model-selector-trigger]").click();
-  await page.locator("#usage").click();
-  const headings = page.locator("[data-agpa-quota-heading]");
-  await expect(headings).toHaveCount(3);
-  const combined = headings.filter({ hasText: "Claude and GPT models" });
-  await expect(combined.locator("img")).toHaveCount(2);
-  await expect(combined.locator("[data-agpa-quota-logos]")).toHaveAttribute(
-    "data-agpa-quota-logos",
-    "anthropic openai",
-  );
-  await page.evaluate(() =>
-    document
-      .querySelector("[data-testid=model-selector-trigger] > span")
-      .append(document.createTextNode(" ")),
-  );
-  await expect(combined.locator("img")).toHaveCount(2);
+  await page.getByTestId("model-selector-trigger").click();
+  await expect(page.locator("#usage")).toBeHidden();
+  await expect(
+    page.getByRole("menuitem", { name: "Main Agent" }),
+  ).toBeVisible();
   await page.evaluate(() => globalThis.__AGModelUI.destroy());
-  await expect(page.locator("[data-agpa-quota-logos]")).toHaveCount(0);
-  await expect(page.locator("[data-agpa-quota-heading]")).toHaveCount(0);
   await expect(page.locator("#usage")).toBeVisible();
-  await expect(page.locator("#usage")).toHaveText("View Usage");
+});
+
+test("existing New labels expire, future labels last one opening, native information survives", async ({
+  page,
+}) => {
+  await setup(page);
+  const trigger = page.getByTestId("model-selector-trigger");
+  await trigger.click();
+  const rows = page.locator(".rows > [role=menuitem]");
+  const info = rows.first().locator("[data-tooltip-id]");
+  await expect(info.locator("span")).toBeHidden();
+  await expect(info.locator("svg")).toBeVisible();
+  await expect(rows.nth(1).locator(".rounded-full")).toBeHidden();
+  await trigger.click();
+  await trigger.click();
+  await rows
+    .nth(2)
+    .locator(".rounded-full")
+    .evaluate((el) => {
+      el.textContent = "New";
+    });
+  await expect(rows.nth(2).locator(".rounded-full")).toBeVisible();
+  await trigger.click();
+  await trigger.click();
+  await expect(rows.nth(2).getByText("Notice")).toBeVisible();
+  await rows
+    .nth(2)
+    .locator(".rounded-full")
+    .evaluate((el) => {
+      el.textContent = "New";
+    });
+  await expect(rows.nth(2).locator(".rounded-full")).toBeHidden();
+  await page.evaluate(() => globalThis.__AGModelUI.destroy());
+  await expect(info.locator("span")).toBeVisible();
 });
 
 test("standalone quota uses the same provider logos outside conversations", async ({
@@ -306,6 +334,7 @@ test("Automations decorates its native picker and portaled options without reord
     "data-agpa-icon",
     "google",
   );
+  await expect(picker.locator("img[data-element]")).toHaveCount(0);
   await expect(list.locator("img[data-agpa-icon]")).toHaveCount(5);
   const orchestrator = list.getByRole("option", {
     name: "Orchestrator (Argon)",
@@ -328,4 +357,107 @@ test("Automations decorates its native picker and portaled options without reord
   await expect(picker.locator("svg")).toHaveCount(1);
   await page.evaluate(() => globalThis.__AGModelUI.destroy());
   await expect(list.locator("img")).toHaveCount(0);
+});
+
+test("custom order follows keyboard navigation and can be reset independently", async ({
+  page,
+}) => {
+  await setup(page);
+  const trigger = page.getByTestId("model-selector-trigger");
+  await trigger.click();
+  const manage = page.getByRole("button", { name: "Manage models" });
+  await manage.click();
+  await page.getByRole("button", { name: "Move Claude Fixture up" }).click();
+  await expect(page.locator(".agpa-model-setting").first()).toContainText(
+    "Claude Fixture",
+  );
+  await page.getByRole("button", { name: "Done" }).click();
+  await trigger.click();
+  const claude = page.locator('[data-agpa-model-key="Claude Fixture"]');
+  const gemini = page.locator('[data-agpa-model-key="Gemini Fixture"]');
+  expect((await claude.boundingBox()).y).toBeLessThan(
+    (await gemini.boundingBox()).y,
+  );
+  await claude.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(gemini).toBeFocused();
+  await manage.click();
+  await page.getByRole("button", { name: "Reset order" }).click();
+  await expect(page.locator(".agpa-model-setting").first()).toContainText(
+    "Gemini Fixture",
+  );
+  expect(await page.evaluate(() => globalThis.fixture.changes)).toBe(0);
+});
+
+test("Gemini element badges follow the native model name and preference chips support Space", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.getByTestId("model-selector-trigger").click();
+  let model = page.locator('[data-model-label="Gemini Fixture"]');
+  async function rename(name) {
+    await model.evaluate((label, next) => {
+      label.dataset.modelLabel = next;
+      label.textContent = next;
+    }, name);
+    model = page.locator(`[data-model-label="${name}"]`);
+  }
+  await rename("Gemini 4 Neon");
+  const row = page.locator('[data-agpa-model-key="Gemini 4 Neon"]');
+  await expect(
+    row.locator('[data-agpa-icon="google"] + [data-agpa-element="Ne"]'),
+  ).toHaveAttribute("title", "Deep reasoning with fast turnaround");
+  await rename("Gemini 4 Hydrogen");
+  await expect(page.locator('[data-agpa-element="Ne"]')).toHaveCount(0);
+  await expect(page.locator('[data-agpa-element="H"]')).toHaveCount(1);
+  await page.getByRole("button", { name: "Manage models" }).click();
+  const setting = page
+    .locator(".agpa-model-setting")
+    .filter({ hasText: "Gemini 4 Hydrogen" });
+  await expect(setting).toContainText("Fast everyday tasks");
+  const favorite = setting.getByRole("checkbox", { name: "Favorite" });
+  await favorite.focus();
+  await page.keyboard.press("Space");
+  await expect(favorite).toBeChecked();
+  await expect(favorite).toBeFocused();
+  expect(await page.evaluate(() => globalThis.fixture.changes)).toBe(0);
+});
+
+test("the toolbar pairs the Google logo with the selected Gemini element independently of effort", async ({
+  page,
+}) => {
+  await setup(page, true);
+  const trigger = page.getByTestId("model-selector-trigger");
+  const label = trigger.locator(":scope > span:not([data-agpa-model-ui])");
+  const badge = trigger.locator(
+    '[data-agpa-icon="google"] + [data-agpa-element]',
+  );
+  await label.evaluate((el) => {
+    const effort = document.createElement("span");
+    effort.textContent = " High";
+    el.replaceChildren("Gemini 4 Neon", effort);
+  });
+  await expect(badge).toHaveAttribute("data-agpa-element", "Ne");
+  await label.locator("span").evaluate((el) => {
+    el.textContent = " Extra";
+  });
+  await expect(badge).toHaveCount(1);
+  await expect(badge).toHaveAttribute("data-agpa-element", "Ne");
+  for (const [name, symbol] of [
+    ["Hydrogen", "H"],
+    ["Argon", "Ar"],
+    ["Carbon", "C"],
+  ]) {
+    await label.evaluate((el, name) => {
+      el.firstChild.textContent = "Gemini 4 " + name;
+    }, name);
+    await expect(badge).toHaveAttribute("data-agpa-element", symbol);
+  }
+  await label.evaluate((el) => {
+    el.textContent = "Orchestrator (Neon)";
+  });
+  await expect(trigger.locator("[data-agpa-element]")).toHaveCount(0);
+  await expect(
+    trigger.locator('[data-agpa-icon="orchestrator"]'),
+  ).toBeVisible();
 });
