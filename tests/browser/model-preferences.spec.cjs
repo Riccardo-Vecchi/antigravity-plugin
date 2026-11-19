@@ -520,6 +520,23 @@ test("per-model shortcuts select only the assigned entry and preserve selection 
     exact: true,
   });
   await expect(missing).toHaveValue("Ctrl+Alt+O");
+  for (const width of [1000, 640, 375]) {
+    await page.setViewportSize({ width, height: 800 });
+    const layout = await page.getByRole("dialog").evaluate((dialog) => {
+      const selectors = [...dialog.querySelectorAll("select")];
+      return {
+        bounds: selectors.map((select) => {
+          const { left, right } = select.getBoundingClientRect();
+          return [left, right];
+        }),
+        fits: dialog.scrollWidth <= dialog.clientWidth,
+      };
+    });
+    expect(layout.fits).toBe(true);
+    expect(layout.bounds.length).toBeGreaterThan(1);
+    for (const bounds of layout.bounds)
+      expect(bounds).toEqual(layout.bounds[0]);
+  }
   await missing.selectOption("");
   await expect(missing).toHaveCount(0);
   expect(await page.evaluate(() => globalThis.fixture.changes)).toBe(1);

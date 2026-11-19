@@ -1,6 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
- 'use strict';const VERSION='1.6.0';
+ 'use strict';const VERSION='1.6.1';
  if(globalThis.__AGModelUI?.version===VERSION)return;
  globalThis.__AGModelUI?.destroy();
  const i=globalThis.__AGPAI18n,providerFor=globalThis.__AGPAProviderFor,permissionFor=globalThis.__AGPAPermissionFor,assets=globalThis.__AGPA_LAB_ICONS__;
@@ -370,8 +370,8 @@
     const description = decorateVariant(label,name);
     if (description) caption.append(node('small',{text:description}));
     const moves = node('div',{class:'agpa-model-moves'});
-    row.append(label,moves);
-    caption.append(shortcutSelect(name));
+    const actions = node('div',{class:'agpa-model-actions'},moves);
+    row.append(label,shortcutSelect(name),actions);
     for (const [delta,title] of [[-1,'Move {model} up'],[1,'Move {model} down']]) {
      const adjacent = names[index + delta];
      const move = node('button',{type:'button','data-model-name':name,'data-move':String(delta)});
@@ -386,7 +386,7 @@
      };
      moves.append(move);
     }
-    for(const [field,title]of [['favorite','Favorite'],['hidden','Hidden']]){const input=node('input',{type:'checkbox','data-model-name':name,'data-field':field});input.onchange=()=>save(name,field,input.checked);row.append(node('label',{'data-option':field},input,node('span',{text:title})));}container.append(row);
+    for(const [field,title]of [['favorite','Favorite'],['hidden','Hidden']]){const input=node('input',{type:'checkbox','data-model-name':name,'data-field':field});input.onchange=()=>save(name,field,input.checked);actions.append(node('label',{'data-option':field},input,node('span',{text:title})));}container.append(row);
    }
    for (const [name] of missing) {
     const label=node('span');
@@ -445,13 +445,13 @@
  .agpa-model-moves button::before{content:"";width:7px;height:7px;border:solid currentColor;border-width:1.7px 1.7px 0 0;border-radius:1px;transform:translateY(2px) rotate(-45deg)}
  .agpa-model-moves [data-move="1"]::before{transform:translateY(-2px) rotate(135deg)}
  .agpa-model-moves button:hover:enabled{background:color-mix(in srgb,currentColor 15%,transparent)}
- .agpa-model-dialog :is(button,input):focus-visible{outline:2px solid var(--ring,#78aafa);outline-offset:2px}
+ .agpa-model-dialog :is(button,input,select):focus-visible{outline:2px solid var(--ring,#78aafa);outline-offset:2px}
  .agpa-model-element{--element-color:#78bfff;display:inline-grid;place-items:center;flex:none;box-sizing:border-box;width:21px;height:19px;border-radius:5px;color:color-mix(in srgb,var(--element-color) 67%,currentColor);background:color-mix(in srgb,var(--element-color) 13%,transparent);border:1px solid color-mix(in srgb,var(--element-color) 40%,transparent);font:600 11px/1 system-ui}
  .agpa-model-element::before{content:attr(data-agpa-element)}
  [data-agpa-element=Ar]{--element-color:#b796ee}[data-agpa-element=Ne]{--element-color:#50c5b4}[data-agpa-element=C]{--element-color:#e4ae64}
  .agpa-model-caption{min-width:0;display:grid;gap:2px;overflow-wrap:anywhere}
  [data-agpa-model-notice]{position:fixed;z-index:10000;bottom:76px;left:50%;transform:translateX(-50%);padding:8px 14px;background:var(--card,#27272a);color:var(--foreground,#eee);border:1px solid var(--border,#555);border-radius:10px;font:13px system-ui}
- [data-agpa-model-shortcut]{width:fit-content;max-width:100%;font:inherit;font-size:11px;color:inherit;background:var(--background,#171717);border:1px solid var(--border,#444);border-radius:5px;padding:1px 4px;cursor:pointer}
+ [data-agpa-model-shortcut]{box-sizing:border-box;width:100%;min-width:0;height:28px;font:inherit;font-size:12px;color:inherit;background:var(--background,#171717);border:1px solid var(--border,#444);border-radius:7px;padding:2px 6px;cursor:pointer}
  .agpa-model-caption small{font-size:11px;color:var(--muted-foreground,#aaa)}
  .agpa-lab-icon{width:16px;height:16px;object-fit:contain;flex-shrink:0;display:inline-block;vertical-align:middle}.agpa-model-setting>span{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
  [data-agpa-model-hidden=true]{display:none!important}.agpa-model-star{margin-left:auto;flex-shrink:0;width:24px;height:24px;border:0;background:none;color:var(--muted-foreground,#aaa);cursor:pointer;font-size:17px;opacity:0}.agpa-model-star[aria-pressed=true]{color:#e6b94b;opacity:1}[role=menuitem]:hover>.agpa-model-star,[role=menuitem]:focus>.agpa-model-star,.agpa-model-star:focus-visible{opacity:1}
@@ -460,7 +460,9 @@
  .agpa-model-dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
  .agpa-model-dialog footer button{font:inherit;padding:5px 14px;border:1px solid var(--border,#444);border-radius:9px;background:transparent;color:inherit;cursor:pointer}
  .agpa-model-dialog footer button:last-child{background:var(--foreground,#eee);color:var(--background,#171717)}
- .agpa-model-setting{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border,#333)}
+ [data-agpa-model-list]{display:grid;grid-template-columns:minmax(0,1fr) max-content max-content;column-gap:10px}
+ .agpa-model-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+ .agpa-model-setting{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;padding:9px 0;border-bottom:1px solid var(--border,#333)}
  .agpa-model-setting label{--option-accent:#deab45;display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--border,#444);border-radius:9px;cursor:pointer;font-size:12px}
  .agpa-model-setting [data-option=hidden]{--option-accent:#9d91e2}
  .agpa-model-setting label:has(:checked){border-color:color-mix(in srgb,var(--option-accent) 48%,transparent);background:color-mix(in srgb,var(--option-accent) 12%,transparent)}
@@ -475,7 +477,7 @@
  [data-testid^=permissions-preset-option-][data-agpa-permission]>[data-icon],[data-testid^=permissions-preset-option-][data-agpa-permission]>span.flex.min-w-0>span:first-child{color:color-mix(in srgb,var(--foreground,#eee) 18%,var(--agpa-permission))!important}
 
  .agpa-standalone-usage{box-sizing:border-box;position:fixed;z-index:10000;width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;padding:10px;border:1px solid var(--border,#36373c);border-radius:13px;background:var(--background,#17181c);color:var(--foreground,#eee);font:12px/1.5 system-ui;box-shadow:0 12px 30px #0005}.agpa-standalone-usage header{display:flex;align-items:center;justify-content:space-between;color:var(--muted-foreground,#aaa);padding:0 2px 4px}.agpa-quota-refresh{border:0;background:transparent;color:inherit;cursor:pointer;font:18px system-ui}.agpa-quota-refresh:disabled{opacity:.4}.agpa-standalone-usage section+section{margin-top:10px}.agpa-standalone-usage strong{display:block;font-weight:500;padding:2px}.agpa-quota-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:1px 12px;padding:4px 2px;color:var(--muted-foreground,#aaa)}.agpa-quota-row small{grid-column:1/-1;text-align:right;font-size:11px}.agpa-quota-value{display:flex;align-items:center;gap:6px}.agpa-quota-ring{width:14px;height:14px;display:inline-block;border-radius:50%;background:conic-gradient(var(--quota-color) var(--quota-left),#62636b var(--quota-left));mask:radial-gradient(circle,transparent 48%,#000 52%)}.agpa-quota-row[aria-disabled=true]{opacity:.5}
- @media(max-width:600px){.agpa-model-setting{grid-template-columns:auto auto 1fr;gap:6px}.agpa-setting-model{grid-column:1/-1}.agpa-model-setting label{justify-self:start}}
+ @media(max-width:640px){[data-agpa-model-list]{grid-template-columns:minmax(0,1fr) max-content}.agpa-model-setting{row-gap:6px}.agpa-model-actions{grid-column:1/-1;justify-content:flex-end}}
  `});document.head.append(style);
  const watched=automationPickers+', [data-testid=settings-button],[role=menu][data-nested],[data-testid=model-selector-trigger],[data-testid=model-selector-panel],[data-testid^=permissions-]';
  const observer=new MutationObserver(records=>{

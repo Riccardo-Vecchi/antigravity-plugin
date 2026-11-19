@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.23.1
+
+- Align shortcut selectors in a shared column in Manage models, including unavailable models and narrow windows.
+
 ## 1.23.0
 
 - Assign optional Ctrl+Alt+letter shortcuts per model in **Manage models**. Shortcuts target the exact catalog entry and report when it is unavailable. Adapted from PR #8 by FrancescoMin.
