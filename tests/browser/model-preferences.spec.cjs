@@ -461,3 +461,57 @@ test("the toolbar pairs the Google logo with the selected Gemini element indepen
     trigger.locator('[data-agpa-icon="orchestrator"]'),
   ).toBeVisible();
 });
+
+test("per-model shortcuts select only the assigned entry and preserve selection when unavailable", async ({
+  page,
+}) => {
+  await setup(page, true);
+  const createRules =
+    require("../../common/shortcut-config.cjs").createShortcutRules;
+  await page.evaluate(
+    "globalThis.__AGPAShortcutRules=(" + createRules.toString() + ")()",
+  );
+  await page.evaluate(
+    fs.readFileSync(path.join(__dirname, "../../common/shortcuts.js"), "utf8"),
+  );
+  const trigger = page.getByTestId("model-selector-trigger");
+  await trigger.click();
+  await page.getByRole("button", { name: "Manage models" }).click();
+  const choose = page.getByRole("combobox", {
+    name: "Shortcut for Claude Fixture",
+    exact: true,
+  });
+  await expect(choose.locator('option[value="Ctrl+Alt+G"]')).toBeDisabled();
+  await choose.selectOption("Ctrl+Alt+C");
+  await expect(
+    page
+      .getByRole("combobox", {
+        name: "Shortcut for Gemini Fixture",
+        exact: true,
+      })
+      .locator('option[value="Ctrl+Alt+C"]'),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Done" }).click();
+  await page.keyboard.press("Control+Alt+c");
+  await expect(trigger).toContainText("Claude Fixture");
+  await page.evaluate(() =>
+    globalThis.__AGModelUI.setPreferences({
+      version: 1,
+      models: {
+        "Orchestrator (Neon)": {
+          favorite: false,
+          hidden: false,
+          shortcut: "Ctrl+Alt+O",
+        },
+      },
+    }),
+  );
+  await page.keyboard.press("Control+Alt+o");
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Orchestrator (Neon) is unavailable." }),
+  ).toBeVisible();
+  await expect(trigger).toContainText("Claude Fixture");
+  expect(await page.evaluate(() => globalThis.fixture.changes)).toBe(1);
+});

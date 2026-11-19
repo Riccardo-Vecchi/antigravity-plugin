@@ -60,3 +60,16 @@ test('seen model announcements merge across clients and survive an order reset',
  await assert.rejects(first.update({field:'seenAnnouncements',value:[{}]}));
  assert.deepEqual((await createStore(file).load()).seenAnnouncements,['A','B']);
 });
+
+test('exact model shortcuts survive reload and conflicting assignments preserve the previous file',async t=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-model-keys-'));
+ t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+ const file=path.join(dir,'models.json'), store=createStore(file);
+ await store.update({name:'Orchestrator (Neon)',field:'shortcut',value:'Ctrl+Alt+O'});
+ await store.update({name:'Orchestrator (Neon)',field:'hidden',value:true});
+ await assert.rejects(store.update({name:'Orchestrator (Argon)',field:'shortcut',value:'Ctrl+Alt+O'}));
+ await assert.rejects(store.update({name:'Argon',field:'shortcut',value:'Ctrl+A'}));
+ assert.deepEqual((await createStore(file).load()).models,{'Orchestrator (Neon)':{hidden:true,favorite:false,shortcut:'Ctrl+Alt+O'}});
+ const next=await store.update({name:'Orchestrator (Neon)',field:'shortcut',value:null});
+ assert.deepEqual(next.models,{'Orchestrator (Neon)':{hidden:true,favorite:false}});
+});

@@ -11,11 +11,15 @@ function validateOrder(order) {
 }
 function validate(data){
  if(data?.version!==1||!data.models||typeof data.models!=='object'||Array.isArray(data.models)||Object.keys(data.models).length>500)throw Error('Invalid model preferences.');
- const models={};
+ const models={}, usedShortcuts=new Set();
  for(const [name,value]of Object.entries(data.models)){
   if(!validName(name)||!value||typeof value!=='object'||typeof value.favorite!=='boolean'||typeof value.hidden!=='boolean')throw Error('Invalid model preference.');
   if(value.effort!==undefined&&!validEffort(value.effort))throw Error('Invalid model effort.');
-  if(value.favorite||value.hidden||value.effort)models[name]={favorite:value.favorite,hidden:value.hidden,...(value.effort?{effort:value.effort}:{})};
+  if(value.shortcut!==undefined){
+   if(typeof value.shortcut!=='string'||!/^Ctrl\+Alt\+[A-Z]$/.test(value.shortcut)||usedShortcuts.has(value.shortcut))throw Error('Invalid or duplicate model shortcut.');
+   usedShortcuts.add(value.shortcut);
+  }
+  if(value.favorite||value.hidden||value.effort||value.shortcut)models[name]={favorite:value.favorite,hidden:value.hidden,...(value.effort?{effort:value.effort}:{}),...(value.shortcut?{shortcut:value.shortcut}:{})};
  }
  const order = validateOrder(data.order === undefined ? [] : data.order);
  const result = {version:1,models};
@@ -51,9 +55,15 @@ function createStore(file){
     const merged = (next.order || []).map(name => visible.has(name) ? value[index++] : name);
     next.order = value.length ? [...merged, ...value.slice(index)] : [];
    } else {
-    if(!validName(name)||!['favorite','hidden','effort'].includes(field)||(field==='effort'?!validEffort(value):typeof value!=='boolean'))throw Error('Invalid model change.');
+    if(!validName(name)||!['favorite','hidden','effort','shortcut'].includes(field))throw Error('Invalid model change.');
+    if(field==='effort'&&!validEffort(value))throw Error('Invalid model effort.');
+    if((field==='favorite'||field==='hidden')&&typeof value!=='boolean')throw Error('Invalid model change.');
     const choice={favorite:false,hidden:false,...next.models[name],[field]:value};
-    if(choice.favorite||choice.hidden||choice.effort)next.models[name]=choice;else delete next.models[name];
+    if(field==='shortcut'){
+     if(value===null)delete choice.shortcut;
+     else if(typeof value!=='string'||!/^Ctrl\+Alt\+[A-Z]$/.test(value))throw Error('Invalid model shortcut.');
+    }
+    if(choice.favorite||choice.hidden||choice.effort||choice.shortcut)next.models[name]=choice;else delete next.models[name];
    }
    const normalized = validate(next);
    const text = JSON.stringify(normalized,null,2)+'\n';

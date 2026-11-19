@@ -511,7 +511,10 @@
       "Fast everyday tasks": "Fast everyday tasks",
       "Complex engineering workflows": "Complex engineering workflows",
       "Deep reasoning with fast turnaround": "Deep reasoning with fast turnaround",
-      "Long, demanding projects": "Long, demanding projects"
+      "Long, demanding projects": "Long, demanding projects",
+      "Shortcut": "Shortcut",
+      "Shortcut for {model}": "Shortcut for {model}",
+      "{model} is unavailable.": "{model} is unavailable."
     },
     "icons": {
       "folder": "Folder",
@@ -1076,7 +1079,10 @@
       "Fast everyday tasks": "Attività quotidiane rapide",
       "Complex engineering workflows": "Flussi di lavoro ingegneristici complessi",
       "Deep reasoning with fast turnaround": "Ragionamento approfondito in tempi brevi",
-      "Long, demanding projects": "Progetti lunghi e impegnativi"
+      "Long, demanding projects": "Progetti lunghi e impegnativi",
+      "Shortcut": "Scorciatoia",
+      "Shortcut for {model}": "Scorciatoia per {model}",
+      "{model} is unavailable.": "{model} non è disponibile."
     },
     "icons": {
       "folder": "Cartella",
@@ -1641,7 +1647,10 @@
       "Fast everyday tasks": "Schnelle Alltagsaufgaben",
       "Complex engineering workflows": "Komplexe technische Abläufe",
       "Deep reasoning with fast turnaround": "Tiefgehende Analyse in kurzer Zeit",
-      "Long, demanding projects": "Lange, anspruchsvolle Projekte"
+      "Long, demanding projects": "Lange, anspruchsvolle Projekte",
+      "Shortcut": "Tastenkürzel",
+      "Shortcut for {model}": "Tastenkürzel für {model}",
+      "{model} is unavailable.": "{model} ist nicht verfügbar."
     },
     "icons": {
       "folder": "Ordner",
@@ -2206,7 +2215,10 @@
       "Fast everyday tasks": "Tareas cotidianas rápidas",
       "Complex engineering workflows": "Flujos de ingeniería complejos",
       "Deep reasoning with fast turnaround": "Razonamiento profundo en poco tiempo",
-      "Long, demanding projects": "Proyectos largos y exigentes"
+      "Long, demanding projects": "Proyectos largos y exigentes",
+      "Shortcut": "Atajo",
+      "Shortcut for {model}": "Atajo para {model}",
+      "{model} is unavailable.": "{model} no está disponible."
     },
     "icons": {
       "folder": "Carpeta",
@@ -2771,7 +2783,10 @@
       "Fast everyday tasks": "Tâches rapides du quotidien",
       "Complex engineering workflows": "Travaux d’ingénierie complexes",
       "Deep reasoning with fast turnaround": "Raisonnement approfondi et rapide",
-      "Long, demanding projects": "Projets longs et exigeants"
+      "Long, demanding projects": "Projets longs et exigeants",
+      "Shortcut": "Raccourci",
+      "Shortcut for {model}": "Raccourci pour {model}",
+      "{model} is unavailable.": "{model} est indisponible."
     },
     "icons": {
       "folder": "Dossier",
@@ -3336,7 +3351,10 @@
       "Fast everyday tasks": "快速处理日常任务",
       "Complex engineering workflows": "复杂工程流程",
       "Deep reasoning with fast turnaround": "快速深入推理",
-      "Long, demanding projects": "长期高难度项目"
+      "Long, demanding projects": "长期高难度项目",
+      "Shortcut": "快捷键",
+      "Shortcut for {model}": "{model} 的快捷键",
+      "{model} is unavailable.": "{model} 不可用。"
     },
     "icons": {
       "folder": "文件夹",
@@ -3901,7 +3919,10 @@
       "Fast everyday tasks": "日常タスクを素早く処理",
       "Complex engineering workflows": "複雑なエンジニアリング作業",
       "Deep reasoning with fast turnaround": "短時間で深く推論",
-      "Long, demanding projects": "長期にわたる難しいプロジェクト"
+      "Long, demanding projects": "長期にわたる難しいプロジェクト",
+      "Shortcut": "ショートカット",
+      "Shortcut for {model}": "{model} のショートカット",
+      "{model} is unavailable.": "{model} は使用できません。"
     },
     "icons": {
       "folder": "フォルダー",

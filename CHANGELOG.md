@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.23.0
+
+- Assign optional Ctrl+Alt+letter shortcuts per model in **Manage models**. Shortcuts target the exact catalog entry and report when it is unavailable. Adapted from PR #8 by FrancescoMin.
+- Reorder favorites, visible models and hidden models within each group. Restore catalog order independently of other preferences.
+- Show Gemini 4 element symbols beside the Google logo in the picker and composer. Manage models includes brief use cases and updated keyboard-accessible controls.
+- Keep usage in the sidebar, suppress previously seen New labels and hide duplicate effort labels from the first paint of the picker.
+- Group External browser under the native Browser settings page, with a globe icon and a separate section. Older layouts retain the standalone settings entry.
+- Prefer the native context indicator and matching native Library previews when available.
+
 ## 1.22.5
 
 - Restore plugin connectivity with Antigravity 2.33.0 by enabling loopback debugging in the application launchers. Accept origin-only native page URLs during discovery and helper reload.

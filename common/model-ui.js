@@ -1,6 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
- 'use strict';const VERSION='1.5.2';
+ 'use strict';const VERSION='1.6.0';
  if(globalThis.__AGModelUI?.version===VERSION)return;
  globalThis.__AGModelUI?.destroy();
  const i=globalThis.__AGPAI18n,providerFor=globalThis.__AGPAProviderFor,permissionFor=globalThis.__AGPAPermissionFor,assets=globalThis.__AGPA_LAB_ICONS__;
@@ -315,6 +315,30 @@
   }
  }
  function schedule(){if(!scheduled&&!stopped){scheduled=1;queueMicrotask(apply);}}
+ function nameForShortcut(chord) {
+  return Object.entries(preferences.models).find(([,model])=>model.shortcut===chord)?.[0];
+ }
+ let noticeTimer;
+ function showUnavailable(name) {
+  let notice=document.querySelector('[data-agpa-model-notice]');
+  if(!notice){notice=node('div',{role:'status','data-agpa-model-notice':''});document.body.append(notice);}
+  i.set(notice,'{model} is unavailable.',{model:name});
+  clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>notice.remove(),3500);
+ }
+ function shortcutSelect(name) {
+  const select=node('select',{'data-agpa-model-shortcut':'','data-model-name':name});
+  i.set(select,'Shortcut for {model}',{model:name},'aria-label');
+  i.set(select,'Shortcut for {model}',{model:name},'title');
+  select.append(node('option',{value:'',text:'Shortcut'}));
+  for (const letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+   const chord='Ctrl+Alt+'+letter;
+   const option=node('option',{value:chord});
+   option.textContent=chord;
+   select.append(option);
+  }
+  select.onchange=()=>save(name,'shortcut',select.value || null);
+  return select;
+ }
  function openDialog(){
   if(!dialog){
    const close=node('button',{type:'button',text:'Done'});close.onclick=()=>dialog.close();
@@ -344,6 +368,7 @@
     if (description) caption.append(node('small',{text:description}));
     const moves = node('div',{class:'agpa-model-moves'});
     row.append(label,moves);
+    caption.append(shortcutSelect(name));
     for (const [delta,title] of [[-1,'Move {model} up'],[1,'Move {model} down']]) {
      const adjacent = names[index + delta];
      const move = node('button',{type:'button','data-model-name':name,'data-move':String(delta)});
@@ -370,12 +395,20 @@
   container.setAttribute('aria-busy',String(saving));
   reset.disabled = saving || !preferences.order?.length;
   for(const input of container.querySelectorAll('input')){input.checked=choice(input.dataset.modelName)[input.dataset.field];input.disabled=saving;}
+  const assigned=new Map(Object.entries(preferences.models).filter(([,m])=>m.shortcut).map(([n,m])=>[m.shortcut,n]));
+  const reserved=globalThis.__AGShortcuts?.status().shortcut;
+  for(const select of container.querySelectorAll('[data-agpa-model-shortcut]')){
+   const name=select.dataset.modelName;
+   select.disabled=saving;select.value=choice(name).shortcut || '';
+   for(const opt of select.options)opt.disabled=!!opt.value && (opt.value===reserved || (assigned.has(opt.value) && assigned.get(opt.value)!==name));
+  }
   i.set(dialog.querySelector('[data-agpa-model-status]'),error||'');
  }
  let search='',lastSearch=0;
  function keyboard(event){
   if(quotaPopup&&event.key==='Escape'){const button=usageButton;closeUsage();if(event.target.closest?.('[data-agpa-usage-menu]'))button?.focus();event.stopImmediatePropagation();return;}
   if(event.target.closest?.('[data-agpa-effort-ui]'))return;
+  if(event.target.closest?.('[data-agpa-model-shortcut]'))return;
   if(dialog?.open&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();dialog.close();return;}
   if(event.ctrlKey||event.altKey||event.metaKey)return;
   if(['Enter',' '].includes(event.key)&&event.target.matches?.('[data-agpa-model-manage],[data-agpa-model-footer]')){event.preventDefault();event.stopImmediatePropagation();event.target.click();return;}
@@ -409,6 +442,8 @@
  .agpa-model-element::before{content:attr(data-agpa-element)}
  [data-agpa-element=Ar]{--element-color:#b796ee}[data-agpa-element=Ne]{--element-color:#50c5b4}[data-agpa-element=C]{--element-color:#e4ae64}
  .agpa-model-caption{min-width:0;display:grid;gap:2px;overflow-wrap:anywhere}
+ [data-agpa-model-notice]{position:fixed;z-index:10000;bottom:76px;left:50%;transform:translateX(-50%);padding:8px 14px;background:var(--card,#27272a);color:var(--foreground,#eee);border:1px solid var(--border,#555);border-radius:10px;font:13px system-ui}
+ [data-agpa-model-shortcut]{width:fit-content;max-width:100%;font:inherit;font-size:11px;color:inherit;background:var(--background,#171717);border:1px solid var(--border,#444);border-radius:5px;padding:1px 4px;cursor:pointer}
  .agpa-model-caption small{font-size:11px;color:var(--muted-foreground,#aaa)}
  .agpa-lab-icon{width:16px;height:16px;object-fit:contain;flex-shrink:0;display:inline-block;vertical-align:middle}.agpa-model-setting>span{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
  [data-agpa-model-hidden=true]{display:none!important}.agpa-model-star{margin-left:auto;flex-shrink:0;width:24px;height:24px;border:0;background:none;color:var(--muted-foreground,#aaa);cursor:pointer;font-size:17px;opacity:0}.agpa-model-star[aria-pressed=true]{color:#e6b94b;opacity:1}[role=menuitem]:hover>.agpa-model-star,[role=menuitem]:focus>.agpa-model-star,.agpa-model-star:focus-visible{opacity:1}
@@ -441,6 +476,6 @@
  document.addEventListener('pointerdown',usageOutside,true);
  window.addEventListener('resize',positionUsage);
  window.addEventListener('keydown',keyboard,true);const unsubscribe=i.subscribe(()=>{schedule();paintDialog();});
- globalThis.__AGModelUI={version:VERSION,openUsage,leaveUsage,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;document.removeEventListener('pointerdown',usageOutside,true);window.removeEventListener('resize',positionUsage);closeUsage();observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const attr of ['data-agpa-picker-quota','data-agpa-seen-new'])for(const e of document.querySelectorAll('['+attr+']'))e.removeAttribute(attr);for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');e.removeAttribute('data-agpa-model-other');}for(const e of document.querySelectorAll('[data-agpa-quota-heading]'))e.removeAttribute('data-agpa-quota-heading');for(const e of document.querySelectorAll('[data-agpa-model-groups]'))e.removeAttribute('data-agpa-model-groups');for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
+ globalThis.__AGModelUI={version:VERSION,openUsage,leaveUsage,entries,nameForShortcut,showUnavailable,setEffort:(name,value)=>save(name,'effort',value),setPreferences(next){preferences=next;schedule();paintDialog();},status:()=>({known:[...known],preferences,saving,error}),onResult(id,ok,next){const p=pending.get(id);if(!p)return;clearTimeout(p.timer);pending.delete(id);ok?p.resolve(next):p.reject(Error('save'));},destroy(){stopped=true;clearTimeout(noticeTimer);document.removeEventListener('pointerdown',usageOutside,true);window.removeEventListener('resize',positionUsage);closeUsage();observer.disconnect();unsubscribe();window.removeEventListener('keydown',keyboard,true);for(const p of pending.values()){clearTimeout(p.timer);p.reject(Error('closed'));}pending.clear();dialog?.close();dialog?.remove();style.remove();for(const attr of ['data-agpa-picker-quota','data-agpa-seen-new'])for(const e of document.querySelectorAll('['+attr+']'))e.removeAttribute(attr);for(const e of document.querySelectorAll('[data-agpa-model-key]')){e.style.order=originalOrders.get(e)||'';e.removeAttribute('data-agpa-model-key');e.removeAttribute('data-agpa-model-hidden');e.removeAttribute('data-agpa-model-other');}for(const e of document.querySelectorAll('[data-agpa-quota-heading]'))e.removeAttribute('data-agpa-quota-heading');for(const e of document.querySelectorAll('[data-agpa-model-groups]'))e.removeAttribute('data-agpa-model-groups');for(const e of document.querySelectorAll('[data-agpa-permission]'))e.removeAttribute('data-agpa-permission');for(const e of document.querySelectorAll('[data-agpa-model-ui]'))e.remove();delete globalThis.__AGModelUI;}};
  schedule();
 })();

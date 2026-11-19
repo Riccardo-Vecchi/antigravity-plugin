@@ -1,11 +1,11 @@
 "use strict";
 module.exports = Object.freeze({
-  suite: "1.22.6-preview.1",
+  suite: "1.23.0",
   library: "1.3.5",
   workspace: "1.2.0",
   sidebarLayout: "1.0.2",
   companion: "1.9.2",
-  models: "1.5.2",
+  models: "1.6.0",
   modelControls: "1.3.11",
   contextBudget: "1.3.6",
   teamworkBadge: "1.0.2",
@@ -17,7 +17,7 @@ module.exports = Object.freeze({
   inline: "1.2.1",
   settings: "1.1.1",
   i18n: "1.8.5",
-  shortcuts: "1.0.0",
+  shortcuts: "1.1.0",
   computerUse: "1.5.1",
   settingsNavigation: "1.3.0",
   headerPlacement: "1.0.0",
