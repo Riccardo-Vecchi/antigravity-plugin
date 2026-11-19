@@ -15,15 +15,17 @@ On the user's running Linux 2.33.0 AppImage, restarting with explicit debugging 
 - Standard sidebar opening and closing use the native layout and animation.
   The plugin retains the compact icon rail and optional hover overlay.
 - The native context-usage control takes priority as soon as it appears. Its
-  counters, popup and events remain native. A compact estimated ring is retained
-  only while the native control is unavailable in the rollout. No feature flags
+  counters, popup and events remain native. The plugin skips estimation and
+  transcript hydration while the native control is mounted. No feature flags
   or native preferences are changed.
 - Native permission icons, keyboard-shortcut settings, voice mode and notebook
   previews are retained. The plugin only adds its Gemini-switch shortcut; it does
   not replace native shortcut customization or implement a competing voice mode.
-- Browser use still connects an existing Chromium browser profile; the native
-  built-in browser does not replace that integration. Library remains an artifact
-  catalogue with document/3D previews, rather than a competing notebook viewer.
+- **External browser** connects an existing Chromium profile. Antigravity’s
+  **Browser** settings manage the native browser backends.
+- Library retains cross-conversation discovery, favorites and local previews. It
+  offers the native side panel for PDF, Markdown, audio and video when the active
+  source conversation exposes the exact file link.
 
 ## Compatibility repairs
 

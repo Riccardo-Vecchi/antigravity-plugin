@@ -28,6 +28,8 @@ Cards load previews as they enter the visible area: raster images (including fil
 
 Files above 25 MiB remain listed but are not loaded into the built-in viewer. **Show in folder** reveals the original. Generated files also offer **Open conversation** when their originating conversation is known.
 
+For PDF, Markdown, audio and video, **Open in Antigravity** can hand off an exact file link already visible in the active source conversation. The native side panel can play audio and video up to 200 MB in Antigravity 2.33.0. Library keeps its local preview for supported files within the 25 MiB limit.
+
 Select text in a supported document preview, then choose **Discuss selection**. The plugin appends the file path and selected text to the native chat draft. It preserves existing draft text and does not send the message. Interactive HTML does not expose its selections to this action.
 
 ## 🔒 Local processing

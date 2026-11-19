@@ -425,7 +425,7 @@ test("presentation reload repairs badges even while project styling signatures a
   await expect(badge).toHaveCSS("border-top-width", "0px");
 });
 
-test("Computer use and Browser use navigation inherit native text size", async ({
+test("Computer use and External browser navigation inherit native text size", async ({
   page,
 }) => {
   await setup(page);
@@ -443,6 +443,9 @@ test("Computer use and Browser use navigation inherit native text size", async (
   await page.evaluate(
     fs.readFileSync(path.join(root, "common/settings-navigation.js"), "utf8"),
   );
+  await expect(
+    page.getByRole("button", { name: "External browser" }),
+  ).toBeVisible();
   for (const key of ["computer", "browser"]) {
     await expect(
       page.locator(`[data-agpa-plugin-nav=${key}] > span`),
@@ -537,4 +540,45 @@ test("project search resolves exact IDs and the composer supports wrapped icons"
   );
   await expect(project.locator(".agpa-inline-icon")).toHaveCount(0);
   await expect(project.locator("svg")).toBeVisible();
+});
+
+test("native Browser owns the external browser section and globe across navigation", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    const dialog = document.createElement("div");
+    dialog.role = "dialog";
+    dialog.innerHTML =
+      '<div><button data-testid="settings-nav-item-App"><span>Application</span></button></div><div><button data-testid="settings-nav-item-Browser"><span>Navigateur</span></button></div><div class="flex w-full h-full overflow-auto min-h-0"><div class="p-6"><h2>Navigateur</h2><h3>Built-in Browser</h3><button data-testid="builtin-browser-download-dir-row">Downloads</button></div></div>';
+    document.body.append(dialog);
+  });
+  await page.evaluate(
+    fs.readFileSync(path.join(root, "common/settings-navigation.js"), "utf8"),
+  );
+  const native = page.getByTestId("settings-nav-item-Browser");
+  const section = page.locator("[data-agpa-external-browser]");
+  await expect(
+    native.locator(":scope > svg[data-agpa-settings-icon]"),
+  ).toHaveCount(1);
+  await expect(
+    section.getByRole("heading", { name: "External browser" }),
+  ).toBeVisible();
+  await expect(page.locator("[data-agpa-plugin-nav=browser]")).toBeHidden();
+  await expect(
+    page.getByTestId("builtin-browser-download-dir-row"),
+  ).toBeVisible();
+  await page.locator("[data-agpa-cu-nav]").click();
+  await expect(section).toBeHidden();
+  await page.evaluate(() => globalThis.__AGSettingsNavigation.open("browser"));
+  await expect(section).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Built-in Browser" }),
+  ).toBeVisible();
+  await page.evaluate(() => globalThis.__AGSettingsNavigation.destroy());
+  await expect(section).toHaveCount(0);
+  await expect(native.locator("[data-agpa-settings-icon]")).toHaveCount(0);
+  await expect(
+    page.getByTestId("builtin-browser-download-dir-row"),
+  ).toBeVisible();
 });

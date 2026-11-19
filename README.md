@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.22.5](https://img.shields.io/badge/version-1.22.5-blue)](CHANGELOG.md)
+[![Version 1.23.0](https://img.shields.io/badge/version-1.23.0-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -29,10 +29,10 @@
 
 - Gemini in the same window, with external links opening in your default browser, an Antigravity return button beside Share, a right-click edit menu, and a configurable shortcut (default **Ctrl+Alt+G**).
 - Optional **Computer Use** (Cua Driver **0.52.9**) with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
-- **Browser use** without an extension: choose a Chromium browser and connect through Google’s official Chrome DevTools tools. [Setup](docs/BROWSER_USE.md).
+- **External browser** without an extension: choose a Chromium browser and connect through Google’s official Chrome DevTools tools. [Setup](docs/BROWSER_USE.md).
 - Separate model and reasoning-effort controls with a stepped slider, per-model memory, and violet styling for native **Extra**. The multi-agent button offers 🐝 **Swarm**, 🚀 **Boost**, and **Teamwork** with a colored organization chart. The button follows the mode in your draft and starts on Swarm in a new chat.
-- Model favorites, a collapsible **Other** group, and provider logos in chat and Automations. **Orchestrator (Argon)** pairs the Google G with a converging arrow.
-- **View Usage** opens the same live quota popup from the expanded or compact sidebar, including outside conversations.
+- In **Manage models**, use the arrows to reorder each group and **Reset order** to restore catalog order. Assign an optional **Ctrl+Alt+letter** shortcut directly on a model’s row. Favorites stay at the top and hidden models remain under **Other**. The picker remembers which native **New** labels you have seen. Model details and notices stay available. Gemini 4 models show their element symbol beside the Google G, with a short use case in **Manage models**. **Orchestrator** pairs the Google G with a converging arrow.
+- **View Usage** opens a dedicated live quota popup from the expanded or compact sidebar, including outside conversations.
 - Global **Context window & token budget** beside the model selector, with a compaction meter for supported models and a capacity breakdown on click. [Details](docs/CONTEXT_BUDGET.md).
 - Project icons, emoji and colors through **Project ⋯ → Edit**, shared across the sidebar, project search and project selector.
 - Expanded, compact or **Expand on hover** sidebar modes; the compact view keeps navigation and project icons visible.
@@ -67,7 +67,7 @@ Development and local verification: [Contributing](https://github.com/Riccardo-V
   </tr>
   <tr>
     <td width="50%" align="center" valign="middle"><img src="docs/images/library.png?v=1.10.1" width="560" alt="Blue teapot rendered in Library’s interactive 3D viewer"></td>
-    <td width="50%" align="center" valign="middle"><img src="docs/images/computer-use.png?v=1.11.0" width="560" alt="Current Computer use settings with full-desktop access and dedicated Browser use navigation"></td>
+    <td width="50%" align="center" valign="middle"><img src="docs/images/computer-use.png?v=1.11.0" width="560" alt="Current Computer use settings with full-desktop access and dedicated external browser navigation"></td>
   </tr>
   <tr>
     <th colspan="2">Global context window and token budget</th>
@@ -105,7 +105,7 @@ Open **Antigravity (customized)** from the Start menu for subsequent launches. T
 
 **Computer use:** open **Settings → Computer use** and enable it. Reuses saved access, or starts with **Entire desktop** on first setup; choose **Selected apps** to limit access. When disabled, only its activation controls remain visible. Works with the native Antigravity agent. On GNOME/Wayland, first setup may require a Linux logout/login. [Setup and troubleshooting](docs/COMPUTER_USE.md).
 
-**Browser use:** enable it in **Settings → Browser use**, choose your browser and follow the remote-debugging instructions. On Windows, paste the address shown in Settings into your browser. Click **Connect browser** once remote debugging is active, then approve the connection prompt. No extension, folder copying or tab-by-tab sharing. Verified with **Brave on Linux**. Chrome is supported by the upstream tools; Edge, Chromium, Vivaldi and Opera are offered when detected, but have not been verified end to end with this integration. The new Windows browser connection also needs community testing. [Setup](docs/BROWSER_USE.md).
+**External browser:** enable it in **Settings → Browser → External browser**, choose your browser and follow the remote-debugging instructions. On Windows, paste the address shown in Settings into your browser. Click **Connect browser** once remote debugging is active, then approve the connection prompt. No extension, folder copying or tab-by-tab sharing. Verified with **Brave on Linux**. Chrome is supported by the upstream tools; Edge, Chromium, Vivaldi and Opera are offered when detected, but have not been verified end to end with this integration. The new Windows browser connection also needs community testing. [Setup](docs/BROWSER_USE.md).
 
 **Shortcuts** lets you record, save, reset or disable the view-switch shortcut. **Appearance** contains app-icon choices; **Application → Startup** contains launch behavior; **Application → Plugin updates** contains update controls and the plugin enable/disable switch.
 

@@ -463,46 +463,61 @@ test("Library inherits the native sidebar label typography when it changes", asy
   await expect(library).toHaveCSS("line-height", "29px");
 });
 
-test("Library hands off only exact documents handled by the active conversation", async ({
-  page,
-}) => {
-  await mountLibrary(page, [
-    {
-      extension: "md",
-      category: "documents",
-      bytes: Buffer.from("# Notes"),
-      conversationId: "project-chat",
-    },
-  ]);
-  const card = page.getByTitle("sample-0.md", { exact: true });
-  const native = page.getByRole("button", { name: "Open in Antigravity" });
-  await page.evaluate(() => {
-    history.replaceState(null, "", "/c/project-chat");
-    const view = document.createElement("div");
-    view.dataset.testid = "autoscroll-viewport";
-    view.innerHTML = '<a href="file:///fake/sample-0.md">Same filename</a>';
-    document.body.append(view);
-  });
-  await card.click();
-  await expect(native).toHaveCount(0);
-  await page.getByRole("button", { name: "Back to Library" }).click();
-  await page.evaluate(() => {
-    const view = document.querySelector("[data-testid=autoscroll-viewport]");
-    view.insertAdjacentHTML(
-      "beforeend",
-      '<a href="file:///fixture/sample-0.md">Exact file</a>',
-    );
-    view.lastElementChild.addEventListener("click", (event) => {
-      event.preventDefault();
-      document.body.dataset.nativePreview = "opened";
+for (const [extension, category, bytes] of [
+  ["md", "documents", Buffer.from("# Notes")],
+  ["wav", "media", Buffer.alloc(44)],
+  ["webm", "media", Buffer.alloc(44)],
+]) {
+  test(`Library hands off only exact ${extension} files handled by the active conversation`, async ({
+    page,
+  }) => {
+    const filename = `sample-0.${extension}`;
+    await mountLibrary(page, [
+      {
+        extension,
+        category,
+        bytes,
+        conversationId: "project-chat",
+      },
+    ]);
+    const card = page.getByTitle(filename, { exact: true });
+    const native = page.getByRole("button", { name: "Open in Antigravity" });
+    await page.evaluate((filename) => {
+      history.replaceState(null, "", "/c/project-chat");
+      const view = document.createElement("div");
+      view.dataset.testid = "autoscroll-viewport";
+      view.innerHTML = `<a href="file:///fake/${filename}">Same filename</a>`;
+      document.body.append(view);
+    }, filename);
+    await card.click();
+    await expect(native).toHaveCount(0);
+    await page.getByRole("button", { name: "Back to Library" }).click();
+    await page.evaluate((filename) => {
+      const view = document.querySelector("[data-testid=autoscroll-viewport]");
+      view.insertAdjacentHTML(
+        "beforeend",
+        `<a href="file:///fixture/${filename}">Exact file</a>`,
+      );
+    }, filename);
+    await card.click();
+    await native.click();
+    await expect(native).toBeHidden();
+    await expect(page.locator(".agpa-library-preview")).toBeVisible();
+    await page.getByRole("button", { name: "Back to Library" }).click();
+    await page.evaluate(() => {
+      const view = document.querySelector("[data-testid=autoscroll-viewport]");
+      view.lastElementChild.addEventListener("click", (event) => {
+        event.preventDefault();
+        document.body.dataset.nativePreview = "opened";
+      });
     });
+    await card.click();
+    await expect(native).toBeVisible();
+    await native.click();
+    await expect(page.locator("body")).toHaveAttribute(
+      "data-native-preview",
+      "opened",
+    );
+    await expect(page.locator(".agpa-library-preview")).toHaveCount(0);
   });
-  await card.click();
-  await expect(native).toBeVisible();
-  await native.click();
-  await expect(page.locator("body")).toHaveAttribute(
-    "data-native-preview",
-    "opened",
-  );
-  await expect(page.locator(".agpa-library-preview")).toHaveCount(0);
-});
+}

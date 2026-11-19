@@ -1,7 +1,7 @@
 /* Artifact library layered over the native pane, preserving its conversation. */
 (() => {
   "use strict";
-  const VERSION = "1.3.4";
+  const VERSION = "1.3.5";
   globalThis.__AGLibrary?.destroy();
   const i18n = globalThis.__AGPAI18n;
   const createPicker = globalThis.__AGPA_LIBRARY_PICKER__;
@@ -17,6 +17,7 @@
     navigationSource = null,
     panel = null,
     viewer = null,
+    nativePreviewLinkInUse = null,
     items = [],
     filter = "all",
     sort = "newest",
@@ -220,10 +221,11 @@
       !!item.conversationId && location.pathname === "/c/" + item.conversationId
     );
   }
-  function nativeDocumentLink(item) {
+  function nativePreviewLink(item) {
     if (
       !isSourceConversation(item) ||
-      !["pdf", "md", "markdown"].includes(item.extension)
+      (item.category !== "media" &&
+        !["pdf", "md", "markdown"].includes(item.extension))
     )
       return null;
     const views = document.querySelectorAll(
@@ -302,15 +304,14 @@
       });
     };
     discuss.hidden = !sourceEditor(item);
-    const nativeLink = nativeDocumentLink(item);
     const nativePreview = el("button", {
       type: "button",
       class: "agpa-lib-tool",
       text: "Open in Antigravity",
     });
-    nativePreview.hidden = !nativeLink;
+    nativePreview.hidden = !nativePreviewLink(item);
     nativePreview.onclick = () => {
-      const currentLink = nativeDocumentLink(item);
+      const currentLink = nativePreviewLink(item);
       if (!currentLink) {
         nativePreview.hidden = true;
         return;
@@ -319,12 +320,18 @@
       // navigation if that handler is absent in this version or layout.
       let handled = false;
       const stopNavigation = (event) => {
+        if (event.target !== currentLink) return;
         handled = event.defaultPrevented;
         event.preventDefault();
       };
-      window.addEventListener("click", stopNavigation, { once: true });
-      currentLink.click();
-      window.removeEventListener("click", stopNavigation);
+      nativePreviewLinkInUse = currentLink;
+      window.addEventListener("click", stopNavigation);
+      try {
+        currentLink.click();
+      } finally {
+        window.removeEventListener("click", stopNavigation);
+        nativePreviewLinkInUse = null;
+      }
       if (handled) close();
       else nativePreview.hidden = true;
     };
@@ -1176,7 +1183,7 @@
     document,
     "click",
     (e) => {
-      if (!panel || panel.hidden) return;
+      if (!panel || panel.hidden || e.target === nativePreviewLinkInUse) return;
       const n = e.target.closest(
         "a,[data-testid=automations-button],[data-testid=history-button]",
       );

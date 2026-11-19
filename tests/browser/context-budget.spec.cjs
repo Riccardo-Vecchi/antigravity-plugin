@@ -171,6 +171,17 @@ test("native context controls replace the fallback without replacing native beha
     modelBox = await model.boundingBox();
   expect(ringBox.x + ringBox.width).toBeLessThanOrEqual(modelBox.x + 1);
   await page.evaluate(() => {
+    history.replaceState(null, "", "/c/native-context-fixture");
+    globalThis.contextWork = { extracted: 0, requested: 0, hydrated: 0 };
+    const rules = globalThis.__AGPA_CONTEXT_BUDGET__;
+    const extract = rules.extractConversationStats;
+    rules.extractConversationStats = (...args) => {
+      globalThis.contextWork.extracted++;
+      return extract(...args);
+    };
+    rules.hydrateFromTranscript = () => globalThis.contextWork.hydrated++;
+    globalThis.__agpaTranscriptRequest = () =>
+      globalThis.contextWork.requested++;
     const button = document.createElement("button");
     button.dataset.testid = "context-usage-indicator";
     button.innerHTML =
@@ -193,6 +204,37 @@ test("native context controls replace the fallback without replacing native beha
       .locator("[data-testid=context-usage-indicator]")
       .evaluate((n) => n.outerHTML),
   ).toBe(await page.evaluate(() => globalThis.nativeContextMarkup));
+  const contextState = await page.evaluate(() => {
+    const api = globalThis.__AGContextBudget;
+    api.hydrateFromTranscript("native-context-fixture", {});
+    return {
+      ...globalThis.contextWork,
+      activeKey: api.getActiveKey(),
+      needsTranscript: api.needsTranscript("native-context-fixture"),
+      stats: api.status().stats,
+    };
+  });
+  expect(contextState).toEqual({
+    extracted: 0,
+    requested: 0,
+    hydrated: 0,
+    activeKey: null,
+    needsTranscript: false,
+    stats: null,
+  });
+  const native = page.locator("[data-testid=context-usage-indicator]");
+  await native.evaluate((button) => {
+    globalThis.nativeContextButton = button;
+    button.remove();
+  });
+  await expect(pill).toBeVisible();
+  expect(
+    await page.evaluate(() => globalThis.contextWork.requested),
+  ).toBeGreaterThan(0);
+  await model.evaluate((trigger) =>
+    trigger.before(globalThis.nativeContextButton),
+  );
+  await expect(pill).toHaveCount(0);
   await page.evaluate(() => globalThis.__AGContextBudget.destroy());
   await expect(
     page.locator("[data-testid=context-usage-indicator]"),

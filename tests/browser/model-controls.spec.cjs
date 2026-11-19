@@ -34,6 +34,40 @@ test("existing model and effort regression flow still passes", async ({
   const result = await page.evaluate(`(${models.verify.toString()})()`);
   expect(result.checks).toBeGreaterThan(10);
 });
+test("model rows hide the effort suffix at insertion, before any hover or submenu", async ({
+  page,
+}) => {
+  await setup(page);
+  const firstPaint = await page.evaluate(() => {
+    const trigger = document.querySelector(
+      "[data-testid=model-selector-trigger]",
+    );
+    trigger.click();
+    const group = document.querySelector(
+      "[data-testid=model-selector-effort-group]",
+    );
+    const summary = document.createElement("span");
+    summary.className = "shrink-0 opacity-70 text-sm";
+    summary.textContent = "High";
+    const info = document.createElement("span");
+    info.textContent = "Notice";
+    group.after(summary, info);
+    return {
+      effort: summary.checkVisibility(),
+      notice: info.checkVisibility(),
+    };
+  });
+  expect(firstPaint).toEqual({ effort: false, notice: true });
+  const summary = page.locator(
+    "[data-testid=model-selector-effort-group] + .shrink-0",
+  );
+  await page.getByTestId("model-selector-effort-group").first().hover();
+  await expect(summary).toBeHidden();
+  await expect(page.locator(".agpa-effort-trigger")).toHaveText("High");
+  await page.evaluate(() => window.__AGModelControls.destroy());
+  await expect(summary).toBeVisible();
+});
+
 test("the duplicate simple native effort submenu is hidden, and disabling restores it", async ({
   page,
 }) => {

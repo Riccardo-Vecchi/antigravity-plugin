@@ -608,7 +608,8 @@ class Client {
       const activeKey = await this.evaluate(
         "globalThis.__AGContextBudget?.getActiveKey?.()",
       );
-      if (activeKey && activeKey !== this.lastHydratedKey) {
+      if (!activeKey) this.lastHydratedKey = null;
+      else if (activeKey !== this.lastHydratedKey) {
         const needsHydration = await this.evaluate(
           `globalThis.__AGContextBudget?.needsTranscript?.(${JSON.stringify(activeKey)})`,
         );
@@ -765,8 +766,16 @@ class Client {
         }
         if (payload.action === "repairIntegration")
           return this.repairIntegration();
-        if (payload.action === "setToggleShortcut")
+        if (payload.action === "setToggleShortcut") {
+          if (
+            payload.value &&
+            Object.values(modelPreferences.current().models).some(
+              (model) => model.shortcut === payload.value,
+            )
+          )
+            throw Error("That shortcut is already assigned to a model.");
           return desktopIcon.setToggleShortcut(payload.value);
+        }
         if (payload.action === "setTaskbarIcon")
           return desktopIcon.apply(payload.value);
         if (payload.action === "setStartupView")
@@ -804,11 +813,19 @@ class Client {
       return;
     let payload;
     try {
-      if (params.payload.length > 2048)
+      if (params.payload.length > 200000)
         throw Error("Invalid model preference.");
       payload = JSON.parse(params.payload);
       if (!UUID.test(payload.requestId)) throw Error("Invalid request.");
-      const job = writeChain.then(() => modelPreferences.update(payload));
+      const job = writeChain.then(() => {
+        if (
+          payload.field === "shortcut" &&
+          payload.value &&
+          payload.value === desktopIcon.getState().toggleShortcut
+        )
+          throw Error("That shortcut is already assigned to Gemini.");
+        return modelPreferences.update(payload);
+      });
       writeChain = job.catch(() => {});
       const next = await job;
       for (const c of clients.values())

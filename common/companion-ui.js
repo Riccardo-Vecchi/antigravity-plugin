@@ -1,7 +1,7 @@
 /* Browser choice and native consent; automation is provided by Chrome DevTools MCP. */
 (() => {
   "use strict";
-  const VERSION = "1.9.0";
+  const VERSION = "1.9.2";
   if (globalThis.__AGCompanion?.version === VERSION) return;
   globalThis.__AGCompanion?.destroy();
   const i18n = globalThis.__AGPAI18n,
@@ -135,7 +135,8 @@
     if (destroyed) return;
     const host = globalThis.__AGSettingsNavigation?.getPage("browser");
     if (!host) return;
-    if (!section?.isConnected) {
+    if (section?.parentElement !== host) {
+      section?.remove();
       section = node("section", {
         class: "agpa-comp-section",
         "data-agpa-browser-setting": "",
@@ -164,7 +165,7 @@
     );
     toggle.setAttribute("role", "switch");
     toggle.setAttribute("aria-checked", String(!!b.enabled));
-    toggle.setAttribute("aria-label", i18n.t("Browser use"));
+    toggle.setAttribute("aria-label", i18n.t("External browser"));
     toggle.setAttribute("data-agpa-browser-toggle", "");
     toggle.append(
       node(
@@ -181,8 +182,8 @@
           class: "agpa-comp-enable-status",
           "data-on": String(!!b.enabled),
           text: b.enabled
-            ? "Browser use is enabled"
-            : "Browser use is disabled",
+            ? "External browser is enabled"
+            : "External browser is disabled",
         }),
         toggle,
       ),

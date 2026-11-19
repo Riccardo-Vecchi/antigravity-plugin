@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.3.5';
+  const VERSION = '1.3.6';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -214,13 +214,21 @@
     clearTimeout(hoverCloseTimer);
     hoverCloseTimer=setTimeout(()=>{hoverCloseTimer=null;if(popupMode==='preview')closePopup();},180);
   }
+  function findNativeContext() {
+    return document.querySelector('[data-testid=context-usage-indicator]');
+  }
+
+  function conversationKey() {
+    return rules.getConversationKey ? rules.getConversationKey(document) : 'default';
+  }
+
   function schedulePreview(button) {
     clearTimeout(hoverCloseTimer);hoverCloseTimer=null;
     if (popupMode === 'details' || (popupMode === 'preview' && popupButton === button)) return;
     clearTimeout(hoverTimer);
     hoverTimer=setTimeout(()=>{
       hoverTimer=null;
-      if(stopped || !button.isConnected || document.querySelector('[data-testid=context-usage-indicator]')) return;
+      if(stopped || !button.isConnected || findNativeContext()) return;
       const stats=activeStats || rules.extractConversationStats(document);
       if(!isPending(stats))openDetails(button,stats,true);
     },180);
@@ -236,6 +244,7 @@
     pill.addEventListener('click', e => {
       e.preventDefault();
       e.stopPropagation();
+      if (findNativeContext()) return;
       if (popup && popupMode === 'details') closePopup();
       else openDetails(pill, activeStats || rules.extractConversationStats(document));
     });
@@ -278,11 +287,23 @@
     }
     if (stopped) return;
 
+    // Native controls own their values, popup, and events. Our global estimate
+    // is only a fallback while the official feature is unavailable in the rollout.
+    const nativeContext = findNativeContext();
+    if (nativeContext) {
+      activeStats = null;
+      closePopup();
+      document.querySelectorAll('[data-agpa-context-budget]').forEach(node => node.remove());
+      const footer = nativeContext.closest('[data-agpa-composer-footer], .agy-composer-footer');
+      footer?.querySelector('[data-testid=model-selector-trigger]')?.setAttribute('data-agpa-context-adjacent','');
+      return;
+    }
+
     const stats = rules.extractConversationStats(document);
     if (popup && activeStats?.modelName !== stats.modelName) closePopup();
     activeStats = stats;
 
-    const convKey = rules.getConversationKey ? rules.getConversationKey(document) : 'default';
+    const convKey = conversationKey();
     if (convKey && convKey !== 'default') {
       const stored = rules.loadConversationState ? rules.loadConversationState(convKey) : null;
       const navTurns = rules.countTurns ? rules.countTurns(document) : 0;
@@ -292,17 +313,6 @@
           globalThis.__agpaTranscriptRequest(JSON.stringify({ convKey }));
         }
       }
-    }
-
-    // Native controls own their values, popup, and events. Our global estimate
-    // is only a fallback while the official feature is unavailable in the rollout.
-    const nativeContext = document.querySelector('[data-testid=context-usage-indicator]');
-    if (nativeContext) {
-      closePopup();
-      document.querySelectorAll('[data-agpa-context-budget]').forEach(node => node.remove());
-      const footer = nativeContext.closest('[data-agpa-composer-footer], .agy-composer-footer');
-      footer?.querySelector('[data-testid=model-selector-trigger]')?.setAttribute('data-agpa-context-adjacent','');
-      return;
     }
 
     if (isPending(stats)) {
@@ -479,9 +489,10 @@
   globalThis.__AGContextBudget = {
     version: VERSION,
     status: () => ({ stats: activeStats, open: !!popup, mode: popupMode }),
-    getActiveKey: () => (rules.getConversationKey ? rules.getConversationKey(document) : 'default'),
+    getActiveKey: () => findNativeContext() ? null : conversationKey(),
     needsTranscript: (key, optionsOrMtime) => {
-      const k = (typeof key === 'string' ? key : key?.convKey) || (rules.getConversationKey ? rules.getConversationKey(document) : 'default');
+      if (findNativeContext()) return false;
+      const k = (typeof key === 'string' ? key : key?.convKey) || conversationKey();
       if (!k || k === 'default') return false;
       const store = typeof window !== 'undefined' && window.localStorage ? window.localStorage : undefined;
       const stored = rules.loadConversationState ? rules.loadConversationState(k, store) : null;
@@ -494,7 +505,7 @@
       return false;
     },
     hydrateFromTranscript: (convKey, data) => {
-      if (rules.hydrateFromTranscript) {
+      if (!findNativeContext() && rules.hydrateFromTranscript) {
         rules.hydrateFromTranscript(convKey, data);
         apply();
       }
