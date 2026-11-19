@@ -567,7 +567,16 @@
       "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.",
       "Browser settings address": "Browser settings address",
       "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.",
-      "Select Connect browser, then approve the request in your browser.": "Select Connect browser, then approve the request in your browser."
+      "Select Connect browser, then approve the request in your browser.": "Select Connect browser, then approve the request in your browser.",
+      "Switch models": "Switch models",
+      "Press Ctrl+Alt with a letter to switch models on the fly. Models are matched by name keyword.": "Press Ctrl+Alt with a letter to switch models on the fly. Models are matched by name keyword.",
+      "Save shortcuts": "Save shortcuts",
+      "Reset defaults": "Reset defaults",
+      "Model shortcut for {model}": "Model shortcut for {model}",
+      "Conflict: {chord} is assigned to multiple models ({models}).": "Conflict: {chord} is assigned to multiple models ({models}).",
+      "Conflict: {chord} is already used by Switch between Antigravity and Gemini.": "Conflict: {chord} is already used by Switch between Antigravity and Gemini.",
+      "Conflict: {chord} is already used by {model}.": "Conflict: {chord} is already used by {model}.",
+      "Warning: {chord} may conflict with a native shortcut.": "Warning: {chord} may conflict with a native shortcut."
     },
     "icons": {
       "folder": "Folder",
@@ -1188,7 +1197,16 @@
       "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Approva le richieste di collegamento in tutte le finestre, i profili e le app web installate (PWA) del browser. Il primo collegamento può richiedere più tempo mentre vengono preparate le schede aperte.",
       "Browser settings address": "Indirizzo delle impostazioni del browser",
       "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "Incolla questo indirizzo nel browser. Apri Remote debugging e attiva Allow remote debugging for this browser instance.",
-      "Select Connect browser, then approve the request in your browser.": "Seleziona Connetti browser e approva la richiesta nel browser."
+      "Select Connect browser, then approve the request in your browser.": "Seleziona Connetti browser e approva la richiesta nel browser.",
+      "Switch models": "Cambia modello",
+      "Press Ctrl+Alt with a letter to switch models on the fly. Models are matched by name keyword.": "Premi Ctrl+Alt con una lettera per cambiare modello al volo. I modelli sono abbinati per parola chiave sul nome.",
+      "Save shortcuts": "Salva scorciatoie",
+      "Reset defaults": "Ripristina predefiniti",
+      "Model shortcut for {model}": "Scorciatoia modello per {model}",
+      "Conflict: {chord} is assigned to multiple models ({models}).": "Conflitto: {chord} è assegnata a più modelli ({models}).",
+      "Conflict: {chord} is already used by Switch between Antigravity and Gemini.": "Conflitto: {chord} è già usata da Passa da Antigravity a Gemini.",
+      "Conflict: {chord} is already used by {model}.": "Conflitto: {chord} è già usata da {model}.",
+      "Warning: {chord} may conflict with a native shortcut.": "Avviso: {chord} potrebbe essere in conflitto con una scorciatoia nativa."
     },
     "icons": {
       "folder": "Cartella",
@@ -1809,7 +1827,16 @@
       "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Bestätige die Verbindungsanfragen in allen Browserfenstern, Profilen und installierten Web-Apps (PWAs). Die erste Verbindung kann länger dauern, während offene Tabs vorbereitet werden.",
       "Browser settings address": "Adresse der Browsereinstellungen",
       "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "Füge diese Adresse im Browser ein. Öffne Remote debugging und aktiviere Allow remote debugging for this browser instance.",
-      "Select Connect browser, then approve the request in your browser.": "Wähle Browser verbinden und bestätige die Anfrage im Browser."
+      "Select Connect browser, then approve the request in your browser.": "Wähle Browser verbinden und bestätige die Anfrage im Browser.",
+      "Switch models": "Modelle wechseln",
+      "Press Ctrl+Alt with a letter to switch models on the fly. Models are matched by name keyword.": "Drücke Strg+Alt mit einem Buchstaben, um Modelle direkt zu wechseln. Modelle werden per Schlüsselwort im Namen zugeordnet.",
+      "Save shortcuts": "Tastenkombinationen speichern",
+      "Reset defaults": "Standard wiederherstellen",
+      "Model shortcut for {model}": "Modell-Tastenkombination für {model}",
+      "Conflict: {chord} is assigned to multiple models ({models}).": "Konflikt: {chord} ist mehreren Modellen zugewiesen ({models}).",
+      "Conflict: {chord} is already used by Switch between Antigravity and Gemini.": "Konflikt: {chord} wird bereits für Zwischen Antigravity und Gemini wechseln verwendet.",
+      "Conflict: {chord} is already used by {model}.": "Konflikt: {chord} wird bereits von {model} verwendet.",
+      "Warning: {chord} may conflict with a native shortcut.": "Warnung: {chord} steht möglicherweise im Konflikt mit einer nativen Tastenkombination."
     },
     "icons": {
       "folder": "Ordner",
@@ -2430,7 +2457,16 @@
       "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Aprueba las solicitudes de conexión en todas las ventanas, perfiles y aplicaciones web instaladas (PWA) del navegador. La primera conexión puede tardar más mientras se preparan las pestañas abiertas.",
       "Browser settings address": "Dirección de configuración del navegador",
       "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "Pega esta dirección en el navegador. Abre Remote debugging y activa Allow remote debugging for this browser instance.",
-      "Select Connect browser, then approve the request in your browser.": "Selecciona Conectar navegador y aprueba la solicitud en el navegador."
+      "Select Connect browser, then approve the request in your browser.": "Selecciona Conectar navegador y aprueba la solicitud en el navegador.",
+      "Switch models": "Cambiar de modelo",
+      "Press Ctrl+Alt with a letter to switch models on the fly. Models are matched by name keyword.": "Pulsa Ctrl+Alt con una letra para cambiar de modelo al instante. Los modelos se emparejan por palabra clave del nombre.",
+      "Save shortcuts": "Guardar atajos",
+      "Reset defaults": "Restablecer valores predeterminados",
+      "Model shortcut for {model}": "Atajo de modelo para {model}",
+      "Conflict: {chord} is assigned to multiple models ({models}).": "Conflicto: {chord} está asignado a varios modelos ({models}).",
+      "Conflict: {chord} is already used by Switch between Antigravity and Gemini.": "Conflicto: {chord} ya lo usa Cambiar entre Antigravity y Gemini.",
+      "Conflict: {chord} is already used by {model}.": "Conflicto: {chord} ya lo usa {model}.",
+      "Warning: {chord} may conflict with a native shortcut.": "Aviso: {chord} puede entrar en conflicto con un atajo nativo."
     },
     "icons": {
       "folder": "Carpeta",
@@ -3051,7 +3087,16 @@
       "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "Approuvez les demandes de connexion dans toutes les fenêtres, tous les profils et les applications web installées (PWA) du navigateur. La première connexion peut prendre plus de temps pendant la préparation des onglets ouverts.",
       "Browser settings address": "Adresse des paramètres du navigateur",
       "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "Colle cette adresse dans le navigateur. Ouvre Remote debugging et active Allow remote debugging for this browser instance.",
-      "Select Connect browser, then approve the request in your browser.": "Sélectionne Connecter le navigateur et approuve la demande dans le navigateur."
+      "Select Connect browser, then approve the request in your browser.": "Sélectionne Connecter le navigateur et approuve la demande dans le navigateur.",
+      "Switch models": "Changer de modèle",
+      "Press Ctrl+Alt with a letter to switch models on the fly. Models are matched by name keyword.": "Appuyez sur Ctrl+Alt avec une lettre pour changer de modèle à la volée. Les modèles sont associés par mot-clé dans le nom.",
+      "Save shortcuts": "Enregistrer les raccourcis",
+      "Reset defaults": "Réinitialiser par défaut",
+      "Model shortcut for {model}": "Raccourci de modèle pour {model}",
+      "Conflict: {chord} is assigned to multiple models ({models}).": "Conflit : {chord} est attribué à plusieurs modèles ({models}).",
+      "Conflict: {chord} is already used by Switch between Antigravity and Gemini.": "Conflit : {chord} est déjà utilisé par Basculer entre Antigravity et Gemini.",
+      "Conflict: {chord} is already used by {model}.": "Conflit : {chord} est déjà utilisé par {model}.",
+      "Warning: {chord} may conflict with a native shortcut.": "Avertissement : {chord} peut entrer en conflit avec un raccourci natif."
     },
     "icons": {
       "folder": "Dossier",
@@ -3672,7 +3717,16 @@
       "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "请在浏览器的所有窗口、配置文件及已安装的网页应用（PWA）中批准连接请求。首次连接时，准备已打开的标签页可能需要更长时间。",
       "Browser settings address": "浏览器设置地址",
       "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "将此地址粘贴到浏览器中。打开 Remote debugging 并启用 Allow remote debugging for this browser instance。",
-      "Select Connect browser, then approve the request in your browser.": "选择连接浏览器，然后在浏览器中批准请求。"
+      "Select Connect browser, then approve the request in your browser.": "选择连接浏览器，然后在浏览器中批准请求。",
+      "Switch models": "切换模型",
+      "Press Ctrl+Alt with a letter to switch models on the fly. Models are matched by name keyword.": "按 Ctrl+Alt 加字母即可即时切换模型。模型按名称关键词匹配。",
+      "Save shortcuts": "保存快捷键",
+      "Reset defaults": "恢复默认设置",
+      "Model shortcut for {model}": "{model} 的模型快捷键",
+      "Conflict: {chord} is assigned to multiple models ({models}).": "冲突：{chord} 已分配给多个模型（{models}）。",
+      "Conflict: {chord} is already used by Switch between Antigravity and Gemini.": "冲突：{chord} 已被“在 Antigravity 和 Gemini 之间切换”使用。",
+      "Conflict: {chord} is already used by {model}.": "冲突：{chord} 已被 {model} 使用。",
+      "Warning: {chord} may conflict with a native shortcut.": "警告：{chord} 可能与原生快捷键冲突。"
     },
     "icons": {
       "folder": "文件夹",
@@ -4293,7 +4347,16 @@
       "Approve the connection prompts in all browser windows, profiles and installed web apps (PWAs). The first connection may take longer while existing tabs are prepared.": "ブラウザーの各ウィンドウ、プロファイル、インストール済みウェブアプリ（PWA）の接続要求を許可してください。初回は開いているタブの準備に時間がかかる場合があります。",
       "Browser settings address": "ブラウザ設定のアドレス",
       "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance.": "このアドレスをブラウザに貼り付けます。Remote debugging を開き、Allow remote debugging for this browser instance を有効にします。",
-      "Select Connect browser, then approve the request in your browser.": "ブラウザを接続を選び、ブラウザでリクエストを承認します。"
+      "Select Connect browser, then approve the request in your browser.": "ブラウザを接続を選び、ブラウザでリクエストを承認します。",
+      "Switch models": "モデルを切り替え",
+      "Press Ctrl+Alt with a letter to switch models on the fly. Models are matched by name keyword.": "Ctrl+Alt と文字キーを押してモデルを即座に切り替えます。モデルは名前のキーワードで一致判定されます。",
+      "Save shortcuts": "ショートカットを保存",
+      "Reset defaults": "既定に戻す",
+      "Model shortcut for {model}": "{model} のモデルショートカット",
+      "Conflict: {chord} is assigned to multiple models ({models}).": "競合: {chord} が複数のモデル（{models}）に割り当てられています。",
+      "Conflict: {chord} is already used by Switch between Antigravity and Gemini.": "競合: {chord} は「Antigravity と Gemini を切り替え」で既に使用されています。",
+      "Conflict: {chord} is already used by {model}.": "競合: {chord} は {model} で既に使用されています。",
+      "Warning: {chord} may conflict with a native shortcut.": "警告: {chord} はネイティブのショートカットと競合する可能性があります。"
     },
     "icons": {
       "folder": "フォルダー",

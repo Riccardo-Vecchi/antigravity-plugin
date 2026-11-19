@@ -5,6 +5,8 @@ function validate(data){
  const startupView=data.version===1?'antigravity':data.startupView;
  if(!['antigravity','gemini','last'].includes(startupView))throw Error('Unsupported startup view.');
  if(data.autostart!==undefined&&typeof data.autostart!=='boolean')throw Error('Invalid autostart preference.');
- return {version:2,taskbarIcon:data.taskbarIcon,startupView,autostart:data.autostart??false,toggleShortcut:shortcuts.normalize(data.toggleShortcut===undefined?shortcuts.defaultShortcut:data.toggleShortcut)};
+ const toggleShortcut=shortcuts.normalize(data.toggleShortcut===undefined?shortcuts.defaultShortcut:data.toggleShortcut);
+ const modelShortcuts=shortcuts.normalizeModelShortcuts(data.modelShortcuts,toggleShortcut);
+ return {version:2,taskbarIcon:data.taskbarIcon,startupView,autostart:data.autostart??false,toggleShortcut,modelShortcuts};
 }
 module.exports={validate};

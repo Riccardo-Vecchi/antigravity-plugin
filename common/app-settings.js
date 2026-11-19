@@ -1,7 +1,7 @@
 /* Local application appearance and startup preferences in native Settings. */
 (() => {
   "use strict";
-  const VERSION = "1.1.1";
+  const VERSION = "1.2.0";
   const i18n = globalThis.__AGPAI18n;
   const initial = globalThis.__AGPA_APP_SETTINGS__ || {
     version: 2,
@@ -26,12 +26,14 @@
     section = null,
     startupSection = null,
     shortcutSection = null,
+    modelShortcutSection = null,
     scheduled = false,
     destroyed = false,
     busy = false,
     lastView = null;
   const pending = new Map();
   let shortcutDraft,
+    modelDraft,
     recording = false;
   const shortcutRules = globalThis.__AGPAShortcutRules;
   function node(tag, attrs = {}, ...children) {
@@ -65,9 +67,68 @@
   .agpa-patch-actions button {min-width:0;font-size:13px;padding:8px 12px}
   .agpa-shortcut-input {background:transparent;color:inherit;min-width:190px}
   .agpa-shortcut-key {align-self:flex-start;padding:6px 10px;border:1px solid var(--border,#444);border-radius:6px;font-size:13px}
+  .agpa-model-shortcut-list {display:flex;flex-direction:column;gap:8px}
+  .agpa-model-shortcut-row {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 10px;border:1px solid var(--border,#353535);border-radius:8px}
+  .agpa-model-shortcut-row[data-conflict] {border-color:#ee6f78}
+  .agpa-model-shortcut-row[data-native-conflict] {border-color:#edbc5b}
+  .agpa-model-shortcut-name {font-size:13px;font-weight:500}
+  .agpa-model-shortcut-controls {display:flex;align-items:center;gap:6px}
+  .agpa-shortcut-prefix {font-size:12px;color:var(--muted-foreground,#aaa);user-select:none}
+  .agpa-model-shortcut-letter {width:34px;min-width:34px;text-align:center;font-weight:600;text-transform:uppercase;padding:4px 6px}
+  .agpa-model-shortcut-letter:focus-visible {outline:2px solid #398bdb;outline-offset:1px}
+  .agpa-model-shortcut-clear {display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:1px solid var(--border,#444);border-radius:6px;background:transparent;color:var(--muted-foreground,#aaa);font-size:14px;cursor:pointer}
+  .agpa-model-shortcut-clear:hover:not(:disabled) {background:var(--secondary,#292929);color:inherit}
+  .agpa-model-shortcut-clear:disabled {opacity:.35;cursor:default}
+  .agpa-shortcut-conflict {font-size:12px;line-height:1.5;margin:0;color:#ff8888}
+  .agpa-shortcut-conflict[data-severity=warning] {color:#edbc5b}
  `,
   });
   document.head.append(styles);
+  function savedModelShortcuts() {
+    const toggle =
+      state.toggleShortcut === undefined
+        ? shortcutRules?.defaultShortcut
+        : state.toggleShortcut;
+    return (
+      state.modelShortcuts ||
+      shortcutRules?.defaultModelShortcuts?.(toggle) ||
+      {}
+    );
+  }
+  function nativeCtrlAltLetters(container) {
+    const letters = new Set();
+    if (!container?.querySelectorAll) return letters;
+    const ours = (el) =>
+      !!el.closest?.(
+        "[data-agpa-shortcut-setting],[data-agpa-model-shortcuts-setting]",
+      );
+    for (const el of container.querySelectorAll("*")) {
+      if (ours(el)) continue;
+      const kbds = el.querySelectorAll
+        ? [...el.querySelectorAll("kbd")].filter((k) => !ours(k))
+        : [];
+      if (kbds.length >= 3 && kbds.every((k) => !k.querySelector("kbd"))) {
+        const parts = kbds.map((k) => k.textContent.trim().toUpperCase());
+        if (
+          parts.length === 3 &&
+          (parts[0] === "CTRL" || parts[0] === "CONTROL") &&
+          parts[1] === "ALT" &&
+          /^[A-Z]$/.test(parts[2])
+        ) {
+          letters.add(parts[2]);
+          continue;
+        }
+      }
+      if (!el.children?.length) {
+        const text = (el.textContent || "").trim();
+        const match = /^(?:Ctrl|Control)\s*\+\s*Alt\s*\+\s*([A-Z])$/i.exec(
+          text,
+        );
+        if (match) letters.add(match[1].toUpperCase());
+      }
+    }
+    return letters;
+  }
   function paint() {
     for (const b of section?.querySelectorAll("[data-agpa-app-icon]") || []) {
       b.setAttribute(
@@ -90,19 +151,138 @@
       autostart.checked = !!state.autostart;
       autostart.disabled = busy;
     }
+    const currentToggle =
+      state.toggleShortcut === undefined
+        ? shortcutRules?.defaultShortcut
+        : state.toggleShortcut;
+    const savedModels = savedModelShortcuts();
+    const nativeLetters =
+      shortcutSection || modelShortcutSection
+        ? nativeCtrlAltLetters(
+            (shortcutSection || modelShortcutSection).parentElement,
+          )
+        : new Set();
     if (shortcutSection) {
       const input = shortcutSection.querySelector("[data-agpa-shortcut-input]");
+      const activeToggle =
+        shortcutDraft !== undefined ? shortcutDraft : currentToggle;
       input.value = recording
         ? i18n.t("Press a shortcut…")
-        : (shortcutDraft !== undefined
-            ? shortcutDraft
-            : state.toggleShortcut === undefined
-              ? shortcutRules.defaultShortcut
-              : state.toggleShortcut) || i18n.t("Disabled");
+        : activeToggle || i18n.t("Disabled");
+      const modelConflict =
+        shortcutDraft !== undefined && activeToggle && shortcutRules
+          ? shortcutRules.modelDefinitions.find(
+              (d) =>
+                shortcutRules.modelChord(savedModels[d.id]) === activeToggle,
+            )
+          : null;
+      const nativeToggleLetter =
+        shortcutDraft !== undefined &&
+        activeToggle?.startsWith(shortcutRules.modelShortcutPrefix + "+")
+          ? activeToggle.slice(shortcutRules.modelShortcutPrefix.length + 1)
+          : null;
+      const toggleConflictEl = shortcutSection.querySelector(
+        "[data-agpa-conflict]",
+      );
+      if (modelConflict) {
+        toggleConflictEl.hidden = false;
+        toggleConflictEl.dataset.severity = "error";
+        i18n.set(
+          toggleConflictEl,
+          "Conflict: {chord} is already used by {model}.",
+          { chord: activeToggle, model: modelConflict.label },
+        );
+      } else if (nativeToggleLetter && nativeLetters.has(nativeToggleLetter)) {
+        toggleConflictEl.hidden = false;
+        toggleConflictEl.dataset.severity = "warning";
+        i18n.set(
+          toggleConflictEl,
+          "Warning: {chord} may conflict with a native shortcut.",
+          { chord: activeToggle },
+        );
+      } else {
+        toggleConflictEl.hidden = true;
+        i18n.set(toggleConflictEl, "");
+        delete toggleConflictEl.dataset.severity;
+      }
       for (const b of shortcutSection.querySelectorAll("button"))
         b.disabled = busy;
       shortcutSection.querySelector("[data-agpa-shortcut-save]").disabled =
-        busy || recording || shortcutDraft === undefined;
+        busy || recording || shortcutDraft === undefined || !!modelConflict;
+    }
+    if (modelShortcutSection && shortcutRules) {
+      const currentModels = modelDraft || savedModels;
+      const dirty =
+        !!modelDraft &&
+        shortcutRules.modelDefinitions.some(
+          (d) => (modelDraft[d.id] ?? null) !== (savedModels[d.id] ?? null),
+        );
+      const conflicts = shortcutRules.findShortcutConflicts(
+        currentModels,
+        currentToggle,
+      );
+      const conflictIds = new Set(conflicts.flatMap((c) => c.ids));
+      let firstNativeConflict = null;
+      for (const def of shortcutRules.modelDefinitions) {
+        const row = modelShortcutSection.querySelector(
+          `[data-model-shortcut-id="${def.id}"]`,
+        );
+        if (!row) continue;
+        const letter = currentModels[def.id] ?? null;
+        const input = row.querySelector("[data-agpa-model-shortcut-input]");
+        const clear = row.querySelector("[data-agpa-model-shortcut-clear]");
+        input.value = letter || "";
+        input.disabled = busy;
+        clear.disabled = busy || !letter;
+        const hasConflict = conflictIds.has(def.id);
+        const hasNative =
+          !hasConflict && !!letter && nativeLetters.has(letter);
+        if (hasNative && !firstNativeConflict)
+          firstNativeConflict = shortcutRules.modelChord(letter);
+        row.toggleAttribute("data-conflict", hasConflict);
+        row.toggleAttribute("data-native-conflict", hasNative);
+      }
+      const conflictEl = modelShortcutSection.querySelector(
+        "[data-agpa-conflict]",
+      );
+      if (conflicts.length) {
+        const first = conflicts[0];
+        conflictEl.hidden = false;
+        conflictEl.dataset.severity = "error";
+        if (first.type === "toggle")
+          i18n.set(
+            conflictEl,
+            "Conflict: {chord} is already used by Switch between Antigravity and Gemini.",
+            { chord: first.chord },
+          );
+        else
+          i18n.set(
+            conflictEl,
+            "Conflict: {chord} is assigned to multiple models ({models}).",
+            { chord: first.chord, models: first.labels.join(", ") },
+          );
+      } else if (firstNativeConflict) {
+        conflictEl.hidden = false;
+        conflictEl.dataset.severity = "warning";
+        i18n.set(
+          conflictEl,
+          "Warning: {chord} may conflict with a native shortcut.",
+          { chord: firstNativeConflict },
+        );
+      } else {
+        conflictEl.hidden = true;
+        i18n.set(conflictEl, "");
+        delete conflictEl.dataset.severity;
+      }
+      const isDefault = shortcutRules.modelDefinitions.every(
+        (d) => (currentModels[d.id] ?? null) === d.defaultLetter,
+      );
+      modelShortcutSection.querySelector(
+        "[data-agpa-model-shortcuts-save]",
+      ).disabled = busy || !dirty || conflicts.length > 0;
+      modelShortcutSection.querySelector(
+        "[data-agpa-model-shortcuts-reset]",
+      ).disabled = busy || (!dirty && isDefault);
     }
     const tray = section?.querySelector("[data-agpa-tray-status]");
     if (tray)
@@ -124,9 +304,11 @@
     const status = (
       action === "setToggleShortcut"
         ? shortcutSection
-        : action === "setTaskbarIcon"
-          ? section
-          : startupSection
+        : action === "setModelShortcuts"
+          ? modelShortcutSection
+          : action === "setTaskbarIcon"
+            ? section
+            : startupSection
     ).querySelector("[role=status]");
     i18n.set(status, "Applying…");
     const requestId = crypto.randomUUID();
@@ -154,6 +336,9 @@
       if (action === "setToggleShortcut") {
         shortcutDraft = undefined;
         recording = false;
+      }
+      if (action === "setModelShortcuts") {
+        modelDraft = undefined;
       }
       i18n.set(
         status,
@@ -392,9 +577,21 @@
       save.addEventListener("click", () =>
         choose("setToggleShortcut", shortcutDraft),
       );
-      reset.addEventListener("click", () =>
-        choose("setToggleShortcut", shortcutRules.defaultShortcut),
-      );
+      reset.addEventListener("click", () => {
+        const models = savedModelShortcuts();
+        const conflict = shortcutRules.modelDefinitions.find(
+          (d) =>
+            shortcutRules.modelChord(models[d.id]) ===
+            shortcutRules.defaultShortcut,
+        );
+        if (conflict) {
+          recording = false;
+          shortcutDraft = shortcutRules.defaultShortcut;
+          paint();
+          return;
+        }
+        choose("setToggleShortcut", shortcutRules.defaultShortcut);
+      });
       disable.addEventListener("click", () =>
         choose("setToggleShortcut", null),
       );
@@ -420,6 +617,137 @@
           text: "Works while an Antigravity or Gemini window is focused.",
         }),
         node("p", {
+          class: "agpa-shortcut-conflict",
+          "data-agpa-conflict": "",
+          role: "alert",
+          hidden: "",
+        }),
+        node("p", {
+          class: "agpa-app-icon-status",
+          role: "status",
+          "aria-live": "polite",
+        }),
+      );
+    }
+    if (shortcuts && !modelShortcutSection && shortcutRules) {
+      const list = node("div", { class: "agpa-model-shortcut-list" });
+      for (const def of shortcutRules.modelDefinitions) {
+        const letterInput = node("input", {
+          type: "text",
+          readonly: "",
+          maxlength: "1",
+          placeholder: "—",
+          class: "agpa-shortcut-key agpa-model-shortcut-letter",
+          "data-agpa-model-shortcut-input": def.id,
+        });
+        i18n.set(
+          letterInput,
+          "Model shortcut for {model}",
+          { model: def.label },
+          "aria-label",
+        );
+        const clearBtn = node("button", {
+          type: "button",
+          class: "agpa-model-shortcut-clear",
+          "data-agpa-model-shortcut-clear": def.id,
+          title: "Disable shortcut",
+          "aria-label": "Disable shortcut",
+          text: "×",
+        });
+        letterInput.addEventListener("keydown", (e) => {
+          if (e.key === "Tab") return;
+          if (e.key === "Backspace" || e.key === "Delete") {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            modelDraft = { ...(modelDraft || savedModelShortcuts()), [def.id]: null };
+            paint();
+            return;
+          }
+          const letter = shortcutRules.letterFromEvent(e);
+          if (!letter) {
+            if (e.key !== "Escape") {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+            }
+            return;
+          }
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          modelDraft = { ...(modelDraft || savedModelShortcuts()), [def.id]: letter };
+          paint();
+        });
+        clearBtn.addEventListener("click", () => {
+          modelDraft = { ...(modelDraft || savedModelShortcuts()), [def.id]: null };
+          paint();
+        });
+        list.append(
+          node(
+            "div",
+            {
+              class: "agpa-model-shortcut-row",
+              "data-model-shortcut-id": def.id,
+            },
+            node("span", { class: "agpa-model-shortcut-name" }, def.label),
+            node(
+              "div",
+              { class: "agpa-model-shortcut-controls" },
+              node("span", { class: "agpa-shortcut-prefix" }, "Ctrl+Alt+"),
+              letterInput,
+              clearBtn,
+            ),
+          ),
+        );
+      }
+      const saveModels = node("button", {
+        type: "button",
+        class: "agpa-app-icon-option",
+        "data-agpa-model-shortcuts-save": "",
+        text: "Save shortcuts",
+      });
+      const resetModels = node("button", {
+        type: "button",
+        class: "agpa-app-icon-option",
+        "data-agpa-model-shortcuts-reset": "",
+        text: "Reset defaults",
+      });
+      saveModels.addEventListener("click", () =>
+        choose("setModelShortcuts", modelDraft || savedModelShortcuts()),
+      );
+      resetModels.addEventListener("click", () => {
+        const defaults = shortcutRules.defaultModelShortcuts();
+        const currentToggle =
+          state.toggleShortcut === undefined
+            ? shortcutRules.defaultShortcut
+            : state.toggleShortcut;
+        if (
+          shortcutRules.findShortcutConflicts(defaults, currentToggle).length
+        ) {
+          modelDraft = defaults;
+          paint();
+          return;
+        }
+        choose("setModelShortcuts", defaults);
+      });
+      modelShortcutSection = node(
+        "section",
+        {
+          class: "agpa-app-icon-section",
+          "data-agpa-model-shortcuts-setting": "",
+        },
+        node("h3", { text: "Switch models" }),
+        node("p", {
+          class: "agpa-app-icon-description",
+          text: "Press Ctrl+Alt with a letter to switch models on the fly. Models are matched by name keyword.",
+        }),
+        list,
+        node("div", { class: "agpa-patch-actions" }, saveModels, resetModels),
+        node("p", {
+          class: "agpa-shortcut-conflict",
+          "data-agpa-conflict": "",
+          role: "alert",
+          hidden: "",
+        }),
+        node("p", {
           class: "agpa-app-icon-status",
           role: "status",
           "aria-live": "polite",
@@ -433,6 +761,14 @@
       shortcutSection.parentElement !== shortcuts
     )
       shortcuts.children[0]?.after(shortcutSection);
+    if (
+      modelShortcutSection &&
+      shortcutSection &&
+      shortcuts &&
+      shortcutSection.parentElement === shortcuts &&
+      modelShortcutSection.previousElementSibling !== shortcutSection
+    )
+      shortcutSection.after(modelShortcutSection);
     if (section && appearance && section.parentElement !== appearance)
       appearance.children[0]?.after(section);
     if (
@@ -532,7 +868,9 @@
         taskbarIcon: state.taskbarIcon,
         startupView: state.startupView,
         toggleShortcut: state.toggleShortcut,
+        modelShortcuts: state.modelShortcuts,
         shortcutControlInstalled: !!shortcutSection?.isConnected,
+        modelShortcutsControlInstalled: !!modelShortcutSection?.isConnected,
         effectiveIcon: state.effectiveIcon,
         currentView: state.currentView,
         trayAvailable: state.trayAvailable,
@@ -558,6 +896,7 @@
       section?.remove();
       startupSection?.remove();
       shortcutSection?.remove();
+      modelShortcutSection?.remove();
       styles.remove();
       delete globalThis.__AGAppSettings;
     },

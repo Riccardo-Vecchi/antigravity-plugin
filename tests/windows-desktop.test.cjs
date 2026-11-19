@@ -28,6 +28,16 @@ test('custom and disabled shortcuts survive a fresh preference store',async t=>{
  const f=await fixture(t),c=f.make();await c.initialize();await c.setToggleShortcut('Ctrl+Shift+K');const next=f.make();await next.initialize();assert.equal(next.getState().toggleShortcut,'Ctrl+Shift+K');
  await next.setToggleShortcut(null);const disabled=f.make();await disabled.initialize();assert.equal(disabled.getState().toggleShortcut,null);await assert.rejects(disabled.setToggleShortcut('K'));
 });
+test('model shortcuts persist custom letters and reject conflicts with each other or the toggle shortcut',async t=>{
+ const f=await fixture(t),c=f.make();await c.initialize();
+ assert.deepEqual(c.getState().modelShortcuts,{argon:'A',neon:'N',hydrogen:'H',flash:'F',orchestrator:'O'});
+ await c.setModelShortcuts({argon:'Q',neon:'N',hydrogen:'H',flash:null,orchestrator:'O'});
+ const next=f.make();await next.initialize();
+ assert.deepEqual(next.getState().modelShortcuts,{argon:'Q',neon:'N',hydrogen:'H',flash:null,orchestrator:'O'});
+ await assert.rejects(next.setModelShortcuts({argon:'N',neon:'N',hydrogen:'H',flash:'F',orchestrator:'O'}));
+ await assert.rejects(next.setModelShortcuts({argon:'G',neon:'N',hydrogen:'H',flash:'F',orchestrator:'O'}));
+ await assert.rejects(next.setToggleShortcut('Ctrl+Alt+Q'));
+});
 test('pausing Windows icons keeps saved preferences and resuming reapplies their choice',async t=>{
  const f=await fixture(t),c=f.make();await c.initialize();await c.apply('gemini');await c.setStartupView('last');await c.setAutostart(true);const before=await fs.readFile(path.join(f.dir,'app.json'));
  await c.pause();assert.equal(JSON.parse(await fs.readFile(path.join(f.dir,'windows-icon-request.json'))).choice,'antigravity');assert.deepEqual(await fs.readFile(path.join(f.dir,'app.json')),before);

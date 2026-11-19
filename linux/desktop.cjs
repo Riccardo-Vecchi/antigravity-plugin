@@ -21,7 +21,8 @@ const ORIGINALS=path.join(DIRECTORY,'icon-originals');
 const SIZES=[16,24,32,48,64,128,256,512];
 const AUTOSTART=path.join(os.homedir(),'.config','autostart','antigravity-plugin.desktop');
 const ICON_ROOT=path.join(os.homedir(),'.local','share','icons','hicolor');
-let state={version:2,taskbarIcon:'antigravity',startupView:'antigravity',autostart:false,toggleShortcut:'Ctrl+Alt+G'};
+const shortcuts=require('../common/shortcut-config.cjs');
+let state={version:2,taskbarIcon:'antigravity',startupView:'antigravity',autostart:false,toggleShortcut:'Ctrl+Alt+G',modelShortcuts:shortcuts.defaultModelShortcuts()};
 let currentView='antigravity',effectiveIcon=null,trayAvailable=false,paused=false;
 const {validate}=require('../common/app-preferences.cjs');
 
@@ -147,7 +148,8 @@ async function setStartupView(view){
  if(!['antigravity','gemini','last'].includes(view))throw Error('Choose Antigravity, Gemini, or the last view.');
  return savePreferences({startupView:view});
 }
-async function setToggleShortcut(value){return savePreferences({toggleShortcut:require('../common/shortcut-config.cjs').normalize(value)});}
+async function setToggleShortcut(value){return savePreferences({toggleShortcut:shortcuts.normalize(value)});}
+async function setModelShortcuts(value){return savePreferences({modelShortcuts:shortcuts.normalizeModelShortcuts(value,state.toggleShortcut)});}
 async function setAutostart(enabled){if(typeof enabled!=='boolean')throw Error('Invalid autostart value.');return savePreferences({autostart:enabled});}
 async function setView(view){
  if(!['antigravity','gemini'].includes(view))throw Error('Unknown view.');
@@ -183,4 +185,4 @@ async function restoreIntegration(){
  await run('/usr/bin/python3',[path.join(__dirname,'sync-tray-icon.py'),'--restore'],{timeout:8000});
  await refresh();return getState();
 }
-module.exports={pause,resume,initialize,apply,setStartupView,setAutostart,setToggleShortcut,setView,ensureTray,windowOpened,getState,validate,restoreIntegration};
+module.exports={pause,resume,initialize,apply,setStartupView,setAutostart,setToggleShortcut,setModelShortcuts,setView,ensureTray,windowOpened,getState,validate,restoreIntegration};

@@ -443,13 +443,15 @@ class Client {
       this.origin = data.origin;
 
       if (
-        (await this.evaluate("globalThis.__AGPAShortcutRules?.version")) !== 1
+        (await this.evaluate("globalThis.__AGPAShortcutRules?.version")) !==
+        shortcutRules.version
       )
         await this.evaluate(
           `globalThis.__AGPACreateShortcutRules=${shortcutRules.createShortcutRules.toString()};globalThis.__AGPAShortcutRules=globalThis.__AGPACreateShortcutRules();`,
         );
+      const desktopState = desktopIcon.getState();
       await this.evaluate(
-        `globalThis.__AGPA_TOGGLE_SHORTCUT__=${JSON.stringify(desktopIcon.getState().toggleShortcut)};`,
+        `globalThis.__AGPA_TOGGLE_SHORTCUT__=${JSON.stringify(desktopState.toggleShortcut)};globalThis.__AGPA_MODEL_SHORTCUTS__=${JSON.stringify(desktopState.modelShortcuts)};`,
       );
       if (
         (await this.evaluate("globalThis.__AGPAI18n?.version")) !== I18N_VERSION
@@ -689,7 +691,7 @@ class Client {
   async updateAppState() {
     const state = desktopIcon.getState();
     await this.evaluate(
-      `globalThis.__AGAppSettings?.setState(${JSON.stringify(state)});globalThis.__AGShortcuts?.configure(${JSON.stringify(state.toggleShortcut)});globalThis.__AGGeminiInline?.setShortcut(${JSON.stringify(state.toggleShortcut)})`,
+      `globalThis.__AGAppSettings?.setState(${JSON.stringify(state)});globalThis.__AGShortcuts?.configure(${JSON.stringify(state.toggleShortcut)},${JSON.stringify(state.modelShortcuts)});globalThis.__AGGeminiInline?.setShortcut(${JSON.stringify(state.toggleShortcut)})`,
     );
   }
   async checkCompatibility(extra = {}) {
@@ -751,8 +753,21 @@ class Client {
         setAutostart: [true, false],
         viewChanged: ["antigravity", "gemini"],
       };
-      if (payload.action === "setToggleShortcut")
+      if (payload.action === "setToggleShortcut") {
         payload.value = shortcutRules.normalize(payload.value);
+        const conflicts = shortcutRules.findShortcutConflicts(
+          desktopIcon.getState().modelShortcuts,
+          payload.value,
+        );
+        if (conflicts.length)
+          throw Error(
+            `Shortcut conflict: ${conflicts[0].chord} is already used by ${conflicts[0].labels.join(", ")}.`,
+          );
+      } else if (payload.action === "setModelShortcuts")
+        payload.value = shortcutRules.normalizeModelShortcuts(
+          payload.value,
+          desktopIcon.getState().toggleShortcut,
+        );
       else if (!actions[payload.action]?.includes(payload.value))
         throw Error("Invalid application preference.");
       const revision = payload.action === "viewChanged" ? ++viewRevision : null;
@@ -767,6 +782,8 @@ class Client {
           return this.repairIntegration();
         if (payload.action === "setToggleShortcut")
           return desktopIcon.setToggleShortcut(payload.value);
+        if (payload.action === "setModelShortcuts")
+          return desktopIcon.setModelShortcuts(payload.value);
         if (payload.action === "setTaskbarIcon")
           return desktopIcon.apply(payload.value);
         if (payload.action === "setStartupView")
