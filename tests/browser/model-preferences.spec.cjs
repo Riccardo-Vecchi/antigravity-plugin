@@ -513,5 +513,14 @@ test("per-model shortcuts select only the assigned entry and preserve selection 
       .filter({ hasText: "Orchestrator (Neon) is unavailable." }),
   ).toBeVisible();
   await expect(trigger).toContainText("Claude Fixture");
+  await trigger.click();
+  await page.getByRole("button", { name: "Manage models" }).click();
+  const missing = page.getByRole("combobox", {
+    name: "Shortcut for Orchestrator (Neon)",
+    exact: true,
+  });
+  await expect(missing).toHaveValue("Ctrl+Alt+O");
+  await missing.selectOption("");
+  await expect(missing).toHaveCount(0);
   expect(await page.evaluate(() => globalThis.fixture.changes)).toBe(1);
 });

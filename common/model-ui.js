@@ -353,7 +353,10 @@
  function paintDialog(){
   if(!dialog)return;const container=dialog.querySelector('[data-agpa-model-list]');
   const names = orderedNames(known);
-  const signature = JSON.stringify(names.map(name => [name, modelGroup(name)]));
+  // Keep bindings editable even when a model drops out of the account's catalog.
+  const missing = Object.entries(preferences.models).filter(([name,model]) => model.shortcut && !names.includes(name));
+  const signature = JSON.stringify([names.map(name => [name,modelGroup(name)]), missing.map(([name])=>name)]);
+
   if(container.dataset.models!==signature){
    const focused = document.activeElement;
    container.dataset.models=signature;container.replaceChildren();
@@ -384,6 +387,11 @@
      moves.append(move);
     }
     for(const [field,title]of [['favorite','Favorite'],['hidden','Hidden']]){const input=node('input',{type:'checkbox','data-model-name':name,'data-field':field});input.onchange=()=>save(name,field,input.checked);row.append(node('label',{'data-option':field},input,node('span',{text:title})));}container.append(row);
+   }
+   for (const [name] of missing) {
+    const label=node('span');
+    i.set(label,'{model} is unavailable.',{model:name});
+    container.append(node('div',{class:'agpa-model-setting'},label,shortcutSelect(name)));
    }
    if (focused?.dataset.modelName) {
     const sameRow = [...container.querySelectorAll('[data-model-name]')].filter(el => el.dataset.modelName === focused.dataset.modelName);
