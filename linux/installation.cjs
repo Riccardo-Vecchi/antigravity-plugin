@@ -22,6 +22,25 @@ function debuggingExec(exec) {
   if (/(?:^|\s)--remote-debugging-port(?:=|\s|$)/.test(exec)) return exec;
   return exec + ' --remote-debugging-address=127.0.0.1 --remote-debugging-port=0';
 }
+async function appImageWithoutDebugging(profileDir, procDir = '/proc') {
+  try {
+    const lock = await fs.readlink(path.join(profileDir, 'SingletonLock'));
+    const prefix = os.hostname() + '-';
+    const pid = lock.slice(prefix.length);
+    if (!lock.startsWith(prefix) || !/^[1-9]\d{0,9}$/.test(pid)) return null;
+    const processDir = path.join(procDir, pid);
+    if ((await fs.stat(processDir)).uid !== process.getuid()) return null;
+    const executable = await fs.readlink(path.join(processDir, 'exe'));
+    if (!/\/\.mount_[^/]+\/antigravity$/.test(executable)) return null;
+    const argv = (await fs.readFile(path.join(processDir, 'cmdline'), 'utf8')).split('\0');
+    if (argv[0] !== executable || argv.some(arg => /^--(?:type|remote-debugging-port)(?:=|$)/.test(arg))) return null;
+    // The updater may have finished or a different process may now own the profile.
+    return await fs.readlink(path.join(profileDir, 'SingletonLock')) === lock ? pid : null;
+  } catch (error) {
+    if (['ENOENT', 'ESRCH', 'EACCES', 'EPERM', 'EINVAL'].includes(error.code)) return null;
+    throw error;
+  }
+}
 async function appImage(file) {
   let handle;
   try {
@@ -92,4 +111,4 @@ async function discover({home = os.homedir(), env = process.env} = {}) {
   const text = `[Desktop Entry]\nType=Application\nName=Antigravity\nExec=${quoted}\nIcon=antigravity\nTerminal=false\nStartupWMClass=Antigravity\n`;
   return {...image, text, entry: parseDesktop(text), desktopFile, generated: true};
 }
-module.exports = {discover, parseDesktop, appImage, debuggingExec, IDENTITY_MARKER};
+module.exports = {discover, parseDesktop, appImage, debuggingExec, appImageWithoutDebugging, IDENTITY_MARKER};

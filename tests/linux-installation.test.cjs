@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os');
-const {discover,parseDesktop,debuggingExec}=require('../linux/installation.cjs');
+const {discover,parseDesktop,debuggingExec,appImageWithoutDebugging}=require('../linux/installation.cjs');
 async function fixture(t){
  const home=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-detect-'));t.after(()=>fs.rm(home,{recursive:true,force:true}));
  const env={XDG_DATA_DIRS:path.join(home,'system')},apps=path.join(home,'.local/share/applications');
@@ -74,4 +74,32 @@ test('debug opt-in restores the original launcher command and respects later use
  const userEdited=await module.exports.testDesktopWithIcon('restore');
  assert.match(userEdited.after,/--user-change/);
  assert.match(userEdited.after,/--remote-debugging-port=0/);
+});
+
+test('Linux identifies only a running AppImage profile without the debugging flag', options, async t => {
+  const {home} = await fixture(t);
+  const proc = path.join(home, 'proc');
+  const processDir = path.join(proc, '123');
+  const lock = path.join(home, 'SingletonLock');
+  const executable = '/tmp/.mount_AntigrTest/antigravity';
+  const detect = () => appImageWithoutDebugging(home, proc);
+
+  await fs.mkdir(processDir, {recursive:true});
+  await fs.symlink(executable, path.join(processDir, 'exe'));
+  const cmdline = path.join(processDir, 'cmdline');
+  await fs.writeFile(cmdline, executable + '\0');
+  assert.equal(await detect(), null);
+
+  await fs.symlink(os.hostname() + '-123', lock);
+  assert.equal(await detect(), '123');
+  await fs.writeFile(cmdline, executable + '\0--remote-debugging-port=0\0');
+  assert.equal(await detect(), null);
+  await fs.writeFile(cmdline, executable + '\0--type=renderer\0');
+  assert.equal(await detect(), null);
+  await fs.writeFile(cmdline, [executable, '--remote-debugging-port', '9123', ''].join('\0'));
+  assert.equal(await detect(), null);
+  await fs.unlink(lock);
+  await fs.symlink('other-' + os.hostname() + '-123', lock);
+  await fs.writeFile(cmdline, executable + '\0');
+  assert.equal(await detect(), null);
 });

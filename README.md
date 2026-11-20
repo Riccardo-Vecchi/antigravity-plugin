@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.23.1](https://img.shields.io/badge/version-1.23.1-blue)](CHANGELOG.md)
+[![Version 1.23.2](https://img.shields.io/badge/version-1.23.2-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -22,7 +22,7 @@
 
 | Platform | Status |
 | --- | --- |
-| 🐧 Linux x86-64 | Verified with Antigravity App 2.33.0 on Zorin/GNOME 46 |
+| 🐧 Linux x86-64 | Verified with Antigravity App 2.34.0 on Zorin (isolated Linux profile) |
 | <img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows 11 x64 | **Experimental**; community-verified version 2.33.0 on Windows 11 |
 
 ## ✨ Features

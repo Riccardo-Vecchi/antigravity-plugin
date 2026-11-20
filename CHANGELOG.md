@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.23.2
+
+- Detect Linux AppImage launches that drop the local plugin connection, including Antigravity’s updater restart. Show a desktop notification with recovery steps while the app stays open.
+
 ## 1.23.1
 
 - Align shortcut selectors in a shared column in Manage models, including unavailable models and narrow windows.

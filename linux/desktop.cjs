@@ -6,7 +6,7 @@ const {execFile}=require('node:child_process');
 const {promisify}=require('node:util');
 const run=promisify(execFile);
 const {iconPath}=require('../common/icon-path.cjs');
-const DIRECTORY=require('../common/platform-paths.cjs').getPaths().configDir;
+const {configDir:DIRECTORY,profileDir}=require('../common/platform-paths.cjs').getPaths();
 const PREFERENCES=path.join(DIRECTORY,'app.json');
 const session=require('../common/session-state.cjs').createSessionStore(path.join(DIRECTORY,'session.json'));
 let lastView='antigravity';
@@ -154,6 +154,31 @@ async function setView(view){
  currentView=view;lastView=await session.record(view);return renderIcon();
 }
 async function ensureTray(){if(paused)return getState();await syncTray(effectiveIcon||desiredIcon());return getState();}
+let waitingProcess = null;
+let notifiedProcess = null;
+async function checkMissingDebugPort() {
+ const pid = !paused && installation ? await discovery.appImageWithoutDebugging(profileDir) : null;
+ if (!pid) {
+  waitingProcess = null;
+  return;
+ }
+ if (notifiedProcess === pid) return;
+ if (waitingProcess?.pid !== pid) {
+  waitingProcess = {pid, since: Date.now()};
+  return;
+ }
+ if (Date.now() - waitingProcess.since < 6000) return;
+ notifiedProcess = pid;
+ const italian = /^it\b/i.test(process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || '');
+ await run('/usr/bin/notify-send', [
+  '--app-name=Antigravity Plugin',
+  italian ? 'Collegamento con Antigravity interrotto' : 'Antigravity plugin disconnected',
+  italian
+   ? 'Quando hai finito le attività in corso, chiudi Antigravity dal suo menu (Quit) e riaprilo dal menu delle applicazioni.'
+   : 'When your work is done, choose Quit in Antigravity and reopen it from the applications menu.',
+ ], {timeout: 2000}).catch(() => {});
+ return true;
+}
 async function windowOpened(){return renderIcon({force:true});}
 async function initialize({suspended=false}={}){
  paused=suspended;
@@ -183,4 +208,4 @@ async function restoreIntegration(){
  await run('/usr/bin/python3',[path.join(__dirname,'sync-tray-icon.py'),'--restore'],{timeout:8000});
  await refresh();return getState();
 }
-module.exports={pause,resume,initialize,apply,setStartupView,setAutostart,setToggleShortcut,setView,ensureTray,windowOpened,getState,validate,restoreIntegration};
+module.exports={pause,resume,initialize,apply,setStartupView,setAutostart,setToggleShortcut,setView,ensureTray,checkMissingDebugPort,windowOpened,getState,validate,restoreIntegration};

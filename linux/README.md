@@ -29,6 +29,8 @@ Environment="AGPA_DESKTOP_FILE=/absolute/path/antigravity.desktop"
 
 The launcher must point directly to that AppImage. Quoted paths and arguments are preserved. The plugin appends `--remote-debugging-address=127.0.0.1 --remote-debugging-port=0` when no debugging port is already configured. Disabling restores the prior command if it still matches the plugin-managed value. After saving, restart the helper with `systemctl --user restart antigravity-plugin.service`. Explicit invalid selections are reported rather than replaced with another app. Missing/ambiguous desktop detection leaves the other plugin controls available.
 
+After an Antigravity AppImage update, the automatic restart can omit the launcher’s local debugging flags. When the plugin shows a desktop notification, finish your work, choose **Quit** from Antigravity’s menu, then reopen it from the applications menu. The plugin reconnects automatically.
+
 ```bash
 gh repo clone Riccardo-Vecchi/antigravity-plugin
 cd antigravity-plugin

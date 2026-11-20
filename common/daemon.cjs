@@ -1218,6 +1218,14 @@ async function poll() {
       log(state === "active" ? "service.active" : "service.waiting");
     }
   } catch (error) {
+    if (
+      pluginControl.enabled &&
+      error.code === "ENOENT" &&
+      error.path === PORT_PATH
+    ) {
+      if (await desktopIcon.checkMissingDebugPort?.().catch(() => false))
+        log("service.reopen_required");
+    }
     const state =
       ["ENOENT", "ECONNREFUSED"].includes(error.code) ||
       /fetch failed|aborted|timed out/i.test(error.message)
