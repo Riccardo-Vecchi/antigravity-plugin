@@ -1,7 +1,7 @@
 /* Separate model/effort controls, delegating selection to native menu items. */
 (() => {
   "use strict";
-  const VERSION = "1.3.11";
+  const VERSION = "1.3.14";
   if (globalThis.__AGModelControls?.version === VERSION) return;
   globalThis.__AGModelControls?.destroy();
   const rules = globalThis.__AGPA_MODEL_CONTROLS__;
@@ -13,7 +13,9 @@
   const i18n = globalThis.__AGPAI18n;
   const controls = new Map(),
     unsupported = new Set(),
-    swarmControls = new Map();
+    swarmControls = new Map(),
+    masterLevels = new Set();
+  const selectedModel = (trigger) => rules.selectionFor(trigger, masterLevels);
   let session = null,
     stopped = false,
     scheduled = false,
@@ -28,6 +30,7 @@
     "data-agpa-effort-suffix",
     "data-agpa-native-effort-menu",
     "data-agpa-native-model-row",
+    "data-agpa-keep-effort-chevron",
   ];
   const mark = (node, attribute) => {
     if (!node.hasAttribute(attribute)) node.setAttribute(attribute, "");
@@ -49,7 +52,7 @@
   }
   const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
   async function until(read, current) {
-    const deadline = Date.now() + 3000;
+    const deadline = Date.now() + (current.origin.masterSummary ? 5000 : 3000);
     while (!stopped && session === current && Date.now() < deadline) {
       const result = read();
       if (result) return result;
@@ -85,7 +88,8 @@
     if (session !== current) return;
     close({ native: false });
     // A new/unsupported native menu keeps working instead of accepting a fake level.
-    if (unsupportedMenu) unsupported.add(current.base);
+    if (unsupportedMenu && !current.origin.masterSummary)
+      unsupported.add(current.base);
     schedule();
     if (current.preferred && current.group?.isConnected) {
       bypass = true;
@@ -96,6 +100,14 @@
       }
     } else current.group?.focus();
   }
+  function sameSelection(selection, origin) {
+    return (
+      selection?.base === origin.base &&
+      (origin.masterSummary
+        ? selection.masterSummary === origin.masterSummary
+        : selection.effortLabel === origin.effortLabel)
+    );
+  }
   async function commit(current, index) {
     if (session !== current || current.committing) return;
     const option = current.options[index];
@@ -103,15 +115,12 @@
       close();
       return;
     }
-    const before = rules.selectionFor(current.trigger);
-    if (
-      before?.base !== current.origin.base ||
-      before.effortLabel !== current.origin.effortLabel
-    ) {
+    const before = selectedModel(current.trigger);
+    if (!sameSelection(before, current.origin)) {
       close();
       return;
     }
-    if (current.base === before.base && option.label === before.effortLabel) {
+    if (current.base === before.base && option.label === current.activeLevel) {
       close({ focus: true });
       return;
     }
@@ -120,14 +129,14 @@
     try {
       option.row.click();
       await until(() => {
-        const selected = rules.selectionFor(current.trigger);
-        return (
-          selected?.base === current.base &&
-          selected.effortLabel === option.label
-        );
+        const selected = selectedModel(current.trigger);
+        if (selected?.base !== current.base) return false;
+        return current.master
+          ? selected.masterSummary === current.master + " " + option.label
+          : selected.effortLabel === option.label;
       }, current);
       close({ focus: !current.preferred });
-      await remember(current.base, option.value);
+      if (!current.master) await remember(current.base, option.value);
     } finally {
       if (session === current) close({ focus: !current.preferred });
       schedule();
@@ -178,7 +187,11 @@
     current.value = element("strong");
     labels.append(
       current.value,
-      element("span", { class: "agpa-effort-model" }, current.base),
+      element(
+        "span",
+        { class: "agpa-effort-model" },
+        current.master || current.base,
+      ),
     );
     const dismiss = element(
       "button",
@@ -220,7 +233,7 @@
       0,
       chosen < 0
         ? current.options.findIndex(
-            (option) => option.label === current.origin.effortLabel,
+            (option) => option.label === current.activeLevel,
           )
         : chosen,
     );
@@ -239,9 +252,61 @@
     current.button.removeAttribute("aria-busy");
     current.button.setAttribute("aria-expanded", "true");
   }
+  async function openSubmenu(row, current) {
+    if (!row || row.matches("[aria-disabled=true],[data-disabled]"))
+      throw Error("Native menu row unavailable");
+    row.focus({ preventScroll: true });
+    for (const type of ["keydown", "keyup"])
+      row.dispatchEvent(
+        new KeyboardEvent(type, {
+          key: "ArrowRight",
+          code: "ArrowRight",
+          keyCode: 39,
+          bubbles: true,
+        }),
+      );
+    return until(
+      () =>
+        [...document.querySelectorAll("[role=menu]")].find(
+          (menu) =>
+            menu.getAttribute("aria-labelledby") === row.id &&
+            !menu.hasAttribute("data-closed"),
+        ),
+      current,
+    );
+  }
+  async function openMasterEffort(current) {
+    const masterMenu = await openSubmenu(current.group, current);
+    const candidates = await until(() => {
+      const rows = [
+        ...masterMenu.querySelectorAll(
+          "[data-testid=orchestrator-picker-row][data-model-base]",
+        ),
+      ];
+      if (!rows.length) return;
+      return rows.filter((row) =>
+        current.origin.masterSummary.startsWith(row.dataset.modelBase + " "),
+      );
+    }, current);
+    // Validate the exact master and current level using the host's own menu.
+    const exact = candidates.find(
+      (row) => row.dataset.modelBase === current.origin.master,
+    );
+    const row = exact || (candidates.length === 1 ? candidates[0] : null);
+    if (!row) return;
+    const menu = await openSubmenu(row, current);
+    const master = row.dataset.modelBase;
+    const activeLevel = current.origin.masterSummary.slice(master.length + 1);
+    const options = await until(() => {
+      const ready = rules.optionsFor(menu, "orchestrator-picker-effort");
+      return ready.some((option) => option.label === activeLevel) && ready;
+    }, current);
+    options.forEach(({ label }) => masterLevels.add(label));
+    return { menu, master, activeLevel, options };
+  }
   async function open(trigger, button, preferred, group) {
     close();
-    const origin = rules.selectionFor(trigger);
+    const origin = selectedModel(trigger);
     if (!origin || !trigger.isConnected) return;
     const current = {
       trigger,
@@ -252,6 +317,7 @@
           ?.dataset.modelBase || origin.base,
       preferred,
       group,
+      activeLevel: origin.effortLabel,
     };
     session = current;
     button?.setAttribute("aria-busy", "true");
@@ -262,6 +328,10 @@
         const panel = document.querySelector(
           "[data-testid=model-selector-panel]",
         );
+        if (!preferred && origin.masterSummary)
+          return panel?.querySelector(
+            "[data-testid=model-selector-orchestrator]",
+          );
         return [
           ...(panel?.querySelectorAll(
             "[data-testid=model-selector-effort-group]",
@@ -270,31 +340,17 @@
           .find((node) => node.dataset.modelBase === current.base)
           ?.closest("[role=menuitem]");
       }, current);
-      if (
-        current.group.getAttribute("aria-disabled") === "true" ||
-        current.group.hasAttribute("data-disabled")
-      ) {
-        fallback(current);
-        return;
+      if (!preferred && origin.masterSummary) {
+        const native = await openMasterEffort(current);
+        if (!native) {
+          fallback(current);
+          return;
+        }
+        Object.assign(current, native);
+      } else {
+        current.menu = await openSubmenu(current.group, current);
+        current.options = rules.optionsFor(current.menu);
       }
-      current.group.focus({ preventScroll: true });
-      for (const type of ["keydown", "keyup"])
-        current.group.dispatchEvent(
-          new KeyboardEvent(type, {
-            key: "ArrowRight",
-            code: "ArrowRight",
-            keyCode: 39,
-            bubbles: true,
-          }),
-        );
-      current.menu = await until(
-        () =>
-          [...document.querySelectorAll("[role=menu]")].find(
-            (menu) => menu.getAttribute("aria-labelledby") === current.group.id,
-          ),
-        current,
-      );
-      current.options = rules.optionsFor(current.menu);
       if (!current.options.length) {
         fallback(current);
         return;
@@ -319,14 +375,21 @@
   }
   function hideNativeEfforts() {
     for (const menu of document.querySelectorAll("[role=menu]")) {
-      if (!rules.optionsFor(menu).length) continue;
       const group = document.getElementById(
         menu.getAttribute("aria-labelledby"),
       );
       const base = group?.querySelector(
         "[data-testid=model-selector-effort-group]",
       )?.dataset.modelBase;
-      if (!base || unsupported.has(base)) continue;
+      if (
+        !base ||
+        !menu.querySelector("[data-testid=model-selector-effort-option]")
+      )
+        continue;
+      if (unsupported.has(base) || !rules.optionsFor(menu).length) {
+        mark(group, "data-agpa-keep-effort-chevron");
+        continue;
+      }
       mark(menu, "data-agpa-native-effort-menu");
       mark(group, "data-agpa-native-model-row");
       if (!session && menu.contains(document.activeElement))
@@ -337,26 +400,26 @@
     scheduled = false;
     if (stopped) return;
     if (session && !session.committing) {
-      const selected = rules.selectionFor(session.trigger);
+      const selected = selectedModel(session.trigger);
       if (
         !session.trigger.isConnected ||
         (session.popup &&
           (!session.menu.isConnected ||
             session.trigger.getAttribute("aria-expanded") !== "true" ||
-            selected?.base !== session.origin.base ||
-            selected.effortLabel !== session.origin.effortLabel))
+            !sameSelection(selected, session.origin)))
       )
         close({ native: false });
     }
     for (const [trigger, button] of controls) {
-      const selection = trigger.isConnected && rules.selectionFor(trigger);
+      const selection = trigger.isConnected && selectedModel(trigger);
       if (
         !selection ||
-        !selection.effortLabel ||
+        !(selection.effortLabel || selection.masterSummary) ||
         unsupported.has(selection.base)
       ) {
         button.remove();
         controls.delete(trigger);
+        trigger.querySelector("[data-agpa-master-label]")?.remove();
         trigger
           .querySelector("[data-agpa-effort-suffix]")
           ?.removeAttribute("data-agpa-effort-suffix");
@@ -365,7 +428,7 @@
     for (const trigger of document.querySelectorAll(
       "[data-testid=model-selector-trigger]",
     )) {
-      const selection = rules.selectionFor(trigger);
+      const selection = selectedModel(trigger);
       const permission = (() => {
         let root = trigger.parentElement;
         while (root && !root.classList.contains("@container/input-footer"))
@@ -385,7 +448,7 @@
       syncSwarm(trigger);
       if (
         !selection ||
-        !selection.effortLabel ||
+        !(selection.effortLabel || selection.masterSummary) ||
         unsupported.has(selection.base)
       )
         continue;
@@ -426,20 +489,39 @@
         trigger.after(button);
         controls.set(trigger, button);
       }
-      const label = selection.effortLabel;
+      const label = selection.effortLabel || t("Reasoning effort");
       if (button.firstElementChild.textContent !== label)
         button.firstElementChild.textContent = label;
       button.setAttribute(
         "aria-label",
-        t("Reasoning effort: {effort}", { effort: label }),
+        selection.effortLabel
+          ? t("Reasoning effort: {effort}", { effort: label })
+          : t("Reasoning effort"),
       );
       button.toggleAttribute(
         "data-agpa-extra-effort",
-        label.toLowerCase() === "extra",
+        /^extra(?: high)?$/i.test(label),
       );
       button.title = t("Reasoning effort");
       button.disabled = trigger.disabled;
-      if (selection.suffix) mark(selection.suffix, "data-agpa-effort-suffix");
+      let masterLabel = trigger.querySelector("[data-agpa-master-label]");
+      if (selection.master && selection.suffix) {
+        if (!masterLabel)
+          masterLabel = element("span", {
+            "data-agpa-master-label": "",
+            "aria-hidden": "true",
+          });
+        if (masterLabel.textContent !== " " + selection.master)
+          masterLabel.textContent = " " + selection.master;
+        if (masterLabel.previousElementSibling !== selection.suffix)
+          selection.suffix.after(masterLabel);
+      } else {
+        masterLabel?.remove();
+      }
+      selection.suffix?.toggleAttribute(
+        "data-agpa-effort-suffix",
+        !!selection.effortLabel,
+      );
     }
     for (const [trigger, control] of swarmControls) {
       if (trigger.isConnected && swarm.editorFor(trigger)) continue;
@@ -677,11 +759,8 @@
             ...document.querySelectorAll(
               "[data-testid=model-selector-trigger]",
             ),
-          ].find((node) => rules.selectionFor(node)?.base === base);
-          if (
-            rules.selectionFor(trigger)?.effortLabel ===
-            option.textContent.trim()
-          )
+          ].find((node) => selectedModel(node)?.base === base);
+          if (selectedModel(trigger)?.effortLabel === option.textContent.trim())
             remember(base, option.dataset.effort).catch(() => {});
         }, 80);
       return;
@@ -782,10 +861,13 @@
   [data-agpa-footer-permission]{order:1}
   [data-agpa-footer-tail]{order:40}
   [data-agpa-effort-suffix]{display:none!important}
+  [data-agpa-master-label]{color:var(--muted-foreground,#aaa)}
   [data-agpa-native-effort-menu]{visibility:hidden!important;pointer-events:none!important}
   /* The picker mounts before lazy effort submenus. Hide the native level on first paint. */
   [data-testid=model-selector-panel] [data-testid=model-selector-effort-group]+span.shrink-0:not(.rounded-full,[data-tooltip-id]):not(:has(*)),
   [data-agpa-native-model-row] [data-testid=model-selector-effort-group]+span{display:none!important}
+  [data-testid=model-selector-panel] [role=menuitem]:has([data-testid=model-selector-effort-group]):not([data-agpa-keep-effort-chevron])
+  > span:has(> svg path[d^="M517.85-480l-184-184"]){display:none!important}
   .agpa-effort-trigger{display:inline-flex;align-items:center;gap:3px;order:21;height:28px;flex-shrink:0;border:0;border-radius:999px;background:transparent;color:var(--muted-foreground,#999);font:inherit;font-size:12px;padding:0 8px;cursor:pointer;white-space:nowrap}
   .agpa-effort-trigger[aria-busy=true]{cursor:progress;opacity:.7}
   .agpa-effort-trigger:hover,.agpa-effort-trigger[aria-expanded=true]{background:var(--secondary,#303030);color:var(--foreground,#eee)}
@@ -890,7 +972,10 @@
       window.removeEventListener("keyup", keyup, true);
       window.removeEventListener("resize", reposition);
       window.removeEventListener("scroll", reposition, true);
-      for (const button of controls.values()) button.remove();
+      for (const [trigger, button] of controls) {
+        button.remove();
+        trigger.querySelector("[data-agpa-master-label]")?.remove();
+      }
       controls.clear();
       style.remove();
       for (const { group, menu, error } of swarmControls.values()) {

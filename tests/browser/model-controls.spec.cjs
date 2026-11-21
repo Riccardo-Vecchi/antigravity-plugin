@@ -52,12 +52,16 @@ test("model rows hide the effort suffix at insertion, before any hover or submen
     const info = document.createElement("span");
     info.textContent = "Notice";
     group.after(summary, info);
+    const arrow = document.createElement("span");
+    arrow.innerHTML = '<svg><path d="M517.85-480l-184-184"/></svg>';
+    group.closest("[role=menuitem]").append(arrow);
     return {
+      arrow: arrow.checkVisibility(),
       effort: summary.checkVisibility(),
       notice: info.checkVisibility(),
     };
   });
-  expect(firstPaint).toEqual({ effort: false, notice: true });
+  expect(firstPaint).toEqual({ arrow: false, effort: false, notice: true });
   const summary = page.locator(
     "[data-testid=model-selector-effort-group] + .shrink-0",
   );
@@ -66,6 +70,119 @@ test("model rows hide the effort suffix at insertion, before any hover or submen
   await expect(page.locator(".agpa-effort-trigger")).toHaveText("High");
   await page.evaluate(() => window.__AGModelControls.destroy());
   await expect(summary).toBeVisible();
+});
+
+test("the effort slider changes only the active Orchestrator master’s effort", async ({
+  page,
+}) => {
+  await setup(page);
+  const trigger = page.getByTestId("model-selector-trigger");
+  const effort = page.locator(".agpa-effort-trigger");
+  await expect(effort).toHaveText("High");
+  await trigger.evaluate((trigger) => {
+    const label = trigger.querySelector(":scope > span");
+    label.firstChild.textContent = "Orchestrator";
+    const summary = label.lastElementChild;
+    summary.textContent = " Claude Opus 5.5 High";
+    const makeMenu = (owner) => {
+      const menu = document.createElement("div");
+      menu.setAttribute("role", "menu");
+      menu.setAttribute("aria-labelledby", owner.id);
+      document.body.append(menu);
+      return menu;
+    };
+    const addSubmenu = (menu, id, testId, title, populate) => {
+      const row = document.createElement("div");
+      row.id = id;
+      row.dataset.testid = testId;
+      row.textContent = title;
+      row.setAttribute("role", "menuitem");
+      row.setAttribute("aria-haspopup", "menu");
+      row.tabIndex = -1;
+      row.onkeydown = (event) => {
+        if (event.key === "ArrowRight") {
+          const submenu = makeMenu(row);
+          setTimeout(() => populate(submenu), 100);
+        }
+      };
+      menu.append(row);
+      return row;
+    };
+    const close = () => {
+      for (const menu of document.querySelectorAll("[role=menu]"))
+        menu.remove();
+      trigger.setAttribute("aria-expanded", "false");
+    };
+    trigger.onclick = () => {
+      if (trigger.getAttribute("aria-expanded") === "true") return close();
+      trigger.setAttribute("aria-expanded", "true");
+      const menu = makeMenu(trigger);
+      const panel = document.createElement("div");
+      panel.dataset.testid = "model-selector-panel";
+      menu.append(panel);
+      const root = addSubmenu(
+        panel,
+        "orchestrator",
+        "model-selector-orchestrator",
+        "Orchestrator",
+        (masters) => {
+          for (const [index, name] of [
+            "Gemini 4 Neon",
+            "Claude Opus 5.5",
+          ].entries()) {
+            const master = addSubmenu(
+              masters,
+              "master-" + index,
+              "orchestrator-picker-row",
+              name,
+              (levels) => {
+                for (const level of index === 0
+                  ? ["Low", "High", "Extra High"]
+                  : ["Medium", "High"]) {
+                  const row = document.createElement("div");
+                  row.setAttribute("role", "menuitem");
+                  const option = document.createElement("span");
+                  option.dataset.testid = "orchestrator-picker-effort";
+                  option.dataset.effort = level.toLowerCase().replace(" ", "_");
+                  option.textContent = level;
+                  row.append(option);
+                  row.onclick = () => {
+                    summary.textContent = " " + name + " " + level;
+                    close();
+                  };
+                  levels.append(row);
+                }
+              },
+            );
+            master.dataset.modelBase = name;
+          }
+        },
+      );
+      const arrow = document.createElement("span");
+      arrow.dataset.testid = "orchestrator-chevron";
+      arrow.innerHTML =
+        '<svg width="12" height="12"><path d="M517.85-480l-184-184"/></svg>';
+      root.append(arrow);
+    };
+  });
+  await expect(effort).toHaveAccessibleName("Reasoning effort: High");
+  await expect(trigger).toHaveText("Orchestrator Claude Opus 5.5", {
+    useInnerText: true,
+  });
+  await trigger.click();
+  await expect(page.getByTestId("orchestrator-chevron")).toBeVisible();
+  await trigger.click();
+  await effort.click();
+  const range = page.getByRole("slider", { name: "Reasoning effort" });
+  await expect(range).toHaveAttribute("max", "1");
+  await expect(range).toHaveAttribute("aria-valuetext", "High");
+  await range.press("Home");
+  await expect(trigger).toHaveText("Orchestrator Claude Opus 5.5", {
+    useInnerText: true,
+  });
+  await expect(effort).toHaveText("Medium");
+  await expect(range).toHaveCount(0);
+  await expect(effort).toBeFocused();
 });
 
 test("the duplicate simple native effort submenu is hidden, and disabling restores it", async ({

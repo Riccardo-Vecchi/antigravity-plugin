@@ -12,6 +12,15 @@ test('effort capability requires the native separate span, including context-win
     assert.equal(selectionFor(trigger(name)).effortLabel, '');
   assert.equal(selectionFor(null), null);
 });
+test('Orchestrator splits the longest native effort suffix and can learn new levels', () => {
+  const known = selectionFor(trigger('Orchestrator', ' Gemini 4 Neon Extra High'));
+  assert.equal(known.master, 'Gemini 4 Neon');
+  assert.equal(known.effortLabel, 'Extra High');
+  const observed = selectionFor(trigger('Orchestrator', ' Claude Opus 5.5 Deep'), ['Deep']);
+  assert.equal(observed.master, 'Claude Opus 5.5');
+  assert.equal(observed.effortLabel, 'Deep');
+  assert.equal(selectionFor(trigger('Orchestrator', ' Unknown custom summary')).effortLabel, '');
+});
 function menuFixture(entries) {
   const menu = {querySelectorAll: () => labels};
   const labels = entries.map(entry => {

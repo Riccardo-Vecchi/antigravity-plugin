@@ -1,6 +1,6 @@
 /* Decorate native model/permission controls; never change their selection or policy. */
 (()=>{
- 'use strict';const VERSION='1.6.1';
+ 'use strict';const VERSION='1.6.2';
  if(globalThis.__AGModelUI?.version===VERSION)return;
  globalThis.__AGModelUI?.destroy();
  const i=globalThis.__AGPAI18n,providerFor=globalThis.__AGPAProviderFor,permissionFor=globalThis.__AGPAPermissionFor,assets=globalThis.__AGPA_LAB_ICONS__;
@@ -12,7 +12,7 @@
  function mark(element, name) {
   const provider = providerFor(name);
   const key = /^\s*Orchestrator\b/i.test(name) && assets.orchestrator ? 'orchestrator' : provider;
-  const icons = key === 'orchestrator' && assets.google ? ['google', key] : assets[key] ? [key] : [];
+  const icons = assets[key] ? [key] : [];
   const current = [...element.querySelectorAll(':scope > [data-agpa-lab]')];
   if (current.length === icons.length && current.every((img, n) => img.dataset.agpaIcon === icons[n])) return;
   for (const img of current) img.remove();
@@ -21,7 +21,6 @@
     'aria-hidden':'true', class:'agpa-lab-icon'});
    image.dataset.agpaLab = provider;
    image.dataset.agpaIcon = icon;
-   if (icon === 'google' && key === 'orchestrator') image.title = 'Google';
    return image;
   }));
  }
@@ -264,9 +263,22 @@
    mark(control, label?.textContent || control.textContent);
   }
  }
+ const orchestratorRows = '[data-testid=model-selector-orchestrator], [data-testid=orchestrator-picker-row]';
+ function decorateOrchestrator() {
+  for (const row of document.querySelectorAll(orchestratorRows)) {
+   if (row.dataset.testid === 'model-selector-orchestrator') {
+    mark(row, row.dataset.modelLabel || 'Orchestrator');
+    continue;
+   }
+   const name = row.querySelector(':scope > span > span:not([data-agpa-model-ui])')?.textContent.trim();
+   if (!name) continue;
+   mark(row, name);
+   decorateVariant(row, name);
+  }
+ }
  function apply(){
   scheduled=0;if(stopped)return;
-  permissionColors();decorateUsage();decorateAutomationModels();
+  permissionColors();decorateUsage();decorateAutomationModels();decorateOrchestrator();
   for (const trigger of document.querySelectorAll('[data-testid=model-selector-trigger]')) {
    const label = trigger.querySelector(':scope > span:not([data-agpa-model-ui])');
    // The native label contains the model as text and the current effort in a child span.
@@ -479,7 +491,7 @@
  .agpa-standalone-usage{box-sizing:border-box;position:fixed;z-index:10000;width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;padding:10px;border:1px solid var(--border,#36373c);border-radius:13px;background:var(--background,#17181c);color:var(--foreground,#eee);font:12px/1.5 system-ui;box-shadow:0 12px 30px #0005}.agpa-standalone-usage header{display:flex;align-items:center;justify-content:space-between;color:var(--muted-foreground,#aaa);padding:0 2px 4px}.agpa-quota-refresh{border:0;background:transparent;color:inherit;cursor:pointer;font:18px system-ui}.agpa-quota-refresh:disabled{opacity:.4}.agpa-standalone-usage section+section{margin-top:10px}.agpa-standalone-usage strong{display:block;font-weight:500;padding:2px}.agpa-quota-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:1px 12px;padding:4px 2px;color:var(--muted-foreground,#aaa)}.agpa-quota-row small{grid-column:1/-1;text-align:right;font-size:11px}.agpa-quota-value{display:flex;align-items:center;gap:6px}.agpa-quota-ring{width:14px;height:14px;display:inline-block;border-radius:50%;background:conic-gradient(var(--quota-color) var(--quota-left),#62636b var(--quota-left));mask:radial-gradient(circle,transparent 48%,#000 52%)}.agpa-quota-row[aria-disabled=true]{opacity:.5}
  @media(max-width:640px){[data-agpa-model-list]{grid-template-columns:minmax(0,1fr) max-content}.agpa-model-setting{row-gap:6px}.agpa-model-actions{grid-column:1/-1;justify-content:flex-end}}
  `});document.head.append(style);
- const watched=automationPickers+', [data-testid=settings-button],[role=menu][data-nested],[data-testid=model-selector-trigger],[data-testid=model-selector-panel],[data-testid^=permissions-]';
+ const watched=automationPickers+', '+orchestratorRows+', [data-testid=settings-button],[role=menu][data-nested],[data-testid=model-selector-trigger],[data-testid=model-selector-panel],[data-testid^=permissions-]';
  const observer=new MutationObserver(records=>{
   if(records.some(r=>{const target=r.target.nodeType===1?r.target:r.target.parentElement;if(target?.closest('[data-agpa-model-ui]'))return false;const nodes=[...r.addedNodes,...r.removedNodes];if(nodes.length&&nodes.every(n=>n.nodeType===1&&n.hasAttribute('data-agpa-model-ui')))return false;return target?.closest(watched)||nodes.some(n=>n.nodeType===1&&(n.matches(watched)||n.querySelector(watched)));}))schedule();
  });observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class']});

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.23.3
+
+- Support the native Orchestrator master picker in Antigravity 2.34.0. Show a dedicated Orchestrator icon and provider icons for the available master models.
+- Show Orchestrator's current effort in the composer effort control. Wait for the master's native options before opening the slider and keep the selected master when changing effort.
+- Hide duplicate effort chevrons in the model picker while preserving Orchestrator's native master submenu.
+
 ## 1.23.2
 
 - Detect Linux AppImage launches that drop the local plugin connection, including Antigravity’s updater restart. Show a desktop notification with recovery steps while the app stays open.

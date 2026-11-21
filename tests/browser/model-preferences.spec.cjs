@@ -282,7 +282,7 @@ test("standalone quota uses the same provider logos outside conversations", asyn
   ).toHaveCount(1);
 });
 
-test("Orchestrator has its own Google icon in the menu and selected model", async ({
+test("legacy Orchestrator entries keep a single icon in the menu and composer", async ({
   page,
 }) => {
   await setup(page, true);
@@ -290,12 +290,83 @@ test("Orchestrator has its own Google icon in the menu and selected model", asyn
   await trigger.click();
   const row = page.getByRole("menuitem", { name: "Orchestrator (Argon)" });
   const logo = '[data-agpa-lab="google"][data-agpa-icon="orchestrator"]';
-  const google = '[data-agpa-icon="google"][title="Google"]';
-  await expect(row.locator(google)).toBeVisible();
+  const google = '[data-agpa-icon="google"]';
+  await expect(row.locator(google)).toHaveCount(0);
   await expect(row.locator(logo)).toHaveJSProperty("complete", true);
   await row.click();
-  await expect(trigger.locator(google)).toBeVisible();
+  await expect(trigger.locator(google)).toHaveCount(0);
   await expect(trigger.locator(logo)).toHaveJSProperty("complete", true);
+});
+
+test("the native Orchestrator hierarchy keeps its master and effort options selectable", async ({
+  page,
+}) => {
+  await setup(page, true);
+  const trigger = page.getByTestId("model-selector-trigger");
+  await trigger.click();
+  await page.getByTestId("model-selector-panel").evaluate((panel) => {
+    const row = document.createElement("div");
+    row.dataset.testid = "model-selector-orchestrator";
+    row.dataset.modelLabel = "Orchestrator";
+    row.setAttribute("role", "menuitem");
+    row.setAttribute("aria-haspopup", "menu");
+    row.tabIndex = 0;
+    row.textContent = "Orchestrator";
+    panel.querySelector(".rows").append(row);
+    row.onclick = () => {
+      const masters = document.createElement("div");
+      masters.role = "menu";
+      masters.innerHTML = `
+        <div role="menuitem" data-testid="orchestrator-picker-row">
+          <span><span>Gemini 4 Neon</span><span>Medium</span></span>
+        </div>
+        <div role="menuitem" data-testid="orchestrator-picker-row">
+          <span><span>Claude Opus 5.5</span><span>Medium</span></span>
+        </div>`;
+      document.body.append(masters);
+      for (const master of masters.children) {
+        master.onclick = () => {
+          const effort = document.createElement("button");
+          effort.dataset.testid = "orchestrator-picker-effort";
+          effort.textContent = "High";
+          masters.append(effort);
+          effort.onclick = () => {
+            const trigger = document.querySelector(
+              "[data-testid=model-selector-trigger]",
+            );
+            const label = trigger.querySelector(":scope > span");
+            label.innerHTML = "Orchestrator<span></span>";
+            label.firstElementChild.textContent =
+              " " + master.querySelector("span > span").textContent + " High";
+            masters.remove();
+            trigger.click();
+          };
+        };
+      }
+    };
+  });
+  const orchestrator = page.getByTestId("model-selector-orchestrator");
+  await expect(
+    orchestrator.locator('[data-agpa-icon="orchestrator"]'),
+  ).toBeVisible();
+  await expect(orchestrator.locator('[data-agpa-icon="google"]')).toHaveCount(
+    0,
+  );
+  await orchestrator.click();
+  const masters = page.getByTestId("orchestrator-picker-row");
+  await expect(
+    masters
+      .filter({ hasText: "Gemini 4 Neon" })
+      .locator('[data-agpa-element="Ne"]'),
+  ).toBeVisible();
+  const claude = masters.filter({ hasText: "Claude Opus 5.5" });
+  await expect(claude.locator('[data-agpa-icon="anthropic"]')).toBeVisible();
+  await claude.click();
+  await page.getByTestId("orchestrator-picker-effort").click();
+  await expect(trigger).toHaveText("Orchestrator Claude Opus 5.5 High");
+  await expect(
+    trigger.locator('[data-agpa-icon="orchestrator"]'),
+  ).toBeVisible();
 });
 
 test("Automations decorates its native picker and portaled options without reordering them", async ({
@@ -335,7 +406,7 @@ test("Automations decorates its native picker and portaled options without reord
     "google",
   );
   await expect(picker.locator("img[data-element]")).toHaveCount(0);
-  await expect(list.locator("img[data-agpa-icon]")).toHaveCount(5);
+  await expect(list.locator("img[data-agpa-icon]")).toHaveCount(4);
   const orchestrator = list.getByRole("option", {
     name: "Orchestrator (Argon)",
   });
@@ -353,7 +424,7 @@ test("Automations decorates its native picker and portaled options without reord
   await expect(
     picker.locator('img[data-agpa-icon="orchestrator"]'),
   ).toBeVisible();
-  await expect(picker.locator('img[data-agpa-icon="google"]')).toBeVisible();
+  await expect(picker.locator('img[data-agpa-icon="google"]')).toHaveCount(0);
   await expect(picker.locator("svg")).toHaveCount(1);
   await page.evaluate(() => globalThis.__AGModelUI.destroy());
   await expect(list.locator("img")).toHaveCount(0);
