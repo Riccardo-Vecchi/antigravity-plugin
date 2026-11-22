@@ -271,6 +271,11 @@ function createManager({platform = process.platform, home = os.homedir(), config
     if (!['install', 'setup', 'check', 'capture', 'verify', 'uninstall'].includes(action)) await job;
     return status();
   }
-  return {status, perform, paths: {directory, driverDirectory, driver, stateFile, policyFile, mcpFile, skillFile}, entry, owned};
+  async function alignInstalledDriver() {
+    const current = await status();
+    if (!operation && current.enabled && current.driverUpgrade)
+      await perform('install', true);
+  }
+  return {status, perform, alignInstalledDriver, paths: {directory, driverDirectory, driver, stateFile, policyFile, mcpFile, skillFile}, entry, owned};
 }
 module.exports = {createManager, manifest, validateApps, access, toolsFor, read, atomic, parse, SERVER, TOOLS, DESKTOP_TOOLS};

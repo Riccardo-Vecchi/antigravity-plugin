@@ -72,7 +72,7 @@ test("model rows hide the effort suffix at insertion, before any hover or submen
   await expect(summary).toBeVisible();
 });
 
-test("the effort slider changes only the active Orchestrator master’s effort", async ({
+test("Orchestrator master rows select directly and the slider owns effort", async ({
   page,
 }) => {
   await setup(page);
@@ -155,6 +155,17 @@ test("the effort slider changes only the active Orchestrator master’s effort",
               },
             );
             master.dataset.modelBase = name;
+            master.innerHTML =
+              '<span><span></span><span class="shrink-0">Medium</span></span><span><svg width="12" height="12"><path d="M517.85-480l-184-184"/></svg></span>';
+            master.firstElementChild.firstElementChild.textContent = name;
+            master.onmouseenter = () => {
+              const submenu = makeMenu(master);
+              submenu.dataset.testid = "duplicate-effort-menu";
+            };
+            master.onclick = () => {
+              summary.textContent = " " + name + " Medium";
+              close();
+            };
           }
         },
       );
@@ -170,17 +181,30 @@ test("the effort slider changes only the active Orchestrator master’s effort",
     useInnerText: true,
   });
   await trigger.click();
-  await expect(page.getByTestId("orchestrator-chevron")).toBeVisible();
-  await trigger.click();
+  const rootArrow = page.getByTestId("orchestrator-chevron");
+  await expect(rootArrow).toBeVisible();
+  await rootArrow.locator("..").press("ArrowRight");
+  const claude = page
+    .getByTestId("orchestrator-picker-row")
+    .filter({ hasText: "Claude Opus" });
+  await expect(claude.locator("svg")).toBeHidden();
+  await expect(claude.getByText("Medium")).toBeHidden();
+  await claude.hover();
+  await expect(page.getByTestId("duplicate-effort-menu")).toHaveCount(0);
+  await claude.press("ArrowRight");
+  await expect(page.getByTestId("orchestrator-picker-effort")).toHaveCount(0);
+  await claude.press("Enter");
+  await expect(claude).toHaveCount(0);
+  await expect(effort).toHaveText("Medium");
   await effort.click();
   const range = page.getByRole("slider", { name: "Reasoning effort" });
   await expect(range).toHaveAttribute("max", "1");
-  await expect(range).toHaveAttribute("aria-valuetext", "High");
-  await range.press("Home");
+  await expect(range).toHaveAttribute("aria-valuetext", "Medium");
+  await range.press("End");
   await expect(trigger).toHaveText("Orchestrator Claude Opus 5.5", {
     useInnerText: true,
   });
-  await expect(effort).toHaveText("Medium");
+  await expect(effort).toHaveText("High");
   await expect(range).toHaveCount(0);
   await expect(effort).toBeFocused();
 });

@@ -1,7 +1,7 @@
 /* Guided desktop access in a dedicated native Settings page. */
 (() => {
  'use strict';
- const VERSION = '1.5.1';
+ const VERSION = '1.5.2';
  if (globalThis.__AGComputerUse?.version === VERSION) return;
  globalThis.__AGComputerUse?.destroy();
  const i18n = globalThis.__AGPAI18n;
@@ -145,7 +145,7 @@
    !inProgress || (pendingAction !== 'setup' && state.operation !== 'setup');
   const update=state.updates;
   t('[data-cu-update-title]',!update||update.checking?'Checking Cua Driver updates…':update.error?'Could not check for updates':update.available?'Cua Driver {version} is available':'Cua Driver is up to date',{version:update?.version||'—'});
-  t('[data-cu-update-description]',update?.error?'Check your connection and try again.':!update||update.checking?'Checking official Cua Driver releases…':'Reviewed version: {reviewed}. Latest upstream version: {latest}.',{reviewed:state.driverVersion||'—',latest:update?.version||'—'});
+  t('[data-cu-update-description]',update?.error?'Check your connection and try again.':!update||update.checking?'Checking official Cua Driver releases…':'Reviewed version: {reviewed}. Latest upstream version: {latest}.',{reviewed:update?.reviewedVersion||'—',latest:update?.version||'—'});
   section.querySelector('[data-cu-update-spinner]').hidden=!update?.checking;
   section.querySelector('[data-cu-update-preview]').hidden=!update?.prerelease;
   section.querySelector('[data-cu-release-link]').hidden=!update?.url;

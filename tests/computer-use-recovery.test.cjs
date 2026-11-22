@@ -88,6 +88,10 @@ test('screen diagnostic discards image data and normal checks never request capt
 });
 
 for (const [version, digests] of [
+ ['0.52.9', {
+  x64: 'f20c3d3b468778d03ec25bef32a40be2b83b3ef8961cf7816295acdbcf5ff273',
+  arm64: 'b3c1be792b132b9af8a0b3f54e9d2e3edab74860d27c1ed539f4907d111daf0a',
+ }],
  ['0.47.23', {
   x64: '6fe5e63713eed904acef4c5ac6931264dba1f9239c16b37576c0b29c4b18c1b8',
   arm64: '7bfa309fa2639c5d04bf2559af435b6bedcdd59b53e31975ac2d1025a22fb6bb',
@@ -123,3 +127,42 @@ for (const [version, digests] of [
   assert.equal(downloads, 0);
  });
 }
+
+test('automatic alignment only downloads for enabled Computer use and keeps its verified fallback on failure', async t => {
+ const version = '0.52.9';
+ const previousHashes = {
+  x64: 'f20c3d3b468778d03ec25bef32a40be2b83b3ef8961cf7816295acdbcf5ff273',
+  arm64: 'b3c1be792b132b9af8a0b3f54e9d2e3edab74860d27c1ed539f4907d111daf0a',
+ };
+ const requests = [];
+ const {manager} = await fixture(t, {
+  fetcher: async url => {
+   requests.push(url);
+   return new Response('incorrect archive');
+  },
+ });
+ const previous = path.join(manager.paths.directory, 'driver-' + version);
+ await fs.rename(manager.paths.driverDirectory, previous);
+ await fs.writeFile(path.join(previous, 'receipt.json'), JSON.stringify({
+  version, sha256: previousHashes[process.arch],
+ }));
+
+ await manager.alignInstalledDriver();
+ assert.equal(requests.length, 0);
+ await manager.perform('connect', {scope: 'desktop'});
+ const files = [manager.paths.stateFile, manager.paths.policyFile, manager.paths.mcpFile];
+ const saved = await Promise.all(files.map(file => fs.readFile(file, 'utf8')));
+
+ await manager.alignInstalledDriver();
+ let state = await manager.status();
+ while (state.operation) {
+  await new Promise(resolve => setTimeout(resolve, 20));
+  state = await manager.status();
+ }
+ assert.equal(requests.length, 1);
+ assert.ok(requests[0].includes('/cua-driver-rs-v' + VERSION + '/'));
+ assert.equal(state.error, 'operationFailed');
+ assert.equal(state.driverVersion, version);
+ assert.equal(state.enabled, true);
+ assert.deepEqual(await Promise.all(files.map(file => fs.readFile(file, 'utf8'))), saved);
+});

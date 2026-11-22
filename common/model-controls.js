@@ -1,7 +1,7 @@
 /* Separate model/effort controls, delegating selection to native menu items. */
 (() => {
   "use strict";
-  const VERSION = "1.3.14";
+  const VERSION = "1.3.15";
   if (globalThis.__AGModelControls?.version === VERSION) return;
   globalThis.__AGModelControls?.destroy();
   const rules = globalThis.__AGPA_MODEL_CONTROLS__;
@@ -785,8 +785,41 @@
     event.stopImmediatePropagation();
     open(trigger, controls.get(trigger), preferred, group);
   }
+  // The host's click selects the master with its native effort. Only the
+  // dedicated slider should open the third level of the picker.
+  const masterRowSelector = "[data-testid=orchestrator-picker-row]";
+  const masterHoverEvents = [
+    "pointerover",
+    "pointerenter",
+    "pointermove",
+    "mouseover",
+    "mouseenter",
+    "mousemove",
+  ];
+  function suppressMasterHover(event) {
+    if (!session && event.target.closest?.(masterRowSelector))
+      event.stopImmediatePropagation();
+  }
   function keyboard(event) {
     const current = session;
+    const master = !current && event.target.closest?.(masterRowSelector);
+    if (master && !event.altKey && !event.ctrlKey && !event.metaKey) {
+      const submenuKey =
+        getComputedStyle(master).direction === "rtl"
+          ? "ArrowLeft"
+          : "ArrowRight";
+      if ([submenuKey, "Enter", " "].includes(event.key)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (
+          event.key !== submenuKey &&
+          !event.repeat &&
+          !master.matches("[aria-disabled=true],[data-disabled]")
+        )
+          master.click();
+        return;
+      }
+    }
     if (current?.popup && event.target.closest?.("[data-agpa-effort-ui]")) {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -868,6 +901,14 @@
   [data-agpa-native-model-row] [data-testid=model-selector-effort-group]+span{display:none!important}
   [data-testid=model-selector-panel] [role=menuitem]:has([data-testid=model-selector-effort-group]):not([data-agpa-keep-effort-chevron])
   > span:has(> svg path[d^="M517.85-480l-184-184"]){display:none!important}
+  [data-testid=orchestrator-picker-row] > span:has(> svg path[d^="M517.85-480l-184-184"]),
+  [data-testid=orchestrator-picker-row] > span > span.shrink-0:not(:has(*)),
+  :root:not([data-agpa-effort-bridge]) [role=menu]:has([data-testid=orchestrator-picker-effort]){
+    display:none!important
+  }
+  [data-testid=orchestrator-picker-row]:hover:not([data-disabled],[aria-disabled=true]){
+    background:var(--secondary,#303030)
+  }
   .agpa-effort-trigger{display:inline-flex;align-items:center;gap:3px;order:21;height:28px;flex-shrink:0;border:0;border-radius:999px;background:transparent;color:var(--muted-foreground,#999);font:inherit;font-size:12px;padding:0 8px;cursor:pointer;white-space:nowrap}
   .agpa-effort-trigger[aria-busy=true]{cursor:progress;opacity:.7}
   .agpa-effort-trigger:hover,.agpa-effort-trigger[aria-expanded=true]{background:var(--secondary,#303030);color:var(--foreground,#eee)}
@@ -943,6 +984,8 @@
     attributeFilter: ["aria-expanded", "aria-label", "disabled"],
   });
   document.addEventListener("click", click, true);
+  for (const event of masterHoverEvents)
+    window.addEventListener(event, suppressMasterHover, true);
   window.addEventListener("keydown", keyboard, true);
   window.addEventListener("keyup", keyup, true);
   const reposition = () => {
@@ -968,6 +1011,8 @@
       observer.disconnect();
       unsubscribe();
       document.removeEventListener("click", click, true);
+      for (const event of masterHoverEvents)
+        window.removeEventListener(event, suppressMasterHover, true);
       window.removeEventListener("keydown", keyboard, true);
       window.removeEventListener("keyup", keyup, true);
       window.removeEventListener("resize", reposition);

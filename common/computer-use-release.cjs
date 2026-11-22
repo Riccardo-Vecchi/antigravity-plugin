@@ -5,13 +5,21 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const VERSION = '0.52.9';
+const VERSION = '0.58.1';
 const ASSETS = Object.freeze({
+  'linux-x64': ['linux-x86_64-binary.tar.gz', 'c6270d240330aa12a3d643689daec160ddd9cfd4b8ad85963158b5f281db317b'],
+  'linux-arm64': ['linux-arm64-binary.tar.gz', 'ced2aae2b75cf0e716fe70b778f66e19b2cd2772f990bd3442b3491365b46bd1'],
+  'win32-x64': ['windows-x86_64-binary.zip', '1fb6557e901300a7d045d1cc462ad1f4ad184ba88e3dcd2b673bc03948336466'],
+});
+const DRIVER_RELEASES = [[VERSION, ASSETS], ['0.57.0', {
+  'linux-x64': ['linux-x86_64-binary.tar.gz', '941fb984efd804516b850ba5734a33ee73a7c2132655c740d915d153e82a1949'],
+  'linux-arm64': ['linux-arm64-binary.tar.gz', 'e67bee6c5e6024ebc5c38b6eb38ed24c1233b43874a43896d76e6ad04b8cc47e'],
+  'win32-x64': ['windows-x86_64-binary.zip', '7b811a6c5f5f94ed9292a64d4c875ab176b806b4582e923cf7e5d4498e19199f'],
+}], ['0.52.9', {
   'linux-x64': ['linux-x86_64-binary.tar.gz', 'f20c3d3b468778d03ec25bef32a40be2b83b3ef8961cf7816295acdbcf5ff273'],
   'linux-arm64': ['linux-arm64-binary.tar.gz', 'b3c1be792b132b9af8a0b3f54e9d2e3edab74860d27c1ed539f4907d111daf0a'],
   'win32-x64': ['windows-x86_64-binary.zip', 'b05c6ab050100d2b532dfa948c94742d0b95bfaf13e46e6ce44c1ee4224290e3'],
-});
-const DRIVER_RELEASES = [[VERSION, ASSETS], ['0.47.23', {
+}], ['0.47.23', {
   'linux-x64': ['linux-x86_64-binary.tar.gz', '6fe5e63713eed904acef4c5ac6931264dba1f9239c16b37576c0b29c4b18c1b8'],
   'linux-arm64': ['linux-arm64-binary.tar.gz', '7bfa309fa2639c5d04bf2559af435b6bedcdd59b53e31975ac2d1025a22fb6bb'],
   'win32-x64': ['windows-x86_64-binary.zip', '3f2180741bf695f1c862ca64361aaf2f2688bf75d37792b42df842d176002beb'],

@@ -1321,7 +1321,16 @@ let interval;
   log("service.started");
   await poll();
   await pluginUpdate.ready();
-  if (pluginControl.enabled) pluginUpdate.start();
+  if (pluginControl.enabled) {
+    pluginUpdate.start();
+    pluginUpdate
+      .status()
+      .then(({ automatic }) => {
+        if (automatic && !stopping && pluginControl.enabled)
+          return computerUse.alignInstalledDriver();
+      })
+      .catch((error) => log("computer_use.driver_alignment_failed", error));
+  }
   interval = setInterval(poll, 1500);
   if (legacyBootstrap)
     require("./migration.cjs")

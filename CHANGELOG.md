@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.23.4
+
+- Select the Orchestrator master directly from its submenu. Use the composer slider to change effort.
+- Update the reviewed Cua Driver to 0.58.1 with pinned release checksums. When Computer use and automatic plugin updates are enabled, install the reviewed version at startup for existing managed installations.
+
 ## 1.23.3
 
 - Support the native Orchestrator master picker in Antigravity 2.34.0. Show a dedicated Orchestrator icon and provider icons for the available master models.

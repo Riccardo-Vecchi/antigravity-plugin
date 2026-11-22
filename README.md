@@ -6,7 +6,7 @@
 
 # 🧩 Antigravity Plugin
 
-[![Version 1.23.3](https://img.shields.io/badge/version-1.23.3-blue)](CHANGELOG.md)
+[![Version 1.23.4](https://img.shields.io/badge/version-1.23.4-blue)](CHANGELOG.md)
 [![Checks](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/Riccardo-Vecchi/antigravity-plugin/actions/workflows/checks.yml)
 [![Linux verified](https://img.shields.io/badge/Linux-verified-brightgreen)](docs/CONFIGURATION.md)
 [![Windows experimental](https://img.shields.io/badge/Windows-experimental-orange)](windows/README.md)
@@ -28,7 +28,7 @@
 ## ✨ Features
 
 - Gemini in the same window, with external links opening in your default browser, an Antigravity return button beside Share, a right-click edit menu, and a configurable shortcut (default **Ctrl+Alt+G**).
-- Optional **Computer Use** (Cua Driver **0.52.9**) with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
+- Optional **Computer Use** (Cua Driver **0.58.1**) with guided setup for the whole desktop or selected apps. [Setup guide](docs/COMPUTER_USE.md).
 - **External browser** without an extension: choose a Chromium browser and connect through Google’s official Chrome DevTools tools. [Setup](docs/BROWSER_USE.md).
 - Separate model and reasoning-effort controls with a stepped slider, per-model memory, and violet styling for native **Extra**. The multi-agent button offers 🐝 **Swarm**, 🚀 **Boost**, and **Teamwork** with a colored organization chart. The button follows the mode in your draft and starts on Swarm in a new chat.
 - In **Manage models**, use the arrows to reorder each group and **Reset order** to restore catalog order. Assign an optional **Ctrl+Alt+letter** shortcut directly on a model’s row. Favorites stay at the top and hidden models remain under **Other**. The picker remembers which native **New** labels you have seen. Model details and notices stay available. Gemini 4 models show their element symbol beside the Google G, with a short use case in **Manage models**. **Orchestrator** pairs the Google G with a converging arrow.
