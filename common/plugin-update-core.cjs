@@ -49,23 +49,26 @@ function safePath(value) {
           p !== "." &&
           p !== "..",
       ) &&
-    (/^(common|linux|windows|docs|assets|icons)\//.test(value) ||
+    (/^(common|linux|windows|macos|docs|assets|icons)\//.test(value) ||
       ["README.md", "LICENSE", "NOTICE.md"].includes(value)) &&
     !/^(icons\/(?:current|original)|.*\.agpa-lock)/.test(value)
   );
 }
 function targets(manifest, platform) {
+  const key =
+    platform === "win32"
+      ? "windows"
+      : platform === "darwin"
+        ? "macos"
+        : "linux";
   if (
     manifest?.version !== 1 ||
-    !["linux", "win32"].includes(platform) ||
+    !["linux", "win32", "darwin"].includes(platform) ||
     !Array.isArray(manifest.common) ||
-    !Array.isArray(manifest[platform === "win32" ? "windows" : "linux"])
+    !Array.isArray(manifest[key])
   )
     throw Error("invalidUpdate");
-  const files = [
-    ...manifest.common,
-    ...manifest[platform === "win32" ? "windows" : "linux"],
-  ];
+  const files = [...manifest.common, ...manifest[key]];
   if (files.length > 400) throw Error("invalidUpdate");
   const output = files.map((file) => {
     if (!safePath(file)) throw Error("invalidUpdate");
@@ -80,13 +83,16 @@ function targets(manifest, platform) {
     throw Error("invalidUpdate");
   return output;
 }
+function expectedArch(platform) {
+  return platform === "darwin" ? "universal" : "x64";
+}
 function validatePackage(data, expected) {
   if (
     !data ||
     data.schema !== 1 ||
     data.version !== expected.version ||
     data.platform !== expected.platform ||
-    data.arch !== "x64" ||
+    data.arch !== expectedArch(data.platform) ||
     version(data.version).preview ||
     !Array.isArray(data.files) ||
     data.files.length > 400
@@ -321,17 +327,18 @@ async function latest(current, platform, fetcher) {
     await body(asset(release, "plugin-update.json"), 200000, fetcher),
   );
   const spec = manifest?.packages?.[platform];
+  const arch = expectedArch(platform);
   if (
     manifest?.schema !== 1 ||
     manifest.repository !== REPO ||
     manifest.version !== next ||
     !spec ||
-    spec.arch !== "x64" ||
+    spec.arch !== arch ||
     !Number.isInteger(spec.size) ||
     spec.size <= 0 ||
     spec.size > 15 * 1024 * 1024 ||
     !/^[a-f0-9]{64}$/.test(spec.sha256) ||
-    spec.name !== `antigravity-plugin-${next}-${platform}-x64.json.gz`
+    spec.name !== `antigravity-plugin-${next}-${platform}-${arch}.json.gz`
   )
     throw Error("invalidUpdate");
   return {

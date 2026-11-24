@@ -9,6 +9,12 @@ const core = require("./plugin-update-core.cjs"),
   { getPaths } = require("./platform-paths.cjs");
 const run = promisify(execFile);
 const CHECK_INTERVAL = 24 * 60 * 60 * 1000;
+function isSupportedPlatform(platform, arch) {
+  return (
+    (platform === "darwin" && ["arm64", "x64"].includes(arch)) ||
+    (["linux", "win32"].includes(platform) && arch === "x64")
+  );
+}
 function createUpdater({
   paths = getPaths(),
   current = require("./versions.cjs").suite,
@@ -85,7 +91,7 @@ function createUpdater({
           : result?.phase === "error"
             ? result
             : null,
-      supported: ["linux", "win32"].includes(platform) && arch === "x64",
+      supported: isSupportedPlatform(platform, arch),
     };
   }
   async function check() {
@@ -93,7 +99,7 @@ function createUpdater({
     checking = (async () => {
       error = null;
       try {
-        if (arch !== "x64") throw Error("unsupported");
+        if (!isSupportedPlatform(platform, arch)) throw Error("unsupported");
         candidate = await core.latest(current, platform, fetcher);
         prefs.lastChecked = Date.now();
         prefs.latest = candidate.version;

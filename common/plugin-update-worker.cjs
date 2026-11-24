@@ -48,15 +48,17 @@ async function main(
   async function lifecycle(action) {
     if (process.platform === "linux")
       return run("systemctl", ["--user", action, service], { timeout: 15000 });
+    const launcher =
+      process.platform === "darwin" ? "macos/launcher.cjs" : "windows/launcher.cjs";
     if (action === "stop")
       return run(
         process.execPath,
-        [path.join(paths.installDir, "windows/launcher.cjs"), "--stop"],
+        [path.join(paths.installDir, launcher), "--stop"],
         { env, timeout: 10000 },
       );
     const child = spawn(
       process.execPath,
-      [path.join(paths.installDir, "windows/launcher.cjs"), "--watch"],
+      [path.join(paths.installDir, launcher), "--watch"],
       { env, detached: true, stdio: "ignore", windowsHide: true },
     );
     await new Promise((r, j) => {

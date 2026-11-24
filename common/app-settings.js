@@ -110,7 +110,8 @@
         tray,
         state.platform === "linux" && !state.desktopIconAvailable
           ? "AppImage or launcher not found. Check the plugin installation settings."
-          : state.platform === "win32" && !state.desktopIconAvailable
+          : (state.platform === "win32" || state.platform === "darwin") &&
+              !state.desktopIconAvailable
             ? "Open Antigravity (customized) to enable window and tray icons."
             : state.trayAvailable
               ? "The tray icon follows the same choice."
@@ -158,7 +159,7 @@
       i18n.set(
         status,
         action === "setTaskbarIcon" &&
-          state.platform === "win32" &&
+          (state.platform === "win32" || state.platform === "darwin") &&
           !state.desktopIconAvailable
           ? "Saved. Native icons will apply when started from the customized launcher."
           : action === "setStartupView"
@@ -322,7 +323,9 @@
           text:
             state.platform === "win32"
               ? "Start the app automatically when you sign in to Windows."
-              : "Start the app automatically when you sign in to Linux.",
+              : state.platform === "darwin"
+                ? "Start the app automatically when you sign in to macOS."
+                : "Start the app automatically when you sign in to Linux.",
         }),
         node("p", {
           class: "agpa-app-icon-status",

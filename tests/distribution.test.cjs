@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const manifest = require('../common/distribution.json');
-for (const platform of ['linux', 'windows']) {
+for (const platform of ['linux', 'windows', 'macos']) {
   test(`${platform} distribution contains its runtime and resolves relative imports`, () => {
     assert.equal(manifest.version, 1);
     const files = [...manifest.common, ...manifest[platform]];
@@ -13,16 +13,16 @@ for (const platform of ['linux', 'windows']) {
     assert.equal(included.size, files.length, 'duplicate distribution entry');
     assert.ok(included.has(`common/daemon.cjs`));
     assert.ok(included.has(`${platform}/desktop.cjs`));
-    const other = platform === 'linux' ? 'windows' : 'linux';
+    const others = ['linux', 'windows', 'macos'].filter(p => p !== platform);
     for (const file of files) {
       assert.ok(!path.posix.isAbsolute(file) && !file.includes('\\') && !file.split('/').some(p => !p || p === '.' || p === '..'), file);
-      assert.ok((!file.startsWith(`${other}/`) || file === `${other}/README.md`), `wrong platform: ${file}`);
+      assert.ok(others.every(other => !file.startsWith(`${other}/`) || file === `${other}/README.md`), `wrong platform: ${file}`);
       assert.ok(fs.lstatSync(path.join(root, file)).isFile(), `missing file: ${file}`);
       if (!file.endsWith('.cjs')) continue;
       const code = fs.readFileSync(path.join(root, file), 'utf8');
       for (const [, reference] of code.matchAll(/['"](\.\.?\/[^'"]+\.(?:cjs|js|json))['"]/g)) {
         const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), reference));
-        if (['common/desktop-icon.cjs','common/computer-use.cjs','common/computer-use-bridge.cjs','common/companion.cjs','common/migration.cjs'].includes(file) && target.startsWith(`${other}/`)) continue;
+        if (['common/desktop-icon.cjs','common/computer-use.cjs','common/computer-use-bridge.cjs','common/companion.cjs','common/migration.cjs'].includes(file) && others.some(other => target.startsWith(`${other}/`))) continue;
         assert.ok(included.has(target), `${file} requires undistributed ${target}`);
       }
     }
@@ -30,7 +30,7 @@ for (const platform of ['linux', 'windows']) {
 }
 test('source and installed payloads resolve the same icons while preserving deployed file identities', async t => {
   const fsp=require('node:fs/promises'),os=require('node:os');
-  const directory=await fsp.mkdtemp(path.join(os.tmpdir(),'agpa-payload-'));t.after(()=>fsp.rm(directory,{recursive:true,force:true}));
+  const directory=await fsp.realpath(await fsp.mkdtemp(path.join(os.tmpdir(),'agpa-payload-')));t.after(()=>fsp.rm(directory,{recursive:true,force:true}));
   const targets=new Set();
   for(const source of [...manifest.common,...manifest.linux]){
     const mapping=Object.entries(manifest.mappings).find(([prefix])=>source.startsWith(prefix));

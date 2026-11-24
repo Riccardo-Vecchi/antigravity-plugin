@@ -8,7 +8,7 @@ const {createManager, manifest, validateApps, read, atomic, SERVER, TOOLS, DESKT
 const {lease, filterServerMessage, allowedClientMessage} = require('../common/computer-use-bridge.cjs');
 const {VERSION,ASSETS, downloadVerified} = require('../common/computer-use-release.cjs');
 async function fixture(t, platform = 'linux') {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'agpa-cu-'));
+  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'agpa-cu-')));
   t.after(() => fs.rm(root, {recursive: true, force: true}));
   const app = path.join(root, 'example-app'); await fs.writeFile(app, '#!/bin/sh\n', {mode: 0o700});
   const adapter = {executable: 'cua-driver', environment: async () => ({session: 'x11', environment: {}, needsHelper: false}), defaultApps: async () => [app]};
@@ -114,12 +114,12 @@ test('native MCP adapter refreshes only this server and reports an unrecognized 
 test('an open bridge exits when its lease is revoked, without a client reconnect', {timeout: 8000}, async t => {
   const {spawn} = require('node:child_process');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'agpa-cu-revoke-')); t.after(() => fs.rm(root, {recursive: true, force: true}));
-  const directory = path.join(root, '.config/antigravity-plugin/computer-use');
+  const directory = path.join(require('../common/platform-paths.cjs').getPaths({home: root}).configDir, 'computer-use');
   await fs.mkdir(path.join(directory, 'driver-' + VERSION), {recursive: true});
   const policy = '{}'; const state = {version: 1, enabled: true, revision: 'one', apps: [], manifestHash: require('node:crypto').createHash('sha256').update(policy).digest('hex')};
   await fs.writeFile(path.join(directory, 'state.json'), JSON.stringify(state)); await fs.writeFile(path.join(directory, 'capabilities.json'), policy);
   const driver = path.join(directory, 'driver-' + VERSION, 'cua-driver');
-  await fs.writeFile(path.join(path.dirname(driver),'receipt.json'),JSON.stringify({version:VERSION,sha256:ASSETS[`linux-${process.arch}`][1]}));
+  await fs.writeFile(path.join(path.dirname(driver),'receipt.json'),JSON.stringify({version:VERSION,sha256:ASSETS[`${process.platform}-${process.arch}`][1]}));
   await fs.writeFile(driver, '#!' + process.execPath + '\nprocess.stdin.resume();process.stdout.write(JSON.stringify({jsonrpc:"2.0",id:1,result:{ready:true}})+"\\n");process.stdin.on("end",()=>process.exit(0));\n', {mode: 0o700});
   const child = spawn(process.execPath, [path.join(__dirname, '../common/computer-use-bridge.cjs')], {env: {...process.env, HOME: root, XDG_SESSION_TYPE: 'x11', XDG_CURRENT_DESKTOP: '', WAYLAND_DISPLAY: ''}, stdio: ['pipe','pipe','pipe']});
   t.after(() => child.kill()); child.stderr.resume();
@@ -151,7 +151,7 @@ test('Stop cancels setup during download and cannot connect afterwards', async t
   let fetching;
   const started = new Promise(resolve => {fetching = resolve;});
   const adapter = {executable:'cua-driver',environment:async()=>({session:'x11'}),defaultApps:async()=>[],extract:async()=>{throw Error('must not extract');}};
-  const manager = createManager({home:root,configDir:path.join(root,'plugin'),adapter,fetcher:async(url,{signal})=>{
+  const manager = createManager({platform:'linux',home:root,configDir:path.join(root,'plugin'),adapter,fetcher:async(url,{signal})=>{
     fetching();return new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('cancelled')),{once:true}));
   }});
   await manager.perform('setup',{scope:'desktop',apps:[]});await started;

@@ -31,8 +31,8 @@ jobs:
           npm run test:browser
       - name: JavaScript and shell syntax
         run: |
-          for file in common/*.cjs common/*.js linux/*.cjs windows/*.cjs scripts/*.cjs; do node --check "$file"; done
-          bash -n linux/install.sh linux/disable.sh
+          for file in common/*.cjs common/*.js linux/*.cjs windows/*.cjs macos/*.cjs scripts/*.cjs; do node --check "$file"; done
+          bash -n linux/install.sh linux/disable.sh macos/install.sh macos/disable.sh
           python3 -m py_compile linux/*.py
       - name: PowerShell syntax (no Windows execution)
         shell: pwsh

@@ -140,7 +140,8 @@ function createLibrary({
     try {
       const stat = await regular(file);
       const real = await fs.realpath(file);
-      if (real !== path.resolve(file)) return;
+      const realDir = await fs.realpath(path.dirname(file));
+      if (real !== path.join(realDir, path.basename(file))) return;
       const id = idFor(real),
         old = catalog.get(id),
         sources = [...new Set([...(old?.sources || []), source])];
@@ -354,8 +355,11 @@ function createLibrary({
       const p = filePath(file);
       if (!p || !category(p)) throw Error("unsupported");
       await regular(p);
-      if ((await fs.realpath(p)) !== p) throw Error("unavailable");
-      next.add(p);
+      const real = await fs.realpath(p);
+      const realDir = await fs.realpath(path.dirname(p));
+      if (real !== path.join(realDir, path.basename(p)))
+        throw Error("unavailable");
+      next.add(real);
     }
     if (next.size > 1000) throw Error("tooMany");
     await save({ ...preferences, files: [...next] });

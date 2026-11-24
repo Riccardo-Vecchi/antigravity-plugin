@@ -7,7 +7,9 @@ test('Linux profile and installation defaults remain unchanged',()=>{
 test('Windows uses the roaming profile and local installation, including Unicode and spaces',()=>{
  const p=getPaths({platform:'win32',home:'C:\\Users\\Example Name',env:{APPDATA:'D:\\Profiles\\例\\Roaming',LOCALAPPDATA:'D:\\Profiles\\例\\Local'}});
  assert.equal(p.configDir,'D:\\Profiles\\例\\Roaming\\antigravity-plugin');assert.equal(p.profileDir,'D:\\Profiles\\例\\Roaming\\Antigravity');assert.equal(p.defaultExecutable,'D:\\Profiles\\例\\Local\\Programs\\Antigravity\\Antigravity.exe');
- assert.equal(getPaths({platform:'win32',home:'C:\\Users\\Test',env:{AGPA_APP_PROFILE:'D:\\Custom Profile'}}).profileDir,'D:\\Custom Profile');assert.throws(()=>getPaths({platform:'darwin',env:{},home:'/tmp'}));
+ assert.equal(getPaths({platform:'win32',home:'C:\\Users\\Test',env:{AGPA_APP_PROFILE:'D:\\Custom Profile'}}).profileDir,'D:\\Custom Profile');
+ const mac=getPaths({platform:'darwin',env:{},home:'/Users/test'});assert.equal(mac.configDir,'/Users/test/Library/Application Support/antigravity-plugin');assert.equal(mac.profileDir,'/Users/test/Library/Application Support/Antigravity');assert.equal(mac.installDir,'/Users/test/.local/share/antigravity-plugin');assert.equal(mac.defaultExecutable,'/Applications/Antigravity.app/Contents/MacOS/Antigravity');
+ assert.throws(()=>getPaths({platform:'freebsd',env:{},home:'/tmp'}));
 });
 test('the native inspector accepts only an explicit local loopback websocket',()=>{
  assert.equal(loopbackSocket('ws://127.0.0.1:12345/inspector'),'ws://127.0.0.1:12345/inspector');
