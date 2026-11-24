@@ -69,7 +69,7 @@ async function cleanupEmptyLegacy(old){
 async function rewrite(old,next,tx,{home=os.homedir(),platform=process.platform,env=process.env}={}){
  async function change(file,text){const before=await plain(file),after=Buffer.from(text);if(before?.equals(after))return;const mode=(await stat(file))?.mode&0o777||0o600;if(file===path.join(home,'.gemini/config/mcp_config.json'))await mcpAtomic(file,text,before?.toString()||'');else await write(file,after,mode);tx.changes.push({file,before,after,mode});}
  // Only generated path-bearing files. Preserve project IDs, driver receipts, logs and user choices byte-for-byte.
- for(const relative of ['companion/browser-host.sh','companion/browser-host.cmd','companion/browser-host.json','windows-icon-request.json','windows-native-status.json']){
+ for(const relative of ['companion/browser-host.sh','companion/browser-host.cmd','companion/browser-host.json','windows-icon-request.json','windows-native-status.json','macos-icon-request.json','macos-native-status.json']){
   const file=path.join(next.configDir,relative),bytes=await plain(file);if(bytes){if(relative.endsWith('.json')){const data=JSON.parse(bytes.toString().trim()),mapped=remapValue(data,old,next);if(JSON.stringify(data)!==JSON.stringify(mapped))await change(file,JSON.stringify(mapped,null,2)+'\n');}else await change(file,remap(bytes.toString(),old,next));}
  }
  const mcp=path.join(home,'.gemini/config/mcp_config.json'),bytes=await plain(mcp);
@@ -79,7 +79,7 @@ async function rewrite(old,next,tx,{home=os.homedir(),platform=process.platform,
   }
   if(modified)await change(mcp,JSON.stringify(data,null,2)+'\n');
  }
- const adapter=require(platform==='win32'?'../windows/migration.cjs':'../linux/migration.cjs');
+ const adapter=require(platform==='win32'?'../windows/migration.cjs':platform==='darwin'?'../macos/migration.cjs':'../linux/migration.cjs');
  await adapter.rewrite({old,next,home,env,change,remap,plain});
  return change;
 }
@@ -98,7 +98,7 @@ async function migrateUnlocked({home=os.homedir(),platform=process.platform,env=
  // Preflight both trees before stopping the helper or changing any data.
  for(const key of ['installDir','configDir'])for(const item of await inventory(old[key])){await safeDestination(next[key],path.join(next[key],item.name));const dest=await stat(path.join(next[key],item.name));if(dest&&(!dest.isFile()||dest.isSymbolicLink()||hash(await fs.readFile(path.join(next[key],item.name)))!==item.hash))throw Error('Conflicting migration destination: '+item.name);}
  const tx={moves:[],changes:[]};let stopped=false,pausedDesktop=new Map();
- const adapter=require(platform==='win32'?'../windows/migration.cjs':'../linux/migration.cjs');
+ const adapter=require(platform==='win32'?'../windows/migration.cjs':platform==='darwin'?'../macos/migration.cjs':'../linux/migration.cjs');
  lifecycle ||= adapter.lifecycle({old,next,home,env});
  if(adapter.preflight)await adapter.preflight({old,next,home,env});
  try{
@@ -137,5 +137,5 @@ async function waitForUpdater({old=getLegacyPaths(),pause=ms=>new Promise(r=>set
  if(!locked&&!running){await pause(1200);return;}
  await pause(1000);
  }throw Error('Finish the active plugin update before migrating.');}
-if(require.main===module)(async()=>{delete process.env.AGPA_LEGACY_RUNTIME;if(process.argv.includes('--finish')){const old=getLegacyPaths(),next=getCanonicalPaths();const adapter=require(process.platform==='win32'?'../windows/migration.cjs':'../linux/migration.cjs');const lifecycle=adapter.lifecycle({old,next,home:os.homedir(),env:process.env});await lifecycle('health');await lifecycle('finalize');await lifecycle('restore');return;}if(process.argv.includes('--deferred'))await waitForUpdater();const result=await migrate({prepareOnly:process.argv.includes('--prepare')});console.log(JSON.stringify(result));})().catch(e=>{console.error('Plugin migration stopped safely: '+e.message);process.exitCode=1;});
+if(require.main===module)(async()=>{delete process.env.AGPA_LEGACY_RUNTIME;if(process.argv.includes('--finish')){const old=getLegacyPaths(),next=getCanonicalPaths();const adapter=require(process.platform==='win32'?'../windows/migration.cjs':process.platform==='darwin'?'../macos/migration.cjs':'../linux/migration.cjs');const lifecycle=adapter.lifecycle({old,next,home:os.homedir(),env:process.env});await lifecycle('health');await lifecycle('finalize');await lifecycle('restore');return;}if(process.argv.includes('--deferred'))await waitForUpdater();const result=await migrate({prepareOnly:process.argv.includes('--prepare')});console.log(JSON.stringify(result));})().catch(e=>{console.error('Plugin migration stopped safely: '+e.message);process.exitCode=1;});
 module.exports={migrate,inventory,moveTrees,rollback,remap,remapValue,rewrite,pauseDesktop,resumeDesktop,trim,defer,waitForUpdater};

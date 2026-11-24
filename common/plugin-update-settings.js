@@ -25,7 +25,8 @@
     localChanges:
       "Local plugin files were changed. Automatic installation is paused.",
     busy: "Close project editors and finish Computer use setup before updating.",
-    unsupported: "Automatic updates support Linux x86-64 and Windows x64.",
+    unsupported:
+      "Automatic updates support Linux x86-64, Windows x64, and macOS.",
   };
   function node(tag, key, attrs = {}) {
     const e = document.createElement(tag);

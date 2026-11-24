@@ -27,6 +27,7 @@
     "assets/icons/antigravity.png",
     "assets/icons/gemini-512.png",
     "windows/README.md",
+    "macos/README.md",
     "assets/logos/antigravity.svg",
     "assets/logos/gemini.png",
     "docs/CONFIGURATION.md",
@@ -149,6 +150,19 @@
     "windows/browser.cjs",
     "windows/migration.cjs",
     "windows/migrate.ps1"
+  ],
+  "macos": [
+    "macos/desktop.cjs",
+    "macos/installation.cjs",
+    "macos/launcher.cjs",
+    "macos/native-attach.cjs",
+    "macos/native-controller.cjs",
+    "macos/computer-use.cjs",
+    "macos/browser.cjs",
+    "macos/migration.cjs",
+    "macos/install.sh",
+    "macos/disable.sh",
+    "assets/icons/gemini-64.png"
   ],
   "mappings": {
     "assets/icons/": "icons/"

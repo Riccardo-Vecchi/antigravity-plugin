@@ -24,6 +24,7 @@
 | --- | --- |
 | 🐧 Linux x86-64 | Verified with Antigravity App 2.34.0 on Zorin (isolated Linux profile) |
 | <img src="assets/logos/windows.svg" width="18" alt="Windows"> Windows 11 x64 | **Experimental**; community-verified version 2.33.0 on Windows 11 |
+| 🍎 macOS (Apple Silicon & Intel) | **Experimental**; macOS native Dock/menu bar icon, LaunchAgent, Computer Use, and External Browser support |
 
 ## ✨ Features
 
@@ -100,6 +101,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows\install.ps1 -L
 ```
 
 Open **Antigravity (customized)** from the Start menu for subsequent launches. The execution-policy option applies only to that invocation. See the [Windows guide](windows/README.md) for custom app paths, integration details, and the exact validation limits.
+
+## 🍎 Install on macOS
+
+Install the **latest official** [Antigravity app for macOS](https://antigravity.google/download) first (in `/Applications/Antigravity.app` or `~/Applications/Antigravity.app`). Uses Node.js 22+ if available or the app's bundled runtime.
+
+```bash
+git clone https://github.com/Riccardo-Vecchi/antigravity-plugin.git
+cd antigravity-plugin
+./macos/install.sh --launch
+```
+
+Open **Antigravity (customized)** from `~/Applications` or Spotlight for subsequent launches. See the [macOS guide](macos/README.md) for custom app paths, permissions, and disabling the helper.
 
 ## ⚙️ Settings and updates
 

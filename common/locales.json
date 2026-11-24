@@ -514,7 +514,9 @@
       "Long, demanding projects": "Long, demanding projects",
       "Shortcut": "Shortcut",
       "Shortcut for {model}": "Shortcut for {model}",
-      "{model} is unavailable.": "{model} is unavailable."
+      "{model} is unavailable.": "{model} is unavailable.",
+      "Start the app automatically when you sign in to macOS.": "Start the app automatically when you sign in to macOS.",
+      "Automatic updates support Linux x86-64, Windows x64, and macOS.": "Automatic updates support Linux x86-64, Windows x64, and macOS."
     },
     "icons": {
       "folder": "Folder",
@@ -1082,7 +1084,9 @@
       "Long, demanding projects": "Progetti lunghi e impegnativi",
       "Shortcut": "Scorciatoia",
       "Shortcut for {model}": "Scorciatoia per {model}",
-      "{model} is unavailable.": "{model} non è disponibile."
+      "{model} is unavailable.": "{model} non è disponibile.",
+      "Start the app automatically when you sign in to macOS.": "Avvia automaticamente l’app quando accedi a macOS.",
+      "Automatic updates support Linux x86-64, Windows x64, and macOS.": "Gli aggiornamenti automatici supportano Linux x86-64, Windows x64 e macOS."
     },
     "icons": {
       "folder": "Cartella",
@@ -1650,7 +1654,9 @@
       "Long, demanding projects": "Lange, anspruchsvolle Projekte",
       "Shortcut": "Tastenkürzel",
       "Shortcut for {model}": "Tastenkürzel für {model}",
-      "{model} is unavailable.": "{model} ist nicht verfügbar."
+      "{model} is unavailable.": "{model} ist nicht verfügbar.",
+      "Start the app automatically when you sign in to macOS.": "Starte die App automatisch bei der Anmeldung unter macOS.",
+      "Automatic updates support Linux x86-64, Windows x64, and macOS.": "Automatische Updates unterstützen Linux x86-64, Windows x64 und macOS."
     },
     "icons": {
       "folder": "Ordner",
@@ -2218,7 +2224,9 @@
       "Long, demanding projects": "Proyectos largos y exigentes",
       "Shortcut": "Atajo",
       "Shortcut for {model}": "Atajo para {model}",
-      "{model} is unavailable.": "{model} no está disponible."
+      "{model} is unavailable.": "{model} no está disponible.",
+      "Start the app automatically when you sign in to macOS.": "Inicia la aplicación automáticamente al acceder a macOS.",
+      "Automatic updates support Linux x86-64, Windows x64, and macOS.": "Las actualizaciones automáticas admiten Linux x86-64, Windows x64 y macOS."
     },
     "icons": {
       "folder": "Carpeta",
@@ -2786,7 +2794,9 @@
       "Long, demanding projects": "Projets longs et exigeants",
       "Shortcut": "Raccourci",
       "Shortcut for {model}": "Raccourci pour {model}",
-      "{model} is unavailable.": "{model} est indisponible."
+      "{model} is unavailable.": "{model} est indisponible.",
+      "Start the app automatically when you sign in to macOS.": "Lancez automatiquement l’application à la connexion à macOS.",
+      "Automatic updates support Linux x86-64, Windows x64, and macOS.": "Les mises à jour automatiques prennent en charge Linux x86-64, Windows x64 et macOS."
     },
     "icons": {
       "folder": "Dossier",
@@ -3354,7 +3364,9 @@
       "Long, demanding projects": "长期高难度项目",
       "Shortcut": "快捷键",
       "Shortcut for {model}": "{model} 的快捷键",
-      "{model} is unavailable.": "{model} 不可用。"
+      "{model} is unavailable.": "{model} 不可用。",
+      "Start the app automatically when you sign in to macOS.": "登录 macOS 时自动启动应用。",
+      "Automatic updates support Linux x86-64, Windows x64, and macOS.": "自动更新支持 Linux x86-64、Windows x64 和 macOS。"
     },
     "icons": {
       "folder": "文件夹",
@@ -3922,7 +3934,9 @@
       "Long, demanding projects": "長期にわたる難しいプロジェクト",
       "Shortcut": "ショートカット",
       "Shortcut for {model}": "{model} のショートカット",
-      "{model} is unavailable.": "{model} は使用できません。"
+      "{model} is unavailable.": "{model} は使用できません。",
+      "Start the app automatically when you sign in to macOS.": "macOS へのログイン時にアプリを自動起動します。",
+      "Automatic updates support Linux x86-64, Windows x64, and macOS.": "自動更新は Linux x86-64、Windows x64、macOS に対応しています。"
     },
     "icons": {
       "folder": "フォルダー",

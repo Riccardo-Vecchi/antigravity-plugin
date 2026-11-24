@@ -2,6 +2,7 @@
 // Private local IPC. Never opens a TCP port or stores tool arguments/results.
 const net = require("node:net");
 const fs = require("node:fs/promises");
+const os = require("node:os");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { getPaths } = require("./platform-paths.cjs");
@@ -11,6 +12,16 @@ function locations(
   platform = process.platform,
 ) {
   const directory = path.join(configDir, "companion");
+  const unixSocket = path.join(directory, "bridge.sock");
+  const shortName =
+    "agpa-" +
+    crypto.createHash("sha256").update(configDir).digest("hex").slice(0, 16) +
+    ".sock";
+  const tmpSocket = path.join(os.tmpdir(), shortName);
+  const shortSocket =
+    Buffer.byteLength(tmpSocket) < 100
+      ? tmpSocket
+      : path.join("/tmp", shortName);
   return {
     directory,
     token: path.join(directory, "ipc-token"),
@@ -23,7 +34,9 @@ function locations(
             .update(configDir)
             .digest("hex")
             .slice(0, 24)
-        : path.join(directory, "bridge.sock"),
+        : Buffer.byteLength(unixSocket) < 100
+          ? unixSocket
+          : shortSocket,
   };
 }
 async function privateRead(file, fallback = "") {

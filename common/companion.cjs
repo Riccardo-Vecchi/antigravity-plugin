@@ -46,7 +46,11 @@ async function createCompanion({
   env = process.env,
   onChange = () => {},
   adapter = require(
-    platform === "win32" ? "../windows/browser.cjs" : "../linux/browser.cjs",
+    platform === "win32"
+      ? "../windows/browser.cjs"
+      : platform === "darwin"
+        ? "../macos/browser.cjs"
+        : "../linux/browser.cjs",
   ),
   resolve = official.resolveEngine,
   probe = official.probeEndpoint,

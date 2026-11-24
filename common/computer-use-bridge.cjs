@@ -17,7 +17,7 @@ async function lease(directory) {
 async function main() {
   const directory = path.join(getPaths().configDir, 'computer-use');
   const initial = await lease(directory);
-  const adapter = require(process.platform === 'win32' ? '../windows/computer-use.cjs' : '../linux/computer-use.cjs');
+  const adapter = require(process.platform === 'win32' ? '../windows/computer-use.cjs' : process.platform === 'darwin' ? '../macos/computer-use.cjs' : '../linux/computer-use.cjs');
   const driver = await installedDriver(directory, adapter.executable, process.platform);
   if (!driver) throw Error('Install Cua Driver first.');
   const env = {...process.env};

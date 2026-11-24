@@ -61,14 +61,14 @@ async function validateApps(value, platform = process.platform) {
     if (typeof entry !== 'string' || entry.length > 4096 || /[\x00-\x1f]/.test(entry) || !p.isAbsolute(entry) || (platform === 'win32' && !/\.exe$/i.test(entry))) throw Error('invalidApp');
     const real = await fs.realpath(entry).catch(() => { throw Error('invalidApp'); });
     if (!(await fs.stat(real)).isFile()) throw Error('invalidApp');
-    if (platform === 'linux') await fs.access(real, 1).catch(() => { throw Error('invalidApp'); });
+    if (platform === 'linux' || platform === 'darwin') await fs.access(real, 1).catch(() => { throw Error('invalidApp'); });
     if (!apps.some(a => platform === 'win32' ? a.toLowerCase() === real.toLowerCase() : a === real)) apps.push(real);
   }
   return apps;
 }
 function createManager({platform = process.platform, home = os.homedir(), configDir = getPaths().configDir,
   adapter, runtime = process.execPath, fetcher, probe = require('./computer-use-protocol.cjs').probe} = {}) {
-  adapter ||= require(platform === 'win32' ? '../windows/computer-use.cjs' : '../linux/computer-use.cjs');
+  adapter ||= require(platform === 'win32' ? '../windows/computer-use.cjs' : platform === 'darwin' ? '../macos/computer-use.cjs' : '../linux/computer-use.cjs');
   const directory = path.join(configDir, 'computer-use');
   const driverDirectory = path.join(directory, 'driver-' + release.VERSION);
   const driver = path.join(driverDirectory, adapter.executable);
@@ -206,8 +206,8 @@ function createManager({platform = process.platform, home = os.homedir(), config
     abortOperation = new AbortController();
     async function checkConnection() {
       const current = await status();
-      if (action === 'capture' && !['wayland','x11','windows'].includes(current.session)) throw Error('desktopUnavailable');
-      const desktop = current.scope === 'desktop' && !current.needsHelper && ['wayland','x11','windows'].includes(current.session);
+      if (action === 'capture' && !['wayland','x11','windows','macos'].includes(current.session)) throw Error('desktopUnavailable');
+      const desktop = current.scope === 'desktop' && !current.needsHelper && ['wayland','x11','windows','macos'].includes(current.session);
       if (desktop) captureAttemptedRevision = (await record()).revision;
       stage('protocol','Checking the MCP connection…');
       const result = await probe(runtime, bridge, {desktop,onHandshake:handshake => {

@@ -38,6 +38,29 @@ async function resolveEngine({
           path.win32.join(path.win32.dirname(data.appExe), "resources"),
         );
     } catch {}
+  } else if (platform === "darwin") {
+    try {
+      const data = JSON.parse(
+        await fs.readFile(
+          path.join(paths.configDir, "installation.json"),
+          "utf8",
+        ),
+      );
+      if (data.version === 1 && typeof data.appBundle === "string")
+        candidates.push(path.join(data.appBundle, "Contents", "Resources"));
+      else if (data.version === 1 && typeof data.appExe === "string")
+        candidates.push(
+          path.resolve(path.dirname(data.appExe), "..", "Resources"),
+        );
+    } catch {}
+    candidates.push(
+      path.resolve(path.dirname(paths.defaultExecutable), "..", "Resources"),
+    );
+    if (home)
+      candidates.push(
+        path.join(home, "Applications", "Antigravity.app", "Contents", "Resources"),
+      );
+    candidates.push("/Applications/Antigravity.app/Contents/Resources");
   } else {
     for (const pid of await fs.readdir(proc).catch(() => [])) {
       if (!/^\d+$/.test(pid)) continue;
@@ -49,7 +72,8 @@ async function resolveEngine({
     }
   }
   const p = platform === "win32" ? path.win32 : path;
-  candidates.push(p.join(p.dirname(paths.defaultExecutable), "resources"));
+  if (platform !== "darwin")
+    candidates.push(p.join(p.dirname(paths.defaultExecutable), "resources"));
   for (const root of new Set(candidates)) {
     const base = p.join(
       root,
@@ -102,7 +126,9 @@ function profileRoot(
       ? id === "opera"
         ? env.APPDATA
         : env.LOCALAPPDATA
-      : env.XDG_CONFIG_HOME || p.join(home, ".config");
+      : platform === "darwin"
+        ? p.join(home, "Library", "Application Support")
+        : env.XDG_CONFIG_HOME || p.join(home, ".config");
   if (!base) throw Error("Browser profile location unavailable.");
   return p.join(base, ...spec.profiles[platform].split("/"));
 }

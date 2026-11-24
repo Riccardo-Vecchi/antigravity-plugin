@@ -1181,7 +1181,11 @@ async function poll() {
       config = await readConfig();
       for (const c of clients.values()) await c.updateConfig().catch(() => {});
     }
-    if (pluginControl.enabled && platformPaths.platform === "win32") {
+    if (
+      pluginControl.enabled &&
+      (platformPaths.platform === "win32" ||
+        platformPaths.platform === "darwin")
+    ) {
       const before = desktopIcon.getState();
       const after = await desktopIcon.ensureTray();
       if (

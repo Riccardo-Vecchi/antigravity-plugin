@@ -38,6 +38,20 @@ test("known profile roots honor XDG, roaming Opera, and Windows LocalAppData wit
     }),
     "C:\\Roaming\\Opera Software\\Opera Stable",
   );
+  assert.equal(
+    profileRoot("chrome", {
+      platform: "darwin",
+      home: "/Users/lab",
+    }),
+    "/Users/lab/Library/Application Support/Google/Chrome",
+  );
+  assert.equal(
+    profileRoot("opera", {
+      platform: "darwin",
+      home: "/Users/lab",
+    }),
+    "/Users/lab/Library/Application Support/com.operasoftware.Opera",
+  );
   assert.throws(() => profileRoot("unknown"));
 });
 test("permission-based discovery works without HTTP endpoints and rejects stale, malformed or symlinked discovery files", async (t) => {
@@ -85,14 +99,14 @@ test("engine resolves only the named bundled component, including the actual Lin
     path.join(base, "package.json"),
     JSON.stringify({ name: "wrong", version: "1.9.0" }),
   );
-  assert.equal(await resolveEngine({ resources, proc, home: root }), null);
+  assert.equal(await resolveEngine({ platform: "linux", resources, proc, home: root }), null);
   await fs.writeFile(
     path.join(base, "package.json"),
     JSON.stringify({ name: "chrome-devtools-mcp", version: "1.9.0" }),
   );
   await fs.mkdir(path.join(proc, "123"), { recursive: true });
   await fs.symlink(path.join(root, "antigravity"), path.join(proc, "123/exe"));
-  assert.deepEqual(await resolveEngine({ proc, home: root }), {
+  assert.deepEqual(await resolveEngine({ platform: "linux", proc, home: root }), {
     entry,
     version: "1.9.0",
   });

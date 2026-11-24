@@ -7,7 +7,7 @@ async function fixture(t,{ready=true,probe}={}) {
  const root=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-cu-progress-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
  let active=ready;
  const adapter={executable:'cua-driver',environment:async()=>({session:'wayland',needsHelper:!active,helperInstalled:true,helperState:active?'active':'signInRequired'}),defaultApps:async()=>[]};
- const manager=createManager({home:root,configDir:path.join(root,'plugin'),adapter,probe});
+ const manager=createManager({platform:'linux',home:root,configDir:path.join(root,'plugin'),adapter,probe});
  await fs.mkdir(manager.paths.driverDirectory,{recursive:true});
  await fs.writeFile(manager.paths.driver,'#!'+process.execPath+'\nconsole.log('+JSON.stringify('cua-driver '+VERSION)+');\n',{mode:0o700});
  await fs.writeFile(path.join(manager.paths.driverDirectory,'receipt.json'),JSON.stringify({version:VERSION,sha256:ASSETS[`linux-${process.arch}`][1]}));

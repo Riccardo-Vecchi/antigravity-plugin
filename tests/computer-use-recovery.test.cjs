@@ -12,7 +12,7 @@ async function fixture(t, options = {}) {
  const root = await fs.mkdtemp(path.join(os.tmpdir(),'agpa-cu-reset-'));
  t.after(() => fs.rm(root,{recursive:true,force:true}));
  const adapter = {executable:'cua-driver',environment:async()=>({session:'wayland',needsHelper:true,helperInstalled:true,helperState:'signInRequired'}),defaultApps:async()=>[]};
- const manager = createManager({home:root,configDir:path.join(root,'plugin'),adapter,...options});
+ const manager = createManager({platform:'linux',home:root,configDir:path.join(root,'plugin'),adapter,...options});
  await fs.mkdir(manager.paths.driverDirectory,{recursive:true});
  await fs.writeFile(manager.paths.driver,'fixture driver');
  await fs.writeFile(path.join(manager.paths.driverDirectory,'receipt.json'),JSON.stringify({version:VERSION,sha256:ASSETS[`linux-${process.arch}`][1]}));
@@ -43,6 +43,7 @@ test('protocol success never turns pending desktop or capture checks green',()=>
  assert.equal(connectionChecks({...status,enabled:false},{detected:true}).find(c=>c.id==='native').passed,false);
  assert.ok(!connectionChecks({...status,scope:'apps'}).some(c=>c.id==='capture'));
  assert.equal(connectionChecks({platform:'win32',session:'windows',needsHelper:false}).find(c=>c.id==='desktop').passed,true);
+ assert.equal(connectionChecks({platform:'darwin',session:'macos',needsHelper:false}).find(c=>c.id==='desktop').passed,true);
 });
 test('reset removes only managed files and allows a fresh install, keeping shared and unrelated components',async t=>{
  const {root,manager}=await fixture(t);

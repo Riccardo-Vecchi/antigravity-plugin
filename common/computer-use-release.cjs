@@ -10,6 +10,8 @@ const ASSETS = Object.freeze({
   'linux-x64': ['linux-x86_64-binary.tar.gz', 'c6270d240330aa12a3d643689daec160ddd9cfd4b8ad85963158b5f281db317b'],
   'linux-arm64': ['linux-arm64-binary.tar.gz', 'ced2aae2b75cf0e716fe70b778f66e19b2cd2772f990bd3442b3491365b46bd1'],
   'win32-x64': ['windows-x86_64-binary.zip', '1fb6557e901300a7d045d1cc462ad1f4ad184ba88e3dcd2b673bc03948336466'],
+  'darwin-arm64': ['darwin-arm64.tar.gz', 'a50eb6913a0b54def8d3ec7cd7f6b2f924f0d91381c8c7de1efebcfe1f6ab4cc'],
+  'darwin-x64': ['darwin-x86_64.tar.gz', '6a6f7198609f942096ea0459fd173dd1ab884b6dc5d752bd09c1df3ed55546e7'],
 });
 const DRIVER_RELEASES = [[VERSION, ASSETS], ['0.57.0', {
   'linux-x64': ['linux-x86_64-binary.tar.gz', '941fb984efd804516b850ba5734a33ee73a7c2132655c740d915d153e82a1949'],

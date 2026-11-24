@@ -7,14 +7,14 @@ function connectionChecks(state, native = {}) {
     {id: 'skill', label: 'Agent skill installed', passed: !!state.skillReady},
     {id: 'protocol', label: 'MCP tool handshake', passed: !!state.protocol?.ok},
     {id: 'native', label: 'Server detected by Antigravity', passed: !!state.enabled && !!native.detected},
-    {id: 'desktop', label: !['wayland', 'x11', 'windows'].includes(state.session) ? 'Desktop session unavailable' : state.helperState === 'notRequired' || state.platform === 'win32' || state.session === 'x11' ? 'Desktop helper not required' : 'GNOME desktop helper active', passed: !!state.platform && !state.needsHelper && ['wayland', 'x11', 'windows'].includes(state.session)},
+    {id: 'desktop', label: !['wayland', 'x11', 'windows', 'macos'].includes(state.session) ? 'Desktop session unavailable' : state.helperState === 'notRequired' || state.platform === 'win32' || state.platform === 'darwin' || state.session === 'x11' ? 'Desktop helper not required' : 'GNOME desktop helper active', passed: !!state.platform && !state.needsHelper && ['wayland', 'x11', 'windows', 'macos'].includes(state.session)},
     ...(state.scope === 'desktop' ? [{id: 'capture', label: 'Desktop screen capture tested', passed: !!state.protocol?.desktop?.ok, failed: state.protocol?.desktop?.ok === false}] : []),
   ];
 }
 module.exports = {connectionChecks};
 function shouldAutoCapture(state) {
   return !!state.enabled && state.scope === 'desktop' && !state.needsHelper &&
-    ['wayland','x11','windows'].includes(state.session) && !state.captureAttempted && !state.operation && !state.error;
+    ['wayland','x11','windows','macos'].includes(state.session) && !state.captureAttempted && !state.operation && !state.error;
 }
 module.exports.shouldAutoCapture = shouldAutoCapture;
 // Compare access meaning, not textarea formatting or application ordering.

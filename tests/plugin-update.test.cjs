@@ -26,7 +26,7 @@ async function fixture(t) {
       sourceRoot=await fs.mkdtemp(path.join(os.tmpdir(),'agpa-update-source-'));
       test.after(()=>fs.rm(sourceRoot,{recursive:true,force:true}));
       const manifest=require('../common/distribution.json');
-      for(const name of new Set([...manifest.common,...manifest.linux,...manifest.windows])){const target=path.join(sourceRoot,name);await fs.mkdir(path.dirname(target),{recursive:true});await fs.copyFile(path.join(root,name),target);}
+      for(const name of new Set([...manifest.common,...manifest.linux,...manifest.windows,...manifest.macos])){const target=path.join(sourceRoot,name);await fs.mkdir(path.dirname(target),{recursive:true});await fs.copyFile(path.join(root,name),target);}
       const versions=await fs.readFile(path.join(sourceRoot,'common/versions.cjs'),'utf8');
       await fs.writeFile(path.join(sourceRoot,'common/versions.cjs'),versions.replace(/suite\s*:\s*['"][^'"]+['"]/,'suite:'+JSON.stringify(current.split('-')[0])));
     }

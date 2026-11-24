@@ -13,7 +13,8 @@ async function build(root, output) {
     ),
     packages = {};
   await fs.mkdir(output, { recursive: true });
-  for (const platform of ["linux", "win32"]) {
+  for (const platform of ["linux", "win32", "darwin"]) {
+    const arch = platform === "darwin" ? "universal" : "x64";
     const files = [];
     for (const f of core.targets(manifest, platform)) {
       const bytes = await fs.readFile(path.join(root, f.source));
@@ -24,16 +25,16 @@ async function build(root, output) {
         data: bytes.toString("base64"),
       });
     }
-    const data = { schema: 1, version, platform, arch: "x64", files };
+    const data = { schema: 1, version, platform, arch, files };
     core.validatePackage(data, { version, platform });
     const compressed = zlib.gzipSync(JSON.stringify(data), { level: 9 }),
-      name = `antigravity-plugin-${version}-${platform}-x64.json.gz`;
+      name = `antigravity-plugin-${version}-${platform}-${arch}.json.gz`;
     await fs.writeFile(path.join(output, name), compressed);
     packages[platform] = {
       name,
       size: compressed.length,
       sha256: core.hash(compressed),
-      arch: "x64",
+      arch,
     };
   }
   await fs.writeFile(

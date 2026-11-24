@@ -223,7 +223,10 @@
         );
       else {
         const manual =
-          b.platform === "win32" && !b.debugging && !b.connecting && b.debugUrl;
+          (b.platform === "win32" || b.platform === "darwin") &&
+          !b.debugging &&
+          !b.connecting &&
+          b.debugUrl;
         const label = b.connected
           ? b.active === false
             ? "Ready when needed"
@@ -241,7 +244,7 @@
               ? "Could not finish connecting. Check the browser permission prompt, then try again."
               : manual
                 ? "Paste this address into your browser. Open Remote debugging and turn on Allow remote debugging for this browser instance."
-                : b.debugging && b.platform === "win32"
+                : b.debugging && (b.platform === "win32" || b.platform === "darwin")
                   ? "Select Connect browser, then approve the request in your browser."
                   : "Open your browser’s remote-debugging page, turn on Allow remote debugging, and approve the browser’s connection prompt. This page updates automatically.";
         content.push(
@@ -274,7 +277,7 @@
           ),
         );
         if (manual) content.push(manualBrowserSetup(b.debugUrl));
-        else if (!b.connected)
+        if (!b.connected && (!manual || b.platform === "darwin"))
           content.push(
             button(
               b.connecting ? "Connecting…" : "Connect browser",
