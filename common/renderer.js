@@ -1,7 +1,7 @@
 /* Local project appearance. No conversation, project metadata, or tool mutations. */
 (() => {
   'use strict';
-  const VERSION = '1.11.5';
+  const VERSION = '1.11.7';
   const i18n=globalThis.__AGPAI18n;
   const initial = globalThis.__AGPA_CONFIG__ || { projects: {} };
   delete globalThis.__AGPA_CONFIG__;
@@ -39,7 +39,8 @@
   }
   const style = el('style', {id:'agpa-styles', text:`
     [data-agpa-styled] {position:relative!important}
-    [data-agpa-styled] > div > svg:first-child {visibility:hidden!important}
+    [data-agpa-styled] > div > svg:first-child,
+    [data-agpa-styled][data-testid=project-header-icon] > span:not(.agpa-project-icon) > svg:first-child {visibility:hidden!important}
     .agpa-project-icon {position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:17px;line-height:1}
     [data-agpa-inline-native] {display:none!important}
     .agpa-inline-icon {width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:none;font-size:16px;line-height:1}
@@ -103,7 +104,8 @@
       const project = projectFrom(header);
       if (!project) continue;
       knownProjects.set(project.id,{id:project.id,name:project.name,remote:project.remote});
-      const holder = header.querySelector('div[class~="w-6"][class~="h-6"]');
+      const holder = header.querySelector('[data-testid="project-header-icon"]') ||
+        header.querySelector('div[class~="w-6"][class~="h-6"]');
       if (!holder) continue;
       const value = config.projects?.[project.id];
       if (!value) {
@@ -167,15 +169,18 @@
       }
     }
   }
+  const conversationHoverCard = '[data-hover-card-popup]';
   function applyConversationGlyph(row) {
     const native=row.querySelector('[data-project-glyph]');
     if(!native){row.querySelectorAll('[data-agpa-conversation-project]').forEach(icon=>icon.remove());return;}
-    const label=native.nextElementSibling?.textContent?.trim()||row.getAttribute('data-subtext');
+    // The portaled hover card wraps the glyph in its own span, next to the label.
+    const label=native.nextElementSibling?.textContent?.trim()||row.getAttribute('data-subtext')||
+      (row.matches(conversationHoverCard) && native.parentElement.nextElementSibling?.textContent?.trim());
     inlineIcon(native.parentElement,projectNamed(label),':scope > [data-project-glyph]');
     native.parentElement.querySelector(':scope > .agpa-inline-icon')?.setAttribute('data-agpa-conversation-project','');
   }
   function applyConversationProjects() {
-    for(const row of document.querySelectorAll('[data-testid=conversation-row-sidebar]'))applyConversationGlyph(row);
+    for(const row of document.querySelectorAll('[data-testid=conversation-row-sidebar],'+conversationHoverCard))applyConversationGlyph(row);
   }
   function nativeSidebar(){return document.querySelector('[data-testid="settings-button"]')?.closest('[role="navigation"]');}
   function nativeControl(selector) {return selector === '[data-testid=sidebar-search-button]' ? globalThis.__AGPAPrimaryLayout(document).toggle?.parentElement?.querySelector(selector) : nativeSidebar()?.querySelector(selector);}
@@ -361,7 +366,7 @@
     });
     editorTranslate=paint;document.body.append(dialog);paint();dialog.showModal();search.focus();
   }
-  const watched = searchInput+','+searchResult+', [data-sidebar-section-drop-id],[data-testid=project-header],[data-testid=project-selector-trigger],[data-testid=project-selector-item],[data-testid=sidebar-toggle],[data-testid=settings-button],[data-testid=sidebar-navigation-items],[data-testid=conversation-row-sidebar],[role=menu]';
+  const watched = searchInput+','+searchResult+','+conversationHoverCard+', [data-sidebar-section-drop-id],[data-testid=project-header],[data-testid=project-header-icon],[data-testid=project-selector-trigger],[data-testid=project-selector-item],[data-testid=sidebar-toggle],[data-testid=settings-button],[data-testid=sidebar-navigation-items],[data-testid=conversation-row-sidebar],[role=menu]';
   const observer=new MutationObserver(records => {
     const owned = node => node.nodeType === 1 && (node.hasAttribute('data-agpa-appearance-ui') || node.closest('[data-agpa-appearance-ui]'));
     if (records.some(record => {

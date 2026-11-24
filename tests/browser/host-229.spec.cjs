@@ -66,6 +66,35 @@ async function setup(
   );
   await page.evaluate(renderer);
 }
+test("2.35 header icons survive native rerenders and restore the native glyph on reset", async ({
+  page,
+}) => {
+  await setup(page, false, true);
+  const header = page.getByTestId("project-header");
+  const nativeIcon =
+    '<span data-testid="project-header-icon" class="w-6 h-6"><span><svg data-native-project-icon width="16" height="16"><path d="M1 1h2"/></svg></span></span>';
+  await header.evaluate((button, icon) => {
+    button.innerHTML =
+      "<span><span>" + icon + "<span>Demo</span></span></span>";
+  }, nativeIcon);
+  const holder = header.getByTestId("project-header-icon");
+  const custom = holder.locator(".agpa-project-icon");
+  await expect(custom).toHaveCSS("color", "rgb(255, 131, 194)");
+  await expect(custom.locator("[data-agpa-remote-badge]")).toBeVisible();
+  const native = holder.locator("[data-native-project-icon]");
+  await expect(native).toBeHidden();
+  await holder.evaluate((node, icon) => {
+    node.outerHTML = icon;
+  }, nativeIcon);
+  await expect(custom).toHaveCount(1);
+  await expect(native).toBeHidden();
+  await page.evaluate(() =>
+    globalThis.__AGProjectAppearance.setConfig({ projects: {} }),
+  );
+  await expect(custom).toHaveCount(0);
+  await expect(native).toBeVisible();
+});
+
 test("2.29 headers, selectors, edit menus and compact project actions keep stable IDs", async ({
   page,
 }) => {
@@ -274,6 +303,34 @@ test("local cloud artwork never implies remote execution, and clearing remote cu
   await expect(
     page.locator("[data-agpa-remote-host],#agpa-remote-project-styles"),
   ).toHaveCount(0);
+});
+
+test("portaled conversation hover cards use the project icon and remote badge", async ({
+  page,
+}) => {
+  await setup(page, false, true);
+  await page.evaluate(() => {
+    const portal = document.createElement("div");
+    portal.innerHTML = `
+      <div data-hover-card-popup>
+        <div>Conversation title</div>
+        <div><span><svg width="14" height="14" data-project-glyph="cloud"></svg></span><span>Demo</span></div>
+        <div><svg data-fixture-time-icon width="14" height="14"></svg><span>Updated today</span></div>
+      </div>`;
+    document.body.append(portal);
+  });
+  const card = page.locator("[data-hover-card-popup]");
+  const custom = card.locator(".agpa-inline-icon");
+  const native = card.locator("[data-project-glyph]");
+  await expect(custom).toHaveCSS("color", "rgb(255, 131, 194)");
+  await expect(custom.locator("[data-agpa-remote-badge]")).toBeVisible();
+  await expect(native).toBeHidden();
+  await expect(card.locator("[data-fixture-time-icon]")).toBeVisible();
+  await native.evaluate((glyph) => {
+    glyph.parentElement.nextElementSibling.textContent = "Unconfigured project";
+  });
+  await expect(custom).toHaveCount(0);
+  await expect(native).toBeVisible();
 });
 
 test("pinned and grouped conversation subtitles keep custom icons without visible project headers", async ({

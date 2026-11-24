@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.23.5
+
+- Restore custom project icons and remote badges in the expanded sidebar on Antigravity 2.35.0.
+- Show custom project icons and remote badges in conversation hover cards.
+
 ## 1.23.4
 
 - Select the Orchestrator master directly from its submenu. Use the composer slider to change effort.
