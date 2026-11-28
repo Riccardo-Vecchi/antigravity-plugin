@@ -410,7 +410,10 @@ test("compacted responses show an end marker and clicking the wheel lists compac
 
   const markers = page.locator("[data-agpa-compaction-marker]");
   await expect(markers).toHaveCount(1);
-  await expect(markers.first()).toHaveAttribute("data-agpa-compaction-turn", "2");
+  await expect(markers.first()).toHaveAttribute(
+    "data-agpa-compaction-turn",
+    "2",
+  );
   await expect(markers.first()).toHaveAttribute("title", /~256k.*~18\.5k/);
 
   const pill = page.locator("[data-agpa-context-budget]");
