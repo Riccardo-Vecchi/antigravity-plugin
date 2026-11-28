@@ -1604,3 +1604,826 @@ test('global context hydration discards legacy per-turn telemetry', () => {
   assert.equal(stats.cacheReadTokens,5900);assert.equal(stats.turnsList,undefined);
   assert.ok(![...storeMap.values()].some(value=>value.includes('turnsList')));
 });
+
+test('compaction markers appear on compacted responses and popup displays clickable compacted turns array', () => {
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      getItem: k => storeMap.get(k) || null,
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      removeItem: k => storeMap.delete(k)
+    },
+    innerWidth: 1024,
+    innerHeight: 768
+  };
+
+  const html = makeNode('html');
+  const head = makeNode('head');
+  const body = makeNode('body');
+  html.append(head, body);
+
+  const trigger = makeNode('button');
+  trigger.setAttribute('data-testid', 'model-selector-trigger');
+  trigger.textContent = 'Gemini 4 Hydrogen (High)';
+  const composer = makeNode('div');
+  composer.className = 'surface-composer';
+  const footer = makeNode('div');
+  footer.className = '@container/input-footer';
+  footer.append(trigger);
+  composer.append(footer);
+
+  const viewport = makeNode('div');
+  viewport.setAttribute('data-testid', 'autoscroll-viewport');
+
+  const bars = [];
+  for (let i = 1; i <= 3; i++) {
+    const turnRow = makeNode('div');
+    const bar = makeNode('div');
+    const goodBtn = makeNode('button');
+    goodBtn.setAttribute('aria-label', 'Good response');
+    const copyBtn = makeNode('button');
+    copyBtn.setAttribute('aria-label', 'Copy');
+    bar.append(goodBtn, copyBtn);
+    turnRow.append(bar);
+    viewport.append(turnRow);
+    bars.push(bar);
+  }
+  let scrolledTo = null;
+  bars[1].scrollIntoView = () => { scrolledTo = 2; };
+
+  body.append(viewport, composer);
+
+  const origQueryAll = viewport.querySelectorAll.bind(viewport);
+  viewport.querySelectorAll = sel => {
+    if (sel === 'button[aria-label="Good response"]') {
+      return bars.map(b => b.children[0]);
+    }
+    return origQueryAll(sel);
+  };
+  for (const bar of bars) {
+    const origBarQuery = bar.querySelector.bind(bar);
+    bar.querySelector = sel => {
+      if (sel.includes('aria-label="Copy"')) return bar.children.find(c => c.getAttribute('aria-label') === 'Copy') || null;
+      if (sel.startsWith('[data-agpa-compaction-marker]')) {
+        const sigMatch = sel.match(/data-agpa-compaction-sig="([^"]+)"/);
+        return bar.children.find(c =>
+          c.hasAttribute('data-agpa-compaction-marker') &&
+          (!sigMatch || c.getAttribute('data-agpa-compaction-sig') === sigMatch[1])
+        ) || null;
+      }
+      return origBarQuery(sel);
+    };
+  }
+
+  const mockDoc = {
+    head,
+    body,
+    documentElement: html,
+    location: { pathname: '/c/compaction-ui-test' },
+    createElement: tag => makeNode(tag),
+    querySelector: sel => {
+      if (sel.includes('model-selector-trigger')) return trigger;
+      if (sel === '[data-testid=autoscroll-viewport]') return viewport;
+      if (sel === '[data-agpa-context-budget]') return footer.querySelector('[data-agpa-context-budget]');
+      return body.querySelector(sel) || head.querySelector(sel);
+    },
+    querySelectorAll: sel => {
+      if (sel === '[data-testid=model-selector-trigger]') return [trigger];
+      if (sel === '[data-agpa-compaction-marker]') {
+        return bars.flatMap(b => b.children.filter(c => c.hasAttribute('data-agpa-compaction-marker')));
+      }
+      return [...body.querySelectorAll(sel), ...head.querySelectorAll(sel)];
+    },
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  const context = {
+    window: mockWindow,
+    document: mockDoc,
+    MutationObserver: class { observe() {} disconnect() {} },
+    queueMicrotask: fn => fn(),
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: { t: (k, v = {}) => Object.entries(v).reduce((s, [p, val]) => s.replace('{' + p + '}', val), k) },
+    setTimeout: () => 1,
+    clearTimeout: () => {}
+  };
+  context.globalThis = context;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  const scriptContent = fs.readFileSync(path.join(__dirname, '../common/context-budget.js'), 'utf8');
+  vm.createContext(context);
+  vm.runInContext(scriptContent, context);
+
+  context.__AGContextBudget.hydrateFromTranscript('/c/compaction-ui-test', {
+    maxChars: 12000,
+    maxTurns: 3,
+    apiTokens: 45000,
+    inputTokens: 20000,
+    cacheReadTokens: 24000,
+    outputTokens: 1000,
+    compactions: [
+      { turn: 2, preTokens: 256000, postTokens: 19000, count: 1, promptKey: 'turn two' },
+      { turn: 3, preTokens: 260000, postTokens: 21000, count: 1, promptKey: 'turn three' }
+    ]
+  });
+
+  assert.equal(bars[0].children.filter(c => c.hasAttribute('data-agpa-compaction-marker')).length, 0);
+  const marker2 = bars[1].children.find(c => c.hasAttribute('data-agpa-compaction-marker'));
+  const marker3 = bars[2].children.find(c => c.hasAttribute('data-agpa-compaction-marker'));
+  assert.ok(marker2, 'turn 2 response bar has compaction marker');
+  assert.ok(marker3, 'turn 3 response bar has compaction marker');
+  assert.equal(bars[1].children.indexOf(marker2), 1, 'marker inserted before Copy button');
+  assert.ok(marker2.getAttribute('title').includes('~256k'));
+  assert.ok(marker2.getAttribute('title').includes('~19k'));
+
+  const pill = footer.querySelector('[data-agpa-context-budget]');
+  pill.dispatchEvent({ type: 'click', preventDefault: () => {}, stopPropagation: () => {} });
+  const popup = body.children.find(c => c.classList.contains('agpa-context-popup'));
+  assert.ok(popup, 'popup opened');
+
+  const chips = [];
+  (function walk(node) {
+    if (node.classList?.contains('agpa-context-compaction-chip')) chips.push(node);
+    for (const ch of node.children || []) walk(ch);
+  })(popup);
+
+  assert.deepEqual(chips.map(c => c.textContent), ['#2', '#3']);
+  chips[0].dispatchEvent({ type: 'click', preventDefault: () => {}, stopPropagation: () => {} });
+  assert.equal(scrolledTo, 2, 'clicking chip #2 scrolls to turn 2 response bar');
+
+  context.__AGContextBudget.destroy();
+});
+
+test('compaction marker resolves virtualized top response even when its user-input-step is unmounted', () => {
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      getItem: k => storeMap.get(k) || null,
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      removeItem: k => storeMap.delete(k)
+    },
+    innerWidth: 1024,
+    innerHeight: 768
+  };
+  const html = makeNode('html'), head = makeNode('head'), body = makeNode('body');
+  html.append(head, body);
+
+  const viewport = makeNode('div');
+  viewport.setAttribute('data-testid', 'autoscroll-viewport');
+  const list = makeNode('div');
+  list.className = 'relative flex flex-col gap-y-3';
+
+  // Item 0: top virtualized response (Turn 27) with NO user-input-step mounted, only response bar
+  const item27 = makeNode('div');
+  item27.className = 'flex items-start';
+  item27.textContent = 'Avvia TestMem5: se supera i 6 minuti il modulo rimosso è difettoso.';
+  const bar27 = makeNode('div');
+  const good27 = makeNode('button');
+  good27.setAttribute('aria-label', 'Good response');
+  const copy27 = makeNode('button');
+  copy27.setAttribute('aria-label', 'Copy');
+  bar27.append(good27, copy27);
+  item27.append(bar27);
+
+  // Item 1: Turn 28 mounted below with its user-input-step
+  const item28 = makeNode('div');
+  item28.className = 'flex items-start';
+  const step28 = makeNode('div');
+  step28.setAttribute('data-testid', 'user-input-step');
+  step28.textContent = 'Ma potrebbe bloccarsi anche a test successivi al 25?';
+  const bar28 = makeNode('div');
+  const good28 = makeNode('button');
+  good28.setAttribute('aria-label', 'Good response');
+  const copy28 = makeNode('button');
+  copy28.setAttribute('aria-label', 'Copy');
+  bar28.append(good28, copy28);
+  item28.append(step28, bar28);
+
+  list.append(item27, item28);
+  viewport.append(list);
+
+  const composer = makeNode('div');
+  composer.className = 'surface-composer';
+  const footer = makeNode('div');
+  footer.className = '@container/input-footer';
+  composer.append(footer);
+  body.append(viewport, composer);
+
+  for (const [item, bar, good, copy, step] of [
+    [item27, bar27, good27, copy27, null],
+    [item28, bar28, good28, copy28, step28]
+  ]) {
+    item.querySelectorAll = sel => sel === 'button[aria-label="Good response"]' ? [good] : [];
+    item.querySelector = sel => sel.includes('user-input-step') ? step : (sel === 'button[aria-label="Good response"]' ? good : null);
+    bar.querySelector = sel => {
+      if (sel.includes('aria-label="Copy"')) return copy;
+      if (sel.startsWith('[data-agpa-compaction-marker]')) {
+        const sigMatch = sel.match(/data-agpa-compaction-sig="([^"]+)"/);
+        return bar.children.find(c =>
+          c.hasAttribute('data-agpa-compaction-marker') &&
+          (!sigMatch || c.getAttribute('data-agpa-compaction-sig') === sigMatch[1])
+        ) || null;
+      }
+      return null;
+    };
+  }
+  viewport.querySelector = sel => sel === '.relative.flex.flex-col.gap-y-3' ? list : null;
+  viewport.querySelectorAll = sel => sel === 'button[aria-label="Good response"]' ? [good27, good28] : [];
+
+  const mockDoc = {
+    head, body, documentElement: html,
+    location: { pathname: '/c/virtualized-turn27' },
+    createElement: tag => makeNode(tag),
+    querySelector: sel => sel === '[data-testid=autoscroll-viewport]' ? viewport : (body.querySelector(sel) || head.querySelector(sel)),
+    querySelectorAll: sel => sel === '[data-agpa-compaction-marker]'
+      ? [bar27, bar28].flatMap(b => b.children.filter(c => c.hasAttribute('data-agpa-compaction-marker')))
+      : [...body.querySelectorAll(sel), ...head.querySelectorAll(sel)],
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  const context = {
+    window: mockWindow, document: mockDoc,
+    MutationObserver: class { observe() {} disconnect() {} },
+    queueMicrotask: fn => fn(),
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: { t: (k, v = {}) => Object.entries(v).reduce((s, [p, val]) => s.replace('{' + p + '}', val), k) },
+    setTimeout: () => 1, clearTimeout: () => {}
+  };
+  context.globalThis = context;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  const scriptContent = fs.readFileSync(path.join(__dirname, '../common/context-budget.js'), 'utf8');
+  vm.createContext(context);
+  vm.runInContext(scriptContent, context);
+
+  context.__AGContextBudget.hydrateFromTranscript('/c/virtualized-turn27', {
+    maxChars: 120000,
+    maxTurns: 60,
+    apiTokens: 179909,
+    compactions: [{
+      turn: 27,
+      preTokens: 256931,
+      postTokens: 13839,
+      count: 1,
+      promptKey: 'puoi farmi la lista dei 31 test di memte',
+      nextPromptKey: 'ma potrebbe bloccarsi anche a test succe',
+      responseTail: 'il modulo rimosso è difettoso.'
+    }]
+  });
+
+  const marker27 = bar27.children.find(c => c.hasAttribute('data-agpa-compaction-marker'));
+  assert.ok(marker27, 'virtualized Turn 27 response bar receives compaction marker');
+  assert.equal(bar28.children.filter(c => c.hasAttribute('data-agpa-compaction-marker')).length, 0);
+
+  context.__AGContextBudget.destroy();
+});
+
+test('clicking compacted turn chip falls back to proportional viewport scroll when navigator dot is absent', () => {
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      getItem: k => storeMap.get(k) || null,
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      removeItem: k => storeMap.delete(k)
+    },
+    innerWidth: 1024,
+    innerHeight: 768
+  };
+  const html = makeNode('html'), head = makeNode('head'), body = makeNode('body');
+  html.append(head, body);
+
+  let scrolledTop = null;
+  const viewport = makeNode('div');
+  viewport.setAttribute('data-testid', 'autoscroll-viewport');
+  viewport.scrollHeight = 12000;
+  viewport.clientHeight = 800;
+  viewport.scrollTop = 11000;
+  viewport.scrollTo = ({ top }) => { scrolledTop = top; };
+
+  const trigger = makeNode('button');
+  trigger.setAttribute('data-testid', 'model-selector-trigger');
+  trigger.textContent = 'Gemini 4 Hydrogen';
+  const composer = makeNode('div');
+  composer.className = 'surface-composer';
+  const footer = makeNode('div');
+  footer.className = '@container/input-footer';
+  footer.append(trigger);
+  composer.append(footer);
+  body.append(viewport, composer);
+
+  const mockDoc = {
+    head, body, documentElement: html,
+    location: { pathname: '/c/jump-fallback-test' },
+    createElement: tag => makeNode(tag),
+    querySelector: sel => {
+      if (sel.includes('model-selector-trigger')) return trigger;
+      if (sel === '[data-testid=autoscroll-viewport]') return viewport;
+      if (sel === '[data-agpa-context-budget]') return footer.querySelector('[data-agpa-context-budget]');
+      return body.querySelector(sel) || head.querySelector(sel);
+    },
+    querySelectorAll: sel => sel === '[data-testid=model-selector-trigger]' ? [trigger] : [...body.querySelectorAll(sel), ...head.querySelectorAll(sel)],
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  const context = {
+    window: mockWindow, document: mockDoc,
+    MutationObserver: class { observe() {} disconnect() {} },
+    queueMicrotask: fn => fn(),
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: { t: (k, v = {}) => Object.entries(v).reduce((s, [p, val]) => s.replace('{' + p + '}', val), k) },
+    setTimeout: () => 1, clearTimeout: () => {}
+  };
+  context.globalThis = context;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  const scriptContent = fs.readFileSync(path.join(__dirname, '../common/context-budget.js'), 'utf8');
+  vm.createContext(context);
+  vm.runInContext(scriptContent, context);
+
+  context.__AGContextBudget.hydrateFromTranscript('/c/jump-fallback-test', {
+    maxChars: 120000,
+    maxTurns: 60,
+    apiTokens: 180000,
+    compactions: [{ turn: 27, preTokens: 256000, postTokens: 14000, count: 1, promptKey: 'turn 27', nextPromptKey: 'turn 28', responseTail: 'done' }]
+  });
+
+  const pill = footer.querySelector('[data-agpa-context-budget]');
+  pill.dispatchEvent({ type: 'click', preventDefault: () => {}, stopPropagation: () => {} });
+  const popup = body.children.find(c => c.classList.contains('agpa-context-popup'));
+  const chip = [];
+  (function walk(n) {
+    if (n.classList?.contains('agpa-context-compaction-chip')) chip.push(n);
+    for (const ch of n.children || []) walk(ch);
+  })(popup);
+
+  assert.equal(chip.length, 1);
+  chip[0].dispatchEvent({ type: 'click', preventDefault: () => {}, stopPropagation: () => {} });
+  assert.ok(typeof scrolledTop === 'number' && scrolledTop > 4000 && scrolledTop < 6000, `expected proportional scroll near turn 27, got ${scrolledTop}`);
+
+  context.__AGContextBudget.destroy();
+});
+
+test('resolveTurnNumberForPrompt resolves any turn number from hydrated blocks', () => {
+  rules.clearCache();
+  const storeMap = new Map();
+  const storage = {
+    getItem: k => storeMap.get(k) || null,
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    removeItem: k => storeMap.delete(k)
+  };
+  const doc = { location: { pathname: '/c/resolve-turn-test' } };
+  rules.hydrateFromTranscript('/c/resolve-turn-test', {
+    maxChars: 5000,
+    maxTurns: 60,
+    apiTokens: 120000,
+    blocks: [
+      ['p:turn-27:Puoi farmi la lista dei 31 test di memtest', { length: 120, codeChars: 0 }],
+      ['p:turn-57:Ecco il risultato dopo il riavvio', { length: 90, codeChars: 0 }]
+    ],
+    compactions: []
+  }, storage);
+
+  assert.equal(rules.resolveTurnNumberForPrompt('Ecco il risultato dopo il riavvio1m ago', doc, storage), 57);
+  assert.equal(rules.resolveTurnNumberForPrompt('Puoi farmi la lista dei 31 test di memtest', doc, storage), 27);
+  assert.equal(rules.resolveTurnNumberForPrompt('Unrelated prompt', doc, storage), null);
+});
+
+test('compaction marker matches /compact promptKey without leading slash and rejects short-prefix false positives', () => {
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      getItem: k => storeMap.get(k) || null,
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      removeItem: k => storeMap.delete(k)
+    },
+    innerWidth: 1024,
+    innerHeight: 768
+  };
+  const html = makeNode('html'), head = makeNode('head'), body = makeNode('body');
+  html.append(head, body);
+
+  const viewport = makeNode('div');
+  viewport.setAttribute('data-testid', 'autoscroll-viewport');
+  const list = makeNode('div');
+  list.className = 'relative flex flex-col gap-y-3';
+
+  // Non-turn flex spacer should be ignored by collectTurnItems
+  const spacer = makeNode('div');
+  spacer.className = 'flex';
+  spacer.querySelector = () => null;
+
+  // Turn 10: DOM shows "fix everything" (must NOT match short promptKey "fix")
+  const item10 = makeNode('div');
+  item10.className = 'flex items-start';
+  const step10 = makeNode('div');
+  step10.setAttribute('data-testid', 'user-input-step');
+  step10.textContent = 'fix everything';
+  const bar10 = makeNode('div');
+  const good10 = makeNode('button');
+  good10.setAttribute('aria-label', 'Good response');
+  const copy10 = makeNode('button');
+  copy10.setAttribute('aria-label', 'Copy');
+  bar10.append(good10, copy10);
+  item10.append(step10, bar10);
+
+  // Turn 11: DOM renders "compact" without leading slash (must match promptKey "/compact")
+  const item11 = makeNode('div');
+  item11.className = 'flex items-start';
+  const step11 = makeNode('div');
+  step11.setAttribute('data-testid', 'user-input-step');
+  step11.textContent = 'compact2m ago';
+  const bar11 = makeNode('div');
+  const good11 = makeNode('button');
+  good11.setAttribute('aria-label', 'Good response');
+  const copy11 = makeNode('button');
+  copy11.setAttribute('aria-label', 'Copy');
+  bar11.append(good11, copy11);
+  item11.append(step11, bar11);
+
+  list.append(spacer, item10, item11);
+  viewport.append(list);
+
+  const composer = makeNode('div');
+  composer.className = 'surface-composer';
+  const footer = makeNode('div');
+  footer.className = '@container/input-footer';
+  composer.append(footer);
+  body.append(viewport, composer);
+
+  for (const [item, bar, good, copy, step] of [
+    [item10, bar10, good10, copy10, step10],
+    [item11, bar11, good11, copy11, step11]
+  ]) {
+    item.querySelectorAll = sel => sel === 'button[aria-label="Good response"]' ? [good] : [];
+    item.querySelector = sel => sel.includes('user-input-step') ? step : (sel === 'button[aria-label="Good response"]' ? good : null);
+    bar.querySelector = sel => {
+      if (sel.includes('aria-label="Copy"')) return copy;
+      if (sel.startsWith('[data-agpa-compaction-marker]')) {
+        const sigMatch = sel.match(/data-agpa-compaction-sig="([^"]+)"/);
+        return bar.children.find(c =>
+          c.hasAttribute('data-agpa-compaction-marker') &&
+          (!sigMatch || c.getAttribute('data-agpa-compaction-sig') === sigMatch[1])
+        ) || null;
+      }
+      return null;
+    };
+  }
+  viewport.querySelector = sel => sel === '.relative.flex.flex-col.gap-y-3' ? list : null;
+  viewport.querySelectorAll = sel => sel === 'button[aria-label="Good response"]' ? [good10, good11] : [];
+
+  const mockDoc = {
+    head, body, documentElement: html,
+    location: { pathname: '/c/slash-compact-match' },
+    createElement: tag => makeNode(tag),
+    querySelector: sel => sel === '[data-testid=autoscroll-viewport]' ? viewport : (body.querySelector(sel) || head.querySelector(sel)),
+    querySelectorAll: sel => sel === '[data-agpa-compaction-marker]'
+      ? [bar10, bar11].flatMap(b => b.children.filter(c => c.hasAttribute('data-agpa-compaction-marker')))
+      : [...body.querySelectorAll(sel), ...head.querySelectorAll(sel)],
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  let localePrefix = 'EN';
+  const subscribers = [];
+  const context = {
+    window: mockWindow, document: mockDoc,
+    MutationObserver: class { observe() {} disconnect() {} },
+    queueMicrotask: fn => fn(),
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: {
+      t: (k, v = {}) => localePrefix + ':' + Object.entries(v).reduce((s, [p, val]) => s.replace('{' + p + '}', val), k),
+      subscribe: fn => { subscribers.push(fn); return () => {}; }
+    },
+    setTimeout: () => 1, clearTimeout: () => {}
+  };
+  context.globalThis = context;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  vm.createContext(context);
+  vm.runInContext(script, context);
+
+  context.__AGContextBudget.hydrateFromTranscript('/c/slash-compact-match', {
+    maxChars: 50000,
+    maxTurns: 20,
+    apiTokens: 90000,
+    compactions: [
+      { turn: 5, preTokens: 200000, postTokens: 15000, count: 1, promptKey: 'fix' },
+      { turn: 11, preTokens: 250000, postTokens: 18000, count: 1, promptKey: '/compact' }
+    ]
+  });
+
+  // Turn 5 ("fix") must NOT falsely match "fix everything" on bar10; Turn 11 ("/compact") MUST match "compact2m ago" on bar11
+  assert.equal(bar10.children.filter(c => c.hasAttribute('data-agpa-compaction-marker')).length, 0);
+  const marker11 = bar11.children.find(c => c.hasAttribute('data-agpa-compaction-marker'));
+  assert.ok(marker11, 'DOM "compact2m ago" matches promptKey "/compact"');
+  assert.ok(marker11.getAttribute('title').startsWith('EN:'));
+
+  // Locale change updates existing marker title and aria-label in-place
+  localePrefix = 'IT';
+  subscribers.forEach(fn => fn());
+  assert.ok(marker11.getAttribute('title').startsWith('IT:'), 'marker title updates on locale change');
+  assert.ok(marker11.getAttribute('aria-label').startsWith('IT:'), 'marker aria-label updates on locale change');
+
+  context.__AGContextBudget.destroy();
+});
+
+test('compaction chips use role="group" container and preserve native button role', () => {
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      getItem: k => storeMap.get(k) || null,
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      removeItem: k => storeMap.delete(k)
+    },
+    innerWidth: 1024,
+    innerHeight: 768
+  };
+  const html = makeNode('html'), head = makeNode('head'), body = makeNode('body');
+  html.append(head, body);
+
+  const trigger = makeNode('button');
+  trigger.setAttribute('data-testid', 'model-selector-trigger');
+  const composer = makeNode('div');
+  composer.className = 'surface-composer';
+  const footer = makeNode('div');
+  footer.className = '@container/input-footer';
+  footer.append(trigger);
+  composer.append(footer);
+  body.append(composer);
+
+  const mockDoc = {
+    head, body, documentElement: html,
+    location: { pathname: '/c/a11y-chips-test' },
+    createElement: tag => makeNode(tag),
+    querySelector: sel => {
+      if (sel.includes('model-selector-trigger')) return trigger;
+      if (sel === '[data-agpa-context-budget]') return footer.querySelector('[data-agpa-context-budget]');
+      return body.querySelector(sel) || head.querySelector(sel);
+    },
+    querySelectorAll: sel => sel === '[data-testid=model-selector-trigger]' ? [trigger] : [...body.querySelectorAll(sel), ...head.querySelectorAll(sel)],
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  };
+
+  const context = {
+    window: mockWindow, document: mockDoc,
+    MutationObserver: class { observe() {} disconnect() {} },
+    queueMicrotask: fn => fn(),
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: { t: (k, v = {}) => Object.entries(v).reduce((s, [p, val]) => s.replace('{' + p + '}', val), k) },
+    setTimeout: () => 1, clearTimeout: () => {}
+  };
+  context.globalThis = context;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  vm.createContext(context);
+  vm.runInContext(script, context);
+
+  context.__AGContextBudget.hydrateFromTranscript('/c/a11y-chips-test', {
+    maxChars: 12000,
+    maxTurns: 4,
+    apiTokens: 45000,
+    compactions: [{ turn: 2, preTokens: 250000, postTokens: 18000, count: 2, promptKey: 'step 2' }]
+  });
+
+  const pill = footer.querySelector('[data-agpa-context-budget]');
+  pill.click();
+  const popup = body.children.find(c => c.classList.contains('agpa-context-popup'));
+  assert.ok(popup, 'popup opened');
+
+  let chipList = null;
+  const chips = [];
+  (function walk(n) {
+    if (n.classList?.contains('agpa-context-compactions-array')) chipList = n;
+    if (n.classList?.contains('agpa-context-compaction-chip')) chips.push(n);
+    for (const ch of n.children || []) walk(ch);
+  })(popup);
+
+  assert.ok(chipList, 'compactions chip container rendered');
+  assert.equal(chipList.getAttribute('role'), 'group', 'chip container uses role="group"');
+  assert.equal(chips.length, 1);
+  assert.equal(chips[0].tagName, 'BUTTON');
+  assert.equal(chips[0].getAttribute('role'), null, 'chip button preserves native button role');
+  assert.equal(chips[0].textContent, '#2 ×2');
+
+  context.__AGContextBudget.destroy();
+});
+
+test('jumpToCompactionTurn cancels on manual scroll, chat switch, and nativeContext handoff, and cleans markers', () => {
+  const storeMap = new Map();
+  const mockWindow = {
+    localStorage: {
+      getItem: k => storeMap.get(k) || null,
+      setItem: (k, v) => storeMap.set(k, String(v)),
+      removeItem: k => storeMap.delete(k)
+    },
+    innerWidth: 1024,
+    innerHeight: 768
+  };
+  const html = makeNode('html'), head = makeNode('head'), body = makeNode('body');
+  html.append(head, body);
+
+  const viewport = makeNode('div');
+  viewport.setAttribute('data-testid', 'autoscroll-viewport');
+  viewport.scrollHeight = 12000;
+  viewport.clientHeight = 800;
+  viewport.scrollTop = 9000;
+  viewport.scrollTo = ({ top }) => { viewport.scrollTop = top; };
+
+  const bar1 = makeNode('div');
+  const good1 = makeNode('button');
+  good1.setAttribute('aria-label', 'Good response');
+  const copy1 = makeNode('button');
+  copy1.setAttribute('aria-label', 'Copy');
+  bar1.append(good1, copy1);
+  bar1.querySelector = sel => sel.includes('aria-label="Copy"') ? copy1 : (sel.startsWith('[data-agpa-compaction-marker]') ? bar1.children.find(c => c.hasAttribute('data-agpa-compaction-marker')) || null : null);
+  viewport.append(bar1);
+  viewport.querySelectorAll = sel => sel === 'button[aria-label="Good response"]' ? [good1] : [];
+
+  const trigger = makeNode('button');
+  trigger.setAttribute('data-testid', 'model-selector-trigger');
+  const composer = makeNode('div');
+  composer.className = 'surface-composer';
+  const footer = makeNode('div');
+  footer.className = '@container/input-footer';
+  footer.append(trigger);
+  composer.append(footer);
+  body.append(viewport, composer);
+
+  let nativeIndicator = null;
+  let nextTimerId = 1;
+  const activeTimers = new Map();
+  const mockSetTimeout = (fn) => {
+    const id = nextTimerId++;
+    activeTimers.set(id, fn);
+    return id;
+  };
+  const mockClearTimeout = (id) => {
+    activeTimers.delete(id);
+  };
+
+  const docListeners = new Map();
+  const mockDoc = {
+    head, body, documentElement: html,
+    location: { pathname: '/c/jump-cancel-chat-1' },
+    createElement: tag => makeNode(tag),
+    querySelector: sel => {
+      if (sel === '[data-testid=context-usage-indicator]') return nativeIndicator;
+      if (sel.includes('model-selector-trigger')) return trigger;
+      if (sel === '[data-testid=autoscroll-viewport]') return viewport;
+      if (sel === '[data-agpa-context-budget]') return footer.querySelector('[data-agpa-context-budget]');
+      return body.querySelector(sel) || head.querySelector(sel);
+    },
+    querySelectorAll: sel => {
+      if (sel === '[data-testid=model-selector-trigger]') return [trigger];
+      if (sel === '[data-agpa-compaction-marker]') return bar1.children.filter(c => c.hasAttribute('data-agpa-compaction-marker'));
+      return [...body.querySelectorAll(sel), ...head.querySelectorAll(sel)];
+    },
+    addEventListener: (type, fn) => {
+      if (!docListeners.has(type)) docListeners.set(type, new Set());
+      docListeners.get(type).add(fn);
+    },
+    removeEventListener: (type, fn) => {
+      docListeners.get(type)?.delete(fn);
+    },
+    dispatchEvent: evt => {
+      for (const fn of [...(docListeners.get(evt.type) || [])]) fn(evt);
+    }
+  };
+
+  const context = {
+    window: mockWindow, document: mockDoc,
+    MutationObserver: class { observe() {} disconnect() {} },
+    queueMicrotask: fn => fn(),
+    __AGPA_CONTEXT_BUDGET__: rules,
+    __AGPAI18n: { t: (k, v = {}) => Object.entries(v).reduce((s, [p, val]) => s.replace('{' + p + '}', val), k) },
+    setTimeout: mockSetTimeout,
+    clearTimeout: mockClearTimeout
+  };
+  context.globalThis = context;
+  context.location = mockDoc.location;
+  context.localStorage = mockWindow.localStorage;
+
+  vm.createContext(context);
+  vm.runInContext(script, context);
+
+  context.__AGContextBudget.hydrateFromTranscript('/c/jump-cancel-chat-1', {
+    maxChars: 120000,
+    maxTurns: 60,
+    apiTokens: 180000,
+    compactions: [{ turn: 27, preTokens: 256000, postTokens: 14000, count: 1, promptKey: 'turn 27' }]
+  });
+
+  const openAndClickChip = () => {
+    const pill = footer.querySelector('[data-agpa-context-budget]');
+    pill.click();
+    const popup = body.children.find(c => c.classList.contains('agpa-context-popup'));
+    const chips = [];
+    (function walk(n) {
+      if (n.classList?.contains('agpa-context-compaction-chip')) chips.push(n);
+      for (const ch of n.children || []) walk(ch);
+    })(popup);
+    chips[0].click();
+  };
+
+  // 1. Manual scroll (wheel) and click (pointerdown) abort pending jump timer
+  openAndClickChip();
+  assert.equal(activeTimers.size, 1, 'jump refinement timer scheduled');
+  mockDoc.dispatchEvent({ type: 'wheel' });
+  assert.equal(activeTimers.size, 0, 'manual wheel event cancels jump timer');
+
+  openAndClickChip();
+  assert.equal(activeTimers.size, 1, 'jump refinement timer scheduled before click cancel');
+  mockDoc.dispatchEvent({ type: 'pointerdown' });
+  assert.equal(activeTimers.size, 0, 'click (pointerdown) anywhere cancels jump timer');
+
+  // 2. Chat switch cancels pending jump timer, closes popup, and clears compaction markers
+  openAndClickChip();
+  assert.equal(activeTimers.size, 1, 'jump timer active before chat switch');
+  mockDoc.location.pathname = '/c/jump-cancel-chat-2';
+  context.__AGContextBudget.refresh();
+  assert.equal(activeTimers.size, 0, 'chat switch cancels jump timer');
+  assert.equal(body.children.find(c => c.classList.contains('agpa-context-popup')), undefined, 'chat switch closes popup');
+
+  // 3. Switch back to compacted chat with single-turn bar so marker is placed, then trigger nativeContext handoff
+  mockDoc.location.pathname = '/c/jump-cancel-chat-1';
+  context.__AGContextBudget.hydrateFromTranscript('/c/jump-cancel-chat-1', {
+    maxChars: 12000,
+    maxTurns: 1,
+    apiTokens: 45000,
+    compactions: [{ turn: 1, preTokens: 256000, postTokens: 14000, count: 1, promptKey: 'turn 1' }]
+  });
+  assert.equal(bar1.children.filter(c => c.hasAttribute('data-agpa-compaction-marker')).length, 1, 'marker placed before native handoff');
+
+  // Start a jump on a virtualized turn and then mount native context indicator
+  context.__AGContextBudget.hydrateFromTranscript('/c/jump-cancel-chat-1', {
+    maxChars: 120000,
+    maxTurns: 60,
+    apiTokens: 180000,
+    compactions: [{ turn: 27, preTokens: 256000, postTokens: 14000, count: 1, promptKey: 'turn 27' }]
+  });
+  openAndClickChip();
+  assert.equal(activeTimers.size, 1, 'jump timer scheduled before native handoff');
+  nativeIndicator = makeNode('div');
+  nativeIndicator.setAttribute('data-testid', 'context-usage-indicator');
+  context.__AGContextBudget.refresh();
+  assert.equal(activeTimers.size, 0, 'nativeContext handoff cancels jump timer');
+  assert.equal(bar1.children.filter(c => c.hasAttribute('data-agpa-compaction-marker')).length, 0, 'nativeContext handoff removes compaction markers');
+
+  context.__AGContextBudget.destroy();
+});
+
+test('hydrateFromTranscript preserves compactions when isCompacted is true and clears stale compactions otherwise', () => {
+  rules.clearCache();
+  const storeMap = new Map();
+  const storage = {
+    getItem: k => storeMap.get(k) || null,
+    setItem: (k, v) => storeMap.set(k, String(v)),
+    removeItem: k => storeMap.delete(k)
+  };
+  const convKey = '/c/is-compacted-state-test';
+
+  // Initial hydration with compaction event
+  rules.hydrateFromTranscript(convKey, {
+    maxChars: 50000,
+    maxTurns: 10,
+    apiTokens: 40000,
+    isCompacted: true,
+    compactions: [{ turn: 8, preTokens: 250000, postTokens: 18000, count: 1, promptKey: '/compact' }]
+  }, storage);
+
+  const doc = { location: { pathname: convKey }, querySelector: () => null, querySelectorAll: () => [] };
+  let stats = rules.extractConversationStats(doc, storage);
+  assert.equal(stats.compactions.length, 1);
+  assert.equal(stats.compactions[0].turn, 8);
+
+  // Subsequent hydration with isCompacted: true and no new compactions array preserves prior compaction history
+  rules.hydrateFromTranscript(convKey, {
+    maxChars: 60000,
+    maxTurns: 12,
+    apiTokens: 52000,
+    isCompacted: true
+  }, storage);
+  stats = rules.extractConversationStats(doc, storage);
+  assert.equal(stats.compactions.length, 1, 'isCompacted preserves existing compactions when omitted');
+  assert.equal(stats.compactions[0].turn, 8);
+
+  // Re-hydration with an explicit empty compactions array and isCompacted: false clears state cleanly
+  rules.hydrateFromTranscript(convKey, {
+    maxChars: 5000,
+    maxTurns: 1,
+    apiTokens: 2000,
+    isCompacted: false,
+    compactions: []
+  }, storage);
+  stats = rules.extractConversationStats(doc, storage);
+  assert.equal(stats.compactions.length, 0, 'explicit empty compactions resets state cleanly');
+});

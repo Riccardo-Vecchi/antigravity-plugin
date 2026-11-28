@@ -1,7 +1,7 @@
 /* Visual Context Budget indicator and /compact recommendation. */
 (() => {
   'use strict';
-  const VERSION = '1.3.6';
+  const VERSION = '1.3.15';
   if (globalThis.__AGContextBudget?.version === VERSION) return;
   globalThis.__AGContextBudget?.destroy();
 
@@ -17,9 +17,505 @@
     return res;
   };
 
-  let stopped = false, timer = null;
+  let stopped = false, timer = null, jumpTimer = null, jumpAbortCleanup = null, compactRetryTimer = null, hasCompactionMarkers = false;
+  let lastObservedConvKey = '', lastRequestedResponseCount = 0, lastReqConvKey = '', lastReqAt = 0, lastCompactRetryKey = '';
   let activeStats = null, popup = null, popupButton = null, popupMode = null;
   let hoverTimer = null, hoverCloseTimer = null;
+
+  function cancelJump() {
+    if (jumpTimer) {
+      clearTimeout(jumpTimer);
+      jumpTimer = null;
+    }
+    if (jumpAbortCleanup) {
+      jumpAbortCleanup();
+      jumpAbortCleanup = null;
+    }
+  }
+
+  function cancelCompactRetry() {
+    if (compactRetryTimer) {
+      clearTimeout(compactRetryTimer);
+      compactRetryTimer = null;
+    }
+  }
+
+  function formatTokenCount(value) {
+    if (value === null) return t('Unavailable');
+    if (value < 1000) return String(Math.round(value));
+    const unit = value >= 1000000 ? 1000000 : 1000;
+    return '~' + Number((value / unit).toFixed(1)) + (unit === 1000 ? 'k' : 'M');
+  }
+
+  function compactionLabel(c) {
+    if (c?.preTokens > 0 && c?.postTokens > 0) {
+      return t('Compacted during this response ({pre} → {post})', {
+        pre: formatTokenCount(c.preTokens),
+        post: formatTokenCount(c.postTokens)
+      });
+    }
+    return t('Compacted during this response');
+  }
+
+  function createCompactionIcon() {
+    if (typeof document.createElementNS === 'function') {
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('viewBox', '0 0 16 16');
+      svg.setAttribute('width', '13');
+      svg.setAttribute('height', '13');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '1.6');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      svg.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', 'M2 5h12M2 11h12M8 1.5v3M6 3l2 2 2-2M8 14.5v-3M6 13l2-2 2 2');
+      svg.append(path);
+      return svg;
+    }
+    const span = document.createElement('span');
+    span.setAttribute('aria-hidden', 'true');
+    span.textContent = '⊟';
+    return span;
+  }
+
+  function getViewportRoot(doc = document) {
+    return doc.querySelector?.('[data-testid=autoscroll-viewport]') ||
+      doc.querySelector?.('[data-testid=conversation-view]') || null;
+  }
+
+  function collectResponseBars(vp) {
+    if (!vp) return [];
+    let buttons = vp.querySelectorAll?.('button[aria-label="Good response"]') || [];
+    let fallbackMode = false;
+    if (!buttons.length) {
+      buttons = vp.querySelectorAll?.('button[aria-label*="good" i], button[title*="Good response" i], button[data-testid*="good-response"], button[data-testid*="thumbs-up"]') || [];
+    }
+    if (!buttons.length) {
+      buttons = vp.querySelectorAll?.('button[aria-label="Copy"], button[title="Copy"], button[aria-label*="copy" i]') || [];
+      fallbackMode = true;
+    }
+    const bars = [];
+    const seen = new Set();
+    for (const btn of buttons) {
+      if (fallbackMode) {
+        if (btn.closest?.('pre, code, [data-agpa-context-ui]')) continue;
+        const p = btn.parentElement;
+        if (!p || (p.querySelectorAll?.('button')?.length || 0) < 2) continue;
+      }
+      const bar = btn.parentElement;
+      if (bar && !seen.has(bar)) {
+        seen.add(bar);
+        bars.push(bar);
+      }
+    }
+    if (bars.length) return bars;
+
+    // Last-resort structural fallback: small footer bars with 2-4 icon buttons near a relative timestamp (e.g. "1mo ago")
+    const allButtons = vp.querySelectorAll?.('button') || [];
+    for (const btn of allButtons) {
+      if (btn.closest?.('pre, code, [data-agpa-context-ui], [data-testid=user-input-step]')) continue;
+      const bar = btn.parentElement;
+      if (!bar || seen.has(bar)) continue;
+      const rowBtns = bar.querySelectorAll?.(':scope > button') || [];
+      if (rowBtns.length >= 2 && rowBtns.length <= 5) {
+        const txt = bar.parentElement?.textContent || bar.textContent || '';
+        if (/\b(?:\d+\s*(?:s|m|h|d|w|mo|y)\s+ago|just now)\b/i.test(txt)) {
+          seen.add(bar);
+          bars.push(bar);
+        }
+      }
+    }
+    return bars;
+  }
+
+  function normalizeMatchText(str) {
+    return String(str || '').replace(/<[^>]+>/g, ' ').replace(/[*`#_]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  const TURN_ITEM_SELECTOR = '[data-testid=user-input-step], [data-testid=user-message-bubble], [class*="group/user-input"], button[aria-label="Good response"], button[aria-label="Copy"]';
+
+  function collectTurnItems(list) {
+    if (!list || !list.children?.length) return [];
+    return Array.from(list.children).filter(el =>
+      !el.classList?.contains('sr-only') &&
+      Boolean(
+        el.querySelector?.(TURN_ITEM_SELECTOR) ||
+        el.querySelector?.('button[aria-label="Good response"]') ||
+        el.querySelector?.('button[aria-label="Copy"]')
+      )
+    );
+  }
+
+  function matchPromptText(domKey, transcriptKey) {
+    const d = normalizeMatchText(domKey).replace(/^\/+/, '');
+    const t = normalizeMatchText(transcriptKey).replace(/^\/+/, '');
+    if (!d || !t) return false;
+    if (d === t) return true;
+    const dClean = d.replace(/\s*(?:\d+\s*(?:s|m|h|d|w|mo|y)\s+ago|just now)$/i, '').trim();
+    if (dClean && dClean === t) return true;
+    return d.length >= 25 && t.length >= 25 && d.slice(0, 25) === t.slice(0, 25);
+  }
+
+  function findCompactionTargets(stats, doc = document, precollectedBars = null) {
+    const compactions = Array.isArray(stats?.compactions) ? stats.compactions : [];
+    const targets = new Map();
+    if (!compactions.length) return targets;
+    const vp = getViewportRoot(doc);
+    if (!vp) return targets;
+    const bars = Array.isArray(precollectedBars) ? precollectedBars : collectResponseBars(vp);
+    if (!bars.length) return targets;
+
+    const totalTurns = Number(stats?.turns) || 0;
+    if (totalTurns > 0 && bars.length === totalTurns) {
+      for (const c of compactions) {
+        if (c.turn >= 1 && c.turn <= bars.length) {
+          targets.set(c.turn, bars[c.turn - 1]);
+        }
+      }
+      return targets;
+    }
+
+    // Virtualized list path: match via direct turn containers and propagate turn numbers
+    const list = vp.querySelector?.('.relative.flex.flex-col.gap-y-3');
+    if (list && list.children?.length) {
+      const turnItems = collectTurnItems(list);
+      if (turnItems.length > 0) {
+        let anchorIdx = -1;
+        let anchorTurn = -1;
+        for (let i = 0; i < turnItems.length && anchorIdx === -1; i++) {
+          const step = turnItems[i].querySelector?.('[data-testid=user-input-step], [data-testid=user-message-bubble], [class*="group/user-input"]');
+          if (!step) continue;
+          const domKey = normalizeMatchText(step.textContent).slice(0, 40);
+          if (!domKey) continue;
+          for (const c of compactions) {
+            if (matchPromptText(domKey, c.promptKey)) {
+              anchorIdx = i;
+              anchorTurn = c.turn;
+              break;
+            }
+            if (c.nextPromptKey && matchPromptText(domKey, c.nextPromptKey)) {
+              anchorIdx = i;
+              anchorTurn = c.turn + 1;
+              break;
+            }
+          }
+        }
+        if (anchorIdx === -1) {
+          for (let i = 0; i < turnItems.length && anchorIdx === -1; i++) {
+            const itemBars = collectResponseBars(turnItems[i]);
+            if (!itemBars.length) continue;
+            const rawTail = normalizeMatchText((turnItems[i].textContent || '').slice(-400));
+            if (!rawTail) continue;
+            for (const c of compactions) {
+              const tailProbe = c.responseTail?.slice(-28);
+              if (tailProbe && tailProbe.length >= 10 && rawTail.includes(tailProbe)) {
+                anchorIdx = i;
+                anchorTurn = c.turn;
+                break;
+              }
+            }
+          }
+        }
+        if (anchorIdx !== -1) {
+          const startTurn = anchorTurn - anchorIdx;
+          for (const c of compactions) {
+            const idx = c.turn - startTurn;
+            if (idx >= 0 && idx < turnItems.length) {
+              const itemBars = collectResponseBars(turnItems[idx]);
+              if (itemBars.length) targets.set(c.turn, itemBars[itemBars.length - 1]);
+            }
+          }
+          if (targets.size > 0) return targets;
+        }
+      }
+    }
+
+    const userSteps = Array.from(vp.querySelectorAll?.('[data-testid=user-input-step], [data-testid=user-message-bubble], [class*="group/user-input"]') || []);
+    if (userSteps.length > 0 && typeof userSteps[0]?.compareDocumentPosition === 'function') {
+      const matchedSteps = new Map();
+      if (totalTurns > 0 && userSteps.length === totalTurns) {
+        for (const c of compactions) {
+          if (c.turn >= 1 && c.turn <= userSteps.length) {
+            matchedSteps.set(c.turn, c.turn - 1);
+          }
+        }
+      } else {
+        for (let i = 0; i < userSteps.length; i++) {
+          const key = normalizeMatchText(userSteps[i].textContent).slice(0, 40);
+          if (!key) continue;
+          for (const c of compactions) {
+            if (!matchedSteps.has(c.turn) && !targets.has(c.turn) && matchPromptText(key, c.promptKey)) {
+              matchedSteps.set(c.turn, i);
+            }
+            if (!matchedSteps.has(c.turn) && !targets.has(c.turn) && c.nextPromptKey && matchPromptText(key, c.nextPromptKey)) {
+              const nextStep = userSteps[i];
+              for (let b = bars.length - 1; b >= 0; b--) {
+                if ((bars[b].compareDocumentPosition(nextStep) & 4) !== 0) {
+                  targets.set(c.turn, bars[b]);
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      for (const [turn, stepIdx] of matchedSteps.entries()) {
+        const step = userSteps[stepIdx];
+        const nextStep = stepIdx + 1 < userSteps.length ? userSteps[stepIdx + 1] : null;
+        let matchedBar = null;
+        for (const bar of bars) {
+          if ((step.compareDocumentPosition(bar) & 4) === 0) continue;
+          if (nextStep && (bar.compareDocumentPosition(nextStep) & 4) === 0) break;
+          matchedBar = bar;
+        }
+        if (matchedBar) targets.set(turn, matchedBar);
+      }
+    }
+
+    // Last-resort tail matching on mounted bars if no userSteps anchored the compacted turn
+    for (const c of compactions) {
+      if (targets.has(c.turn)) continue;
+      const tailProbe = c.responseTail?.slice(-28);
+      if (tailProbe && tailProbe.length >= 10) {
+        for (const bar of bars) {
+          const card = bar.closest?.('.flex.items-start') || bar.parentElement?.parentElement;
+          const tail = normalizeMatchText((card?.textContent || '').slice(-400));
+          if (tail.includes(tailProbe)) {
+            targets.set(c.turn, bar);
+            break;
+          }
+        }
+      }
+    }
+
+    if (!userSteps.length && (totalTurns === 0 || bars.length >= totalTurns)) {
+      for (const c of compactions) {
+        if (targets.has(c.turn)) continue;
+        if (c.turn >= 1 && c.turn <= bars.length) {
+          targets.set(c.turn, bars[c.turn - 1]);
+        } else if (c.turn === 0 && totalTurns === 0 && bars.length >= 1) {
+          targets.set(c.turn, bars[0]);
+        }
+      }
+    }
+    return targets;
+  }
+
+  function getTurnAnchorInViewport(stats, doc = document) {
+    const vp = getViewportRoot(doc);
+    const list = vp?.querySelector?.('.relative.flex.flex-col.gap-y-3');
+    if (!list || !list.children?.length) return null;
+    const compactions = Array.isArray(stats?.compactions) ? stats.compactions : [];
+    const turnItems = collectTurnItems(list);
+    for (let i = 0; i < turnItems.length; i++) {
+      const step = turnItems[i].querySelector?.('[data-testid=user-input-step], [data-testid=user-message-bubble], [class*="group/user-input"]');
+      if (!step) continue;
+      const domKey = normalizeMatchText(step.textContent).slice(0, 40);
+      if (!domKey) continue;
+      for (const c of compactions) {
+        if (matchPromptText(domKey, c.promptKey)) return { startTurn: c.turn - i, currentTurn: c.turn, itemCount: turnItems.length };
+        if (c.nextPromptKey && matchPromptText(domKey, c.nextPromptKey)) return { startTurn: (c.turn + 1) - i, currentTurn: c.turn + 1, itemCount: turnItems.length };
+      }
+      if (typeof rules.resolveTurnNumberForPrompt === 'function') {
+        const resolved = rules.resolveTurnNumberForPrompt(domKey, doc);
+        if (typeof resolved === 'number' && resolved > 0) {
+          return { startTurn: resolved - i, currentTurn: resolved, itemCount: turnItems.length };
+        }
+      }
+    }
+    return null;
+  }
+
+  function flashCompactionTarget(target) {
+    if (!target || target.isConnected === false) return;
+    target.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    const marker = target.querySelector?.('[data-agpa-compaction-marker]') || target;
+    if (marker?.classList) {
+      marker.classList.add('agpa-compaction-flash');
+      setTimeout(() => marker.classList?.remove('agpa-compaction-flash'), 1600);
+    }
+  }
+
+  function jumpToCompactionTurn(stats, turnNum) {
+    cancelJump();
+    const startConvKey = conversationKey();
+    const targets = findCompactionTargets(stats, document);
+    const direct = targets.get(turnNum);
+    if (direct && direct.isConnected !== false) {
+      flashCompactionTarget(direct);
+      return;
+    }
+
+    const vp = getViewportRoot(document);
+    const navDot = turnNum >= 1
+      ? (document.querySelector?.(`[data-testid=conversation-navigator-turn][data-turn-index="${turnNum - 1}"]`) ||
+        document.querySelector?.(`[data-testid=conversation-navigator-turn][aria-label^="Turn ${turnNum} "]`))
+      : null;
+
+    if (navDot && typeof navDot.click === 'function') {
+      navDot.click();
+    } else if (vp && typeof vp.scrollTo === 'function' && vp.scrollHeight > vp.clientHeight) {
+      const total = Math.max(turnNum, Number(stats?.turns) || turnNum);
+      const targetTop = Math.max(0, Math.round(((turnNum - 0.5) / total) * vp.scrollHeight) - Math.round(vp.clientHeight / 2));
+      vp.scrollTo({ top: targetTop, behavior: 'auto' });
+    }
+
+    const attachAbort = () => {
+      if (stopped || !jumpTimer) return;
+      const onUserCancel = e => {
+        if (e.type === 'keydown' && !['Escape', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.key)) {
+          return;
+        }
+        if (vp && vp.isConnected !== false && typeof vp.scrollTo === 'function') {
+          vp.scrollTo({ top: vp.scrollTop, behavior: 'auto' });
+        }
+        cancelJump();
+      };
+      document.addEventListener?.('pointerdown', onUserCancel, true);
+      document.addEventListener?.('wheel', onUserCancel, { capture: true, passive: true });
+      document.addEventListener?.('touchstart', onUserCancel, { capture: true, passive: true });
+      document.addEventListener?.('keydown', onUserCancel, true);
+      jumpAbortCleanup = () => {
+        document.removeEventListener?.('pointerdown', onUserCancel, true);
+        document.removeEventListener?.('wheel', onUserCancel, true);
+        document.removeEventListener?.('touchstart', onUserCancel, true);
+        document.removeEventListener?.('keydown', onUserCancel, true);
+      };
+    };
+
+    let attempts = 0;
+    let lastAnchor = null;
+    const stepRefine = () => {
+      jumpTimer = null;
+      if (stopped || conversationKey() !== startConvKey || findNativeContext()) {
+        cancelJump();
+        return;
+      }
+      const freshStats = activeStats || stats;
+      syncCompactionMarkers(freshStats);
+      const found = findCompactionTargets(freshStats, document).get(turnNum);
+      if (found && found.isConnected !== false) {
+        cancelJump();
+        flashCompactionTarget(found);
+        return;
+      }
+      attempts++;
+      if (attempts >= 24 || !vp || vp.isConnected === false) {
+        cancelJump();
+        return;
+      }
+      if (vp.scrollHeight > vp.clientHeight) {
+        const anchor = getTurnAnchorInViewport(freshStats, document);
+        if (anchor) {
+          const midTurn = anchor.startTurn + Math.floor(anchor.itemCount / 2);
+          const deltaTurns = turnNum - midTurn;
+          const absDelta = Math.abs(deltaTurns);
+          // Re-click navDot once if the virtualizer shifted after initial jump and we are still far away
+          if (attempts === 1 && absDelta > 4 && navDot && typeof navDot.click === 'function' && lastAnchor === null) {
+            lastAnchor = midTurn;
+            navDot.click();
+            jumpTimer = setTimeout(stepRefine, 220);
+            return;
+          }
+          lastAnchor = midTurn;
+          if (deltaTurns === 0) {
+            cancelJump();
+            return;
+          }
+          const stepPx = absDelta > 8
+            ? Math.min(Math.max(vp.clientHeight * 1.4, 900), absDelta * 260)
+            : Math.max(260, Math.round(vp.clientHeight * 0.75));
+          const maxTop = Math.max(0, vp.scrollHeight - vp.clientHeight);
+          const nextTop = deltaTurns > 0
+            ? Math.min(maxTop, vp.scrollTop + stepPx)
+            : Math.max(0, vp.scrollTop - stepPx);
+          if (nextTop === vp.scrollTop) {
+            cancelJump();
+            return;
+          }
+          vp.scrollTop = nextTop;
+        } else {
+          if (vp.scrollTop <= 0) {
+            cancelJump();
+            return;
+          }
+          const stepPx = Math.max(300, Math.round(vp.clientHeight * 0.9));
+          vp.scrollTop = Math.max(0, vp.scrollTop - stepPx);
+        }
+      } else {
+        cancelJump();
+        return;
+      }
+      jumpTimer = setTimeout(stepRefine, 140);
+    };
+    jumpTimer = setTimeout(stepRefine, 180);
+    if (typeof queueMicrotask === 'function') queueMicrotask(attachAbort);
+    else attachAbort();
+  }
+
+  function syncCompactionMarkers(stats, precollectedBars = null) {
+    const compactions = Array.isArray(stats?.compactions) ? stats.compactions : [];
+    if (!compactions.length) {
+      if (hasCompactionMarkers) {
+        document.querySelectorAll('[data-agpa-compaction-marker]').forEach(n => n.remove());
+        hasCompactionMarkers = false;
+      }
+      return;
+    }
+
+    const targets = findCompactionTargets(stats, document, precollectedBars);
+    const desiredByBar = new Map();
+    for (const c of compactions) {
+      const bar = targets.get(c.turn);
+      if (bar) desiredByBar.set(bar, c);
+    }
+
+    if (hasCompactionMarkers) {
+      document.querySelectorAll('[data-agpa-compaction-marker]').forEach(node => {
+        const bar = node.parentElement;
+        const c = desiredByBar.get(bar);
+        const sig = c ? `${c.turn}:${c.preTokens || 0}:${c.postTokens || 0}:${c.count || 1}` : '';
+        if (!c || node.getAttribute('data-agpa-compaction-sig') !== sig) {
+          node.remove();
+        } else {
+          const label = compactionLabel(c);
+          if (node.getAttribute('title') !== label) node.setAttribute('title', label);
+          if (node.getAttribute('aria-label') !== label) node.setAttribute('aria-label', label);
+        }
+      });
+    }
+
+    let placed = 0;
+    for (const [bar, c] of desiredByBar.entries()) {
+      const sig = `${c.turn}:${c.preTokens || 0}:${c.postTokens || 0}:${c.count || 1}`;
+      const label = compactionLabel(c);
+      const existing = bar.querySelector?.(`[data-agpa-compaction-marker][data-agpa-compaction-sig="${sig}"]`);
+      if (existing) {
+        if (existing.getAttribute('title') !== label) existing.setAttribute('title', label);
+        if (existing.getAttribute('aria-label') !== label) existing.setAttribute('aria-label', label);
+        placed++;
+        continue;
+      }
+      const marker = element('span', {
+        class: 'agpa-compaction-marker',
+        'data-agpa-compaction-marker': '',
+        'data-agpa-compaction-turn': String(c.turn),
+        'data-agpa-compaction-sig': sig,
+        role: 'img',
+        'aria-label': label,
+        title: label
+      });
+      marker.append(createCompactionIcon());
+      const copyBtn = bar.querySelector?.('button[aria-label="Copy"], button[title="Copy"], button[aria-label*="copy" i]');
+      if (copyBtn) bar.insertBefore(marker, copyBtn);
+      else bar.append(marker);
+      placed++;
+    }
+    hasCompactionMarkers = placed > 0 || document.querySelectorAll('[data-agpa-compaction-marker]').length > 0;
+  }
 
   function element(tag, attributes = {}, ...children) {
     const node = document.createElement(tag);
@@ -108,12 +604,7 @@
     }
 
     const totals = rules.contextWindowBreakdown(stats);
-    const format = value => {
-      if (value === null) return t('Unavailable');
-      if (value < 1000) return String(Math.round(value));
-      const unit = value >= 1000000 ? 1000000 : 1000;
-      return '~' + Number((value / unit).toFixed(1)) + (unit === 1000 ? 'k' : 'M');
-    };
+    const format = formatTokenCount;
     const compaction = totals.compaction;
     const meterLimit = compaction?.threshold ?? totals.capacity;
     const meterPercentage = compaction?.percentage ?? totals.percentage;
@@ -167,6 +658,35 @@
         row(t('Model capacity'), format(totals.capacity), '▤'));
     } else {
       popup.append(row(t('Free'), format(totals.free), '○', 'agpa-context-free'));
+    }
+    const compactions = Array.isArray(stats.compactions) ? stats.compactions : [];
+    if (compactions.length > 0) {
+      const compRow = element('div', { class: 'agpa-context-row agpa-context-compactions' });
+      const chipList = element('div', {
+        class: 'agpa-context-compactions-array',
+        role: 'group',
+        'aria-label': t('Compacted turns')
+      });
+      for (const c of compactions) {
+        const chipText = c.count > 1 ? `#${c.turn} ×${c.count}` : `#${c.turn}`;
+        const chip = element('button', {
+          type: 'button',
+          class: 'agpa-context-compaction-chip',
+          text: chipText,
+          title: compactionLabel(c),
+          'aria-label': t('Jump to turn #{turn}', { turn: String(c.turn) })
+        });
+        chip.addEventListener('click', () => {
+          jumpToCompactionTurn(stats, c.turn);
+          closePopup();
+        });
+        chipList.append(chip);
+      }
+      const labelSpan = element('span', { class: 'agpa-context-row-label', text: t('Compacted turns') });
+      const iconSpan = element('span', { class: 'agpa-context-row-icon', 'aria-hidden': 'true' });
+      iconSpan.append(createCompactionIcon());
+      compRow.append(iconSpan, labelSpan, chipList);
+      popup.append(compRow);
     }
     popup.append(element('p', {
       class: 'agpa-context-desc agpa-context-estimate',
@@ -292,7 +812,10 @@
     const nativeContext = findNativeContext();
     if (nativeContext) {
       activeStats = null;
+      cancelJump();
+      cancelCompactRetry();
       closePopup();
+      syncCompactionMarkers({ compactions: [] });
       document.querySelectorAll('[data-agpa-context-budget]').forEach(node => node.remove());
       const footer = nativeContext.closest('[data-agpa-composer-footer], .agy-composer-footer');
       footer?.querySelector('[data-testid=model-selector-trigger]')?.setAttribute('data-agpa-context-adjacent','');
@@ -304,23 +827,62 @@
     activeStats = stats;
 
     const convKey = conversationKey();
+    if (convKey !== lastObservedConvKey) {
+      lastObservedConvKey = convKey;
+      lastRequestedResponseCount = 0;
+      lastCompactRetryKey = '';
+      cancelJump();
+      cancelCompactRetry();
+      closePopup();
+    }
+    const vp = getViewportRoot(document);
+    let precollectedBars = null;
     if (convKey && convKey !== 'default') {
       const stored = rules.loadConversationState ? rules.loadConversationState(convKey) : null;
       const navTurns = rules.countTurns ? rules.countTurns(document) : 0;
+      precollectedBars = vp ? collectResponseBars(vp) : [];
+      const responseBarCount = precollectedBars.length;
+      const responseCompleted = responseBarCount > lastRequestedResponseCount;
       const mtimePending = Boolean(stored?.mtime && stored?.updatedAt && stored.mtime > stored.updatedAt);
-      if (!stored || !stored.apiTokens || (navTurns > 0 && navTurns > (stored.maxTurns || 0)) || mtimePending) {
-        if (typeof globalThis.__agpaTranscriptRequest === 'function') {
+      const missingCompactionHydration = Boolean(
+        stored && (!stored.compactionHydrated || (Array.isArray(stored.compactions) && stored.compactions.some(c => c.responseTail === undefined)))
+      );
+      const needsReq = !stored || !stored.apiTokens || missingCompactionHydration || (navTurns > 0 && navTurns > (stored.maxTurns || 0)) || mtimePending || responseCompleted;
+      if (needsReq && typeof globalThis.__agpaTranscriptRequest === 'function') {
+        const now = Date.now();
+        const throttleMs = responseCompleted ? 500 : 1500;
+        const allowReq = lastReqConvKey !== convKey || (now - lastReqAt > throttleMs);
+        if (allowReq) {
+          if (responseCompleted) lastRequestedResponseCount = responseBarCount;
+          lastReqConvKey = convKey;
+          lastReqAt = now;
           globalThis.__agpaTranscriptRequest(JSON.stringify({ convKey }));
         }
+      }
+      const hasDomCompact = Boolean(vp && vp.querySelector?.('[data-testid*="compact"], [data-testid*="compaction"]'));
+      if (hasDomCompact && !stats.compactions?.length && lastCompactRetryKey !== convKey && typeof globalThis.__agpaTranscriptRequest === 'function') {
+        lastCompactRetryKey = convKey;
+        cancelCompactRetry();
+        compactRetryTimer = setTimeout(() => {
+          compactRetryTimer = null;
+          if (!stopped && conversationKey() === convKey && !findNativeContext()) {
+            globalThis.__agpaTranscriptRequest?.(JSON.stringify({ convKey }));
+          }
+        }, 1200);
       }
     }
 
     if (isPending(stats)) {
+      cancelJump();
+      cancelCompactRetry();
       closePopup();
+      syncCompactionMarkers({ compactions: [] });
       document.querySelectorAll('[data-agpa-context-budget]').forEach(node => node.remove());
       document.querySelectorAll('[data-agpa-context-adjacent]').forEach(node => node.removeAttribute('data-agpa-context-adjacent'));
       return;
     }
+
+    syncCompactionMarkers(stats, precollectedBars);
 
     const triggers = document.querySelectorAll('[data-testid=model-selector-trigger]');
     if (!triggers.length) {
@@ -447,15 +1009,58 @@
     .agpa-context-compact-btn:hover {
       filter: brightness(1.15);
     }
+    .agpa-context-compactions {align-items:flex-start;margin-top:4px;padding-top:6px;border-top:1px solid var(--border,#333)}
+    .agpa-context-compactions .agpa-context-row-icon {color:#a78bfa;padding-top:3px;display:inline-flex;align-items:center;justify-content:center}
+    .agpa-context-compactions .agpa-context-row-label {padding-top:2px}
+    .agpa-context-compactions-array {display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:170px}
+    .agpa-context-compaction-chip {
+      border:1px solid color-mix(in srgb,#a78bfa 35%,transparent);
+      background:color-mix(in srgb,#a78bfa 14%,transparent);
+      color:#c4b5fd;border-radius:999px;padding:1px 7px;
+      font:600 11px/1.45 system-ui,sans-serif;cursor:pointer;
+      transition:background 120ms ease,border-color 120ms ease;
+    }
+    .agpa-context-compaction-chip:hover {
+      background:color-mix(in srgb,#a78bfa 26%,transparent);
+      border-color:color-mix(in srgb,#a78bfa 60%,transparent);
+    }
+    .agpa-context-compaction-chip:focus-visible {outline:2px solid #6ba9ff;outline-offset:2px}
+    .agpa-compaction-marker {
+      display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+      width:22px;height:22px;border-radius:6px;margin-inline:2px;
+      color:#c4b5fd;background:color-mix(in srgb,#a78bfa 14%,transparent);
+      border:1px solid color-mix(in srgb,#a78bfa 28%,transparent);
+      vertical-align:middle;cursor:default;
+      transition:background 140ms ease,color 140ms ease,box-shadow 180ms ease;
+    }
+    .agpa-compaction-marker:hover {
+      color:#ddd6fe;background:color-mix(in srgb,#a78bfa 24%,transparent);
+    }
+    .agpa-compaction-flash {
+      box-shadow:0 0 0 2px #a78bfa,0 0 10px color-mix(in srgb,#a78bfa 55%,transparent);
+    }
   `;
   document.head.append(style);
+
+  const isOwnUiNode = n => n?.nodeType === 1 && (
+    n.hasAttribute?.('data-agpa-context-ui') ||
+    n.hasAttribute?.('data-agpa-context-budget') ||
+    Boolean(n.closest?.('[data-agpa-context-ui], [data-agpa-context-budget], .agpa-context-popup'))
+  );
 
   const observer = new MutationObserver(records => {
     let relevant = false;
     for (const r of records) {
       const target = r.target.nodeType === 1 ? r.target : r.target.parentElement;
       if (!target) continue;
-      if (target.closest('[data-agpa-context-ui], [data-agpa-context-budget], .agpa-context-popup')) continue;
+      if (target.closest?.('[data-agpa-context-ui], [data-agpa-context-budget], .agpa-context-popup')) continue;
+      if (r.type === 'childList') {
+        const added = Array.from(r.addedNodes || []);
+        const removed = Array.from(r.removedNodes || []);
+        if ((added.length > 0 || removed.length > 0) && added.every(isOwnUiNode) && removed.every(isOwnUiNode)) {
+          continue;
+        }
+      }
       relevant = true;
       break;
     }
@@ -517,6 +1122,8 @@
         clearTimeout(timer);
         timer = null;
       }
+      cancelJump();
+      cancelCompactRetry();
       closePopup();
       observer.disconnect();
       unsubscribe();

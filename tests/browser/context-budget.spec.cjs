@@ -370,3 +370,46 @@ test("in-place model labels refresh the compaction ring from Gemini 4 to Flash",
   });
   await expect(pill).toHaveAttribute("aria-label", /~100k of ~512k/);
 });
+
+test("compacted responses show an end marker and clicking the wheel lists compacted turns", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    history.replaceState(null, "", "/c/compaction-markers-fixture");
+    const viewport = document.createElement("div");
+    viewport.dataset.testid = "autoscroll-viewport";
+    for (let i = 1; i <= 3; i++) {
+      const turn = document.createElement("div");
+      turn.innerHTML = `<div data-testid="user-input-step">Prompt number ${i}</div><div><button aria-label="Good response">Like</button><button aria-label="Copy">Copy</button></div>`;
+      viewport.append(turn);
+    }
+    document.body.append(viewport);
+    const api = globalThis.__AGContextBudget;
+    api.hydrateFromTranscript(api.getActiveKey(), {
+      maxChars: 9000,
+      maxTurns: 3,
+      apiTokens: 32000,
+      inputTokens: 12000,
+      cacheReadTokens: 19000,
+      outputTokens: 1000,
+      compactions: [
+        { turn: 2, preTokens: 256000, postTokens: 18500, count: 1, promptKey: "prompt number 2" },
+      ],
+    });
+  });
+
+  const markers = page.locator("[data-agpa-compaction-marker]");
+  await expect(markers).toHaveCount(1);
+  await expect(markers.first()).toHaveAttribute("data-agpa-compaction-turn", "2");
+  await expect(markers.first()).toHaveAttribute("title", /~256k.*~18\.5k/);
+
+  const pill = page.locator("[data-agpa-context-budget]");
+  await pill.click();
+  const popup = page.getByRole("dialog", { name: "Context window" });
+  const chips = popup.locator(".agpa-context-compaction-chip");
+  await expect(chips).toHaveCount(1);
+  await expect(chips.first()).toHaveText("#2");
+  await chips.first().click();
+  await expect(popup).toHaveCount(0);
+});
