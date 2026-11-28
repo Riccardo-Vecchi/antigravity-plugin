@@ -381,7 +381,10 @@ test("compacted responses show an end marker and clicking the wheel lists compac
     viewport.dataset.testid = "autoscroll-viewport";
     for (let i = 1; i <= 3; i++) {
       const turn = document.createElement("div");
-      turn.innerHTML = `<div data-testid="user-input-step">Prompt number ${i}</div><div><button aria-label="Good response">Like</button><button aria-label="Copy">Copy</button></div>`;
+      turn.innerHTML =
+        `<div data-testid="user-input-step">Prompt number ${i}</div>` +
+        '<div><button aria-label="Good response">Like</button>' +
+        '<button aria-label="Copy">Copy</button></div>';
       viewport.append(turn);
     }
     document.body.append(viewport);
@@ -394,7 +397,13 @@ test("compacted responses show an end marker and clicking the wheel lists compac
       cacheReadTokens: 19000,
       outputTokens: 1000,
       compactions: [
-        { turn: 2, preTokens: 256000, postTokens: 18500, count: 1, promptKey: "prompt number 2" },
+        {
+          turn: 2,
+          preTokens: 256000,
+          postTokens: 18500,
+          count: 1,
+          promptKey: "prompt number 2",
+        },
       ],
     });
   });
