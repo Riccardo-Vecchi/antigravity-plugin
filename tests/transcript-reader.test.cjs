@@ -336,3 +336,133 @@ test('unchanged transcript files are cached and changed files invalidate their s
   assert.ok(next.maxChars > first.maxChars);
   spy.mock.restore();
 });
+
+test('parseTranscriptContent records compaction turns from CHECKPOINT and steep token drops without per-turn footprints', () => {
+  const content = [
+    { type: 'USER_INPUT', content: 'Turn one prompt' },
+    { type: 'PLANNER_RESPONSE', content: 'Initial answer', input_tokens: 1000, cache_read_tokens: 4000, output_tokens: 200 },
+    { type: 'USER_INPUT', content: 'Turn two heavy task' },
+    { type: 'PLANNER_RESPONSE', content: 'Step 1', input_tokens: 5000, cache_read_tokens: 245000, output_tokens: 800 },
+    { type: 'CHECKPOINT', content: '# Resuming from a compaction' },
+    { type: 'PLANNER_RESPONSE', content: 'Step 2 after compaction', input_tokens: 18000, cache_read_tokens: 0, output_tokens: 250 },
+    { type: 'USER_INPUT', content: 'Turn three minor cache miss' },
+    { type: 'PLANNER_RESPONSE', content: 'Normal cache miss drop', input_tokens: 95000, cache_read_tokens: 0, output_tokens: 200 },
+    { type: 'PLANNER_RESPONSE', content: 'Normal slight decrease', input_tokens: 76000, cache_read_tokens: 0, output_tokens: 150 },
+    { type: 'USER_INPUT', content: 'Turn four manual compact' },
+    { type: 'PLANNER_RESPONSE', content: 'Compacted without checkpoint', input_tokens: 14000, cache_read_tokens: 0, output_tokens: 150 }
+  ].map(JSON.stringify).join('\n');
+
+  const parsed = parseTranscriptContent(content);
+  assert.equal(parsed.turns, 4);
+  assert.equal(parsed.turnsList, undefined);
+  assert.ok(!JSON.stringify(parsed).includes('footprint'));
+  assert.equal(parsed.compactions.length, 2);
+  assert.deepEqual(parsed.compactions[0], {
+    turn: 2,
+    preTokens: 250800,
+    postTokens: 18250,
+    count: 1,
+    promptKey: 'turn two heavy task',
+    nextPromptKey: 'turn three minor cache miss',
+    responseTail: 'step 2 after compaction'
+  });
+  assert.deepEqual(parsed.compactions[1], {
+    turn: 4,
+    preTokens: 76150,
+    postTokens: 14150,
+    count: 1,
+    promptKey: 'turn four manual compact',
+    nextPromptKey: '',
+    responseTail: 'compacted without checkpoint'
+  });
+});
+
+test('parseTranscriptContent updates apiTokens to checkpoint summary estimate after manual /compact', () => {
+  const summary = '# Resuming from a compaction\n' + 'a'.repeat(4000);
+  const content = [
+    { type: 'USER_INPUT', content: 'Explain OBS setup' },
+    { type: 'PLANNER_RESPONSE', content: 'Long explanation', input_tokens: 3000, cache_read_tokens: 29000, output_tokens: 1151 },
+    { type: 'USER_INPUT', content: '<USER_REQUEST> /compact </USER_REQUEST>' },
+    { type: 'CHECKPOINT', content: summary }
+  ].map(JSON.stringify).join('\n');
+
+  const parsed = parseTranscriptContent(content);
+  assert.equal(parsed.turns, 2);
+  assert.equal(parsed.compactions.length, 1);
+  assert.equal(parsed.compactions[0].turn, 2);
+  assert.equal(parsed.compactions[0].preTokens, 33151);
+  assert.equal(parsed.compactions[0].promptKey, '/compact');
+  assert.ok(parsed.apiTokens < 5000 && parsed.apiTokens >= 2000, `expected post-checkpoint summary estimate, got ${parsed.apiTokens}`);
+});
+
+test('parseTranscriptContent keeps apiTokens at 0 on CHECKPOINT for legacy no-telemetry transcripts', () => {
+  const content = [
+    { type: 'USER_INPUT', content: 'Legacy turn one' },
+    { type: 'PLANNER_RESPONSE', content: 'Legacy response without token fields' },
+    { type: 'CHECKPOINT', content: '# Resuming from a compaction\n' + 'x'.repeat(4000) },
+    { type: 'PLANNER_RESPONSE', content: 'Continued legacy response without token fields' }
+  ].map(JSON.stringify).join('\n');
+
+  const parsed = parseTranscriptContent(content);
+  assert.equal(parsed.turns, 1);
+  assert.equal(parsed.apiTokens, 0);
+  assert.equal(parsed.inputTokens, 0);
+  assert.equal(parsed.compactions.length, 1);
+  assert.equal(parsed.compactions[0].turn, 1);
+  assert.equal(parsed.compactions[0].preTokens, 0);
+  assert.equal(parsed.compactions[0].postTokens, 0);
+});
+
+test('parseTranscriptContent aggregates multiple compactions on the same turn keeping first preTokens and latest postTokens', () => {
+  const content = [
+    { type: 'USER_INPUT', content: 'Long multi-compaction turn' },
+    { type: 'PLANNER_RESPONSE', content: 'Before first compaction', input_tokens: 10000, cache_read_tokens: 210000, output_tokens: 500 },
+    { type: 'CHECKPOINT', content: 'First checkpoint summary' },
+    { type: 'PLANNER_RESPONSE', content: 'After first compaction', input_tokens: 20000, cache_read_tokens: 0, output_tokens: 300 },
+    { type: 'PLANNER_RESPONSE', content: 'Before second compaction', input_tokens: 5000, cache_read_tokens: 185000, output_tokens: 400 },
+    { type: 'CHECKPOINT', content: 'Second checkpoint summary' },
+    { type: 'PLANNER_RESPONSE', content: 'After second compaction', input_tokens: 15000, cache_read_tokens: 0, output_tokens: 200 }
+  ].map(JSON.stringify).join('\n');
+
+  const parsed = parseTranscriptContent(content);
+  assert.equal(parsed.turns, 1);
+  assert.equal(parsed.compactions.length, 1);
+  assert.equal(parsed.compactions[0].turn, 1);
+  assert.equal(parsed.compactions[0].count, 2);
+  assert.equal(parsed.compactions[0].preTokens, 220500);
+  assert.equal(parsed.compactions[0].postTokens, 15200);
+});
+
+test('parseTranscriptContent ignores turn 0 checkpoints emitted before any USER_INPUT', () => {
+  const content = [
+    { type: 'SYSTEM_MESSAGE', content: 'Headless subagent startup' },
+    { type: 'PLANNER_RESPONSE', content: 'Bootstrap step', input_tokens: 5000, cache_read_tokens: 10000, output_tokens: 100 },
+    { type: 'CHECKPOINT', content: 'Subagent checkpoint before any user turn' },
+    { type: 'PLANNER_RESPONSE', content: 'Post checkpoint step', input_tokens: 3000, cache_read_tokens: 0, output_tokens: 100 }
+  ].map(JSON.stringify).join('\n');
+
+  const parsed = parseTranscriptContent(content);
+  assert.equal(parsed.turns, 0);
+  assert.equal(parsed.compactions.length, 0);
+});
+
+test('parseTranscriptContent strips Markdown link URLs from responseTail', () => {
+  const content = [
+    { type: 'USER_INPUT', content: 'Update walkthrough' },
+    { type: 'PLANNER_RESPONSE', content: 'Working', input_tokens: 5000, cache_read_tokens: 120000, output_tokens: 200 },
+    { type: 'CHECKPOINT', content: 'Compaction summary' },
+    {
+      type: 'PLANNER_RESPONSE',
+      content: 'Finished updating [walkthrough.md](file:///C:/Users/max/.gemini/antigravity/brain/35d0d0d2-1234-44fa-bcf2-89378ed53fd2/walkthrough.md).',
+      input_tokens: 12000,
+      cache_read_tokens: 0,
+      output_tokens: 150
+    }
+  ].map(JSON.stringify).join('\n');
+
+  const parsed = parseTranscriptContent(content);
+  assert.equal(parsed.compactions.length, 1);
+  assert.equal(parsed.compactions[0].responseTail, 'finished updating walkthrough.md.');
+  assert.ok(!parsed.compactions[0].responseTail.includes('file://'));
+  assert.ok(!parsed.compactions[0].responseTail.includes('35d0d0d2'));
+});

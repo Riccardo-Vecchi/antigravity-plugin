@@ -62,6 +62,7 @@ function parseTranscriptContent(content) {
   let imageTokens = 0;
   let imageCount = 0;
   let latestApiTokens = 0;
+  let hasApiTelemetry = false;
   let latestInputTokens = 0;
   let latestCacheReadTokens = 0;
   let latestOutputTokens = 0;
@@ -70,6 +71,44 @@ function parseTranscriptContent(content) {
   let pendingTurnsAfterApi = 0;
   const blocks = [];
   const images = [];
+  const compactions = [];
+  const compactionByTurn = new Map();
+  let pendingCompaction = null;
+  let lastTurnPromptKey = '';
+
+  function normalizeKey(str) {
+    return String(str || '')
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/[*`#_]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  function recordCompaction(turnNum, preTokens, postTokens, promptKey) {
+    if (!turnNum || turnNum < 1) return null;
+    const existing = compactionByTurn.get(turnNum);
+    if (existing) {
+      existing.count = (existing.count || 1) + 1;
+      if (!existing.preTokens && preTokens > 0) existing.preTokens = preTokens;
+      if (postTokens > 0) existing.postTokens = postTokens;
+      return existing;
+    }
+    const entry = {
+      turn: turnNum,
+      preTokens: preTokens || 0,
+      postTokens: postTokens || 0,
+      count: 1,
+      promptKey: promptKey || '',
+      nextPromptKey: '',
+      responseTail: ''
+    };
+    compactionByTurn.set(turnNum, entry);
+    compactions.push(entry);
+    return entry;
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (!line) continue;
@@ -79,7 +118,13 @@ function parseTranscriptContent(content) {
 
         turns++;
         pendingTurnsAfterApi++;
-        const rawPrompt = (obj.content || '').replace(/<[^>]+>/g, ' ').trim();
+        const reqMatch = obj.content?.match(/<USER_REQUEST>([\s\S]*?)<\/USER_REQUEST>/i);
+        const rawPrompt = (reqMatch ? reqMatch[1] : (obj.content || '')).replace(/<[^>]+>/g, ' ').trim();
+        lastTurnPromptKey = normalizeKey(rawPrompt).slice(0, 40);
+        const prevCompaction = compactionByTurn.get(turns - 1);
+        if (prevCompaction && !prevCompaction.nextPromptKey && lastTurnPromptKey) {
+          prevCompaction.nextPromptKey = lastTurnPromptKey;
+        }
         const promptSnippet = rawPrompt.slice(0, 80);
         const promptCode = (obj.content?.match(/```[\s\S]*?```/g) || []).reduce((acc, c) => acc + c.length, 0);
         const len = obj.content?.length || 0;
@@ -99,6 +144,21 @@ function parseTranscriptContent(content) {
           }
         }
 
+      } else if (obj.type === 'CHECKPOINT') {
+        if (turns >= 1) {
+          pendingCompaction = recordCompaction(turns, latestApiTokens, 0, lastTurnPromptKey);
+        }
+        if (hasApiTelemetry) {
+          const summaryTok = Math.round((obj.content?.length || 0) / 4);
+          latestApiTokens = 1500 + summaryTok;
+          latestInputTokens = summaryTok;
+          latestCacheReadTokens = 0;
+          latestOutputTokens = 0;
+          pendingCharsAfterApi = 0;
+          pendingCodeCharsAfterApi = 0;
+          pendingTurnsAfterApi = 0;
+        }
+
       } else if (obj.type === 'PLANNER_RESPONSE') {
         if (typeof obj.input_tokens === 'number' || typeof obj.output_tokens === 'number' || typeof obj.cache_read_tokens === 'number') {
           const inTok = typeof obj.input_tokens === 'number' ? obj.input_tokens : 0;
@@ -106,6 +166,13 @@ function parseTranscriptContent(content) {
           const outTok = typeof obj.output_tokens === 'number' ? obj.output_tokens : 0;
           const t = inTok + cacheTok + outTok;
           if (t > 0) {
+            hasApiTelemetry = true;
+            if (pendingCompaction) {
+              pendingCompaction.postTokens = t;
+              pendingCompaction = null;
+            } else if (latestApiTokens >= 60000 && t <= latestApiTokens * 0.45 && (latestApiTokens - t) >= 40000) {
+              recordCompaction(turns, latestApiTokens, t, lastTurnPromptKey);
+            }
             latestApiTokens = t;
             latestInputTokens = inTok;
             latestCacheReadTokens = cacheTok;
@@ -120,7 +187,11 @@ function parseTranscriptContent(content) {
         let stepChars = 0;
         let stepCode = 0;
         if (obj.content) {
-
+          const activeCompaction = compactionByTurn.get(turns);
+          if (activeCompaction) {
+            const normTail = normalizeKey(obj.content.slice(-320)).slice(-40);
+            if (normTail) activeCompaction.responseTail = normTail;
+          }
           const respCode = (obj.content.match(/```[\s\S]*?```/g) || []).reduce((acc, c) => acc + c.length, 0);
           stepChars += obj.content.length;
           stepCode += respCode;
@@ -181,6 +252,7 @@ function parseTranscriptContent(content) {
     pendingTurns: pendingTurnsAfterApi,
     blocks,
     images,
+    compactions,
   };
 }
 
@@ -230,6 +302,7 @@ function readTranscriptStats(conversationKey, options = {}) {
       blocks: parsed.blocks,
       images: parsed.images,
       documents: [],
+      compactions: parsed.compactions,
       updatedAt: Date.now()
     };
     transcriptCache.delete(fileToRead);

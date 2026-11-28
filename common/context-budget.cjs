@@ -110,6 +110,8 @@ function hydrateFromTranscript(convKey, data, storage) {
       pendingCodeChars: 0,
       pendingTurns: 0,
       transcriptChars: 0,
+      compactions: [],
+      compactionHydrated: false,
     };
     conversationCache.set(convKey, entry);
   }
@@ -144,6 +146,12 @@ function hydrateFromTranscript(convKey, data, storage) {
   entry.pendingTurns = data.pendingTurns || 0;
   entry.transcriptChars = data.maxChars || entry.maxChars || 0;
   entry.transcriptTurns = data.maxTurns || entry.maxTurns || 0;
+  if (Array.isArray(data.compactions)) {
+    entry.compactions = data.compactions;
+    entry.compactionHydrated = true;
+  } else if (!Array.isArray(entry.compactions)) {
+    entry.compactions = [];
+  }
   entry.updatedAt = Date.now();
 
   saveConversationState(convKey, {
@@ -167,6 +175,8 @@ function hydrateFromTranscript(convKey, data, storage) {
     pendingTurns: entry.pendingTurns || 0,
     transcriptChars: entry.transcriptChars || 0,
     transcriptTurns: entry.transcriptTurns || 0,
+    compactions: entry.compactions,
+    compactionHydrated: Boolean(entry.compactionHydrated),
     ceiling: entry.ceiling,
     modelName: entry.modelName,
     updatedAt: entry.updatedAt
@@ -830,6 +840,8 @@ function extractConversationStats(doc = document, storage = undefined) {
         pendingTurns: stored.pendingTurns || 0,
         transcriptChars: stored.transcriptChars || 0,
         transcriptTurns: stored.transcriptTurns || 0,
+        compactions: Array.isArray(stored.compactions) ? stored.compactions : [],
+        compactionHydrated: Boolean(stored.compactionHydrated),
         ceiling: stored.ceiling || 1000000,
         modelName: stored.modelName || '',
         updatedAt: stored.updatedAt || Date.now()
@@ -843,11 +855,12 @@ function extractConversationStats(doc = document, storage = undefined) {
       const oldest = conversationCache.keys().next().value;
       conversationCache.delete(oldest);
     }
-    entry = { blocks: new Map(), images: new Map(), documents: new Map(), maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0, maxDocTokens: 0, systemTokens: 0, systemBaseline: null, apiTokens: 0, inputTokens: 0, cacheReadTokens: 0, outputTokens: 0, mtime: 0, pendingChars: 0, pendingCodeChars: 0, pendingTurns: 0, transcriptChars: 0, transcriptTurns: 0 };
+    entry = { blocks: new Map(), images: new Map(), documents: new Map(), maxChars: 0, maxCodeChars: 0, maxTurns: 0, maxImageTokens: 0, maxDocTokens: 0, systemTokens: 0, systemBaseline: null, apiTokens: 0, inputTokens: 0, cacheReadTokens: 0, outputTokens: 0, mtime: 0, pendingChars: 0, pendingCodeChars: 0, pendingTurns: 0, transcriptChars: 0, transcriptTurns: 0, compactions: [] };
     conversationCache.set(convKey, entry);
   }
   if (!entry.images) entry.images = new Map();
   if (!entry.documents) entry.documents = new Map();
+  if (!Array.isArray(entry.compactions)) entry.compactions = [];
   if (typeof entry.maxImageTokens !== 'number') entry.maxImageTokens = 0;
   if (typeof entry.maxDocTokens !== 'number') entry.maxDocTokens = 0;
   if (typeof entry.maxCodeChars !== 'number') entry.maxCodeChars = 0;
@@ -860,25 +873,29 @@ function extractConversationStats(doc = document, storage = undefined) {
     viewport?.querySelector?.('[class*="compact"], [data-testid*="step"]')?.textContent?.includes('Conversation compacted')
   );
   if (isCompacted && entry.compacted !== true) {
-    entry.blocks.clear();
-    entry.images.clear();
-    entry.documents.clear();
-    entry.maxChars = 0;
-    entry.maxCodeChars = 0;
-    entry.maxTurns = 0;
-    entry.maxImageTokens = 0;
-    entry.maxDocTokens = 0;
-    entry.apiTokens = 0;
-    entry.inputTokens = 0;
-    entry.cacheReadTokens = 0;
-    entry.outputTokens = 0;
-    entry.mtime = 0;
-    entry.pendingChars = 0;
-    entry.pendingCodeChars = 0;
-    entry.pendingTurns = 0;
-    entry.transcriptChars = 0;
+    if (!entry.compactions.length) {
+      entry.blocks.clear();
+      entry.images.clear();
+      entry.documents.clear();
+      entry.maxChars = 0;
+      entry.maxCodeChars = 0;
+      entry.maxTurns = 0;
+      entry.maxImageTokens = 0;
+      entry.maxDocTokens = 0;
+      entry.apiTokens = 0;
+      entry.inputTokens = 0;
+      entry.cacheReadTokens = 0;
+      entry.outputTokens = 0;
+      entry.mtime = 0;
+      entry.pendingChars = 0;
+      entry.pendingCodeChars = 0;
+      entry.pendingTurns = 0;
+      entry.transcriptChars = 0;
+      entry.transcriptTurns = 0;
+      entry.compactionHydrated = false;
+      clearConversationState(convKey, store);
+    }
     entry.compacted = true;
-    clearConversationState(convKey, store);
   }
 
   const activeModel = detectActiveModel(doc);
@@ -937,6 +954,8 @@ function extractConversationStats(doc = document, storage = undefined) {
     entry.blocks.clear();
     entry.images.clear();
     entry.documents.clear();
+    entry.compactions = [];
+    entry.compactionHydrated = false;
   }
 
   let docSum = 0;
@@ -1021,6 +1040,8 @@ function extractConversationStats(doc = document, storage = undefined) {
       pendingTurns: entry.pendingTurns || 0,
       transcriptChars: entry.transcriptChars || 0,
       transcriptTurns: entry.transcriptTurns || 0,
+      compactions: entry.compactions || [],
+      compactionHydrated: Boolean(entry.compactionHydrated),
       ceiling,
       modelName,
       updatedAt: Date.now()
@@ -1086,6 +1107,7 @@ function extractConversationStats(doc = document, storage = undefined) {
     cacheReadTokens: entry.cacheReadTokens || 0,
     outputTokens: entry.outputTokens || 0,
     mtime: entry.mtime || 0,
+    compactions: entry.compactions || [],
     tokens,
     ceiling,
     compactionThreshold,
@@ -1103,6 +1125,49 @@ function clearCache(key, storage) {
     conversationCache.clear();
     clearConversationState(null, storage);
   }
+}
+
+function resolveTurnNumberForPrompt(promptText, doc = document, storage = undefined) {
+  const normalizePrompt = str => String(str || '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[*`#_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/^\/+/, '')
+    .trim();
+  const clean = normalizePrompt(promptText);
+  if (!clean) return null;
+  const convKey = getConversationKey(doc);
+  let entry = conversationCache.get(convKey);
+  if (!entry) {
+    const stored = loadConversationState(convKey, storage !== undefined ? storage : getStorage(doc));
+    if (stored?.blocks) entry = { blocks: new Map(stored.blocks) };
+  }
+  if (!entry?.blocks) return null;
+  const exactMatches = [];
+  const prefixMatches = [];
+  for (const key of entry.blocks.keys()) {
+    if (typeof key !== 'string' || !key.startsWith('p:turn-')) continue;
+    const match = key.match(/^p:turn-(\d+):([\s\S]*)$/);
+    if (!match) continue;
+    const turnNum = parseInt(match[1], 10);
+    const snippet = normalizePrompt(match[2]);
+    if (!snippet) continue;
+    if (snippet === clean) {
+      exactMatches.push(turnNum);
+    } else if (
+      (snippet.length >= 16 && clean.startsWith(snippet)) ||
+      (clean.length >= 16 && snippet.startsWith(clean))
+    ) {
+      prefixMatches.push(turnNum);
+    }
+  }
+  if (exactMatches.length === 1) return exactMatches[0];
+  if (exactMatches.length > 1) return null;
+  if (prefixMatches.length === 1) return prefixMatches[0];
+  return null;
 }
 
 module.exports = {
@@ -1130,5 +1195,6 @@ module.exports = {
   hydrateFromTranscript,
   loadConversationState,
   clearConversationState,
-  clearCache
+  clearCache,
+  resolveTurnNumberForPrompt
 };
